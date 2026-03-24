@@ -614,6 +614,13 @@ private fun ResultCard(result: TournamentResult, onResultClick: () -> Unit = {})
 
 @Composable
 private fun LeaderRow(rank: Int, name: String, points: Int, isCurrent: Boolean) {
+    val medalEmoji = when (rank) {
+        1 -> "🥇"
+        2 -> "🥈"
+        3 -> "🥉"
+        else -> null
+    }
+
     Row(
         Modifier
             .fillMaxWidth()
@@ -621,22 +628,25 @@ private fun LeaderRow(rank: Int, name: String, points: Int, isCurrent: Boolean) 
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(
-                    if (rank <= 3) DarkTheme.Accent.copy(alpha = 0.15f)
-                    else DarkTheme.CardBorder.copy(alpha = 0.4f)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "$rank",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (rank <= 3) DarkTheme.Accent else DarkTheme.TextMuted
-            )
+        if (medalEmoji != null) {
+            Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                Text(medalEmoji, fontSize = 22.sp)
+            }
+        } else {
+            Box(
+                Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(DarkTheme.CardBorder.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "$rank",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = DarkTheme.TextMuted
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
