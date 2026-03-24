@@ -109,17 +109,43 @@ private fun DetailContent(
                 }
             }
 
-            // ── PARTICIPANTS PROGRESS ──
-            if (tournament.maxParticipants > 0) {
+            // ── ДНЕЙ ДО НАЧАЛА ──
+            run {
                 Spacer(Modifier.height(16.dp))
-                DarkCardPadded {
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Участники", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DarkTheme.TextPrimary)
-                        Text("${tournament.currentParticipants} из ${tournament.maxParticipants}",
-                            fontSize = 13.sp, color = DarkTheme.TextSecondary)
+                val daysLeft = try {
+                    val clean = tournament.startDate.substringBefore("+").substringBefore("Z")
+                    val startDate = if (clean.contains("T"))
+                        java.time.LocalDateTime.parse(clean).toLocalDate()
+                    else
+                        java.time.LocalDate.parse(clean)
+                    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), startDate)
+                } catch (_: Exception) { null }
+
+                if (daysLeft != null) {
+                    DarkCardPadded {
+                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Timer, null, Modifier.size(18.dp), DarkTheme.TextSecondary)
+                                Spacer(Modifier.width(8.dp))
+                                Text("До начала", fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = DarkTheme.TextPrimary)
+                            }
+                            Text(
+                                when {
+                                    daysLeft > 0 -> "$daysLeft дн."
+                                    daysLeft == 0L -> "Сегодня"
+                                    else -> "Завершён"
+                                },
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when {
+                                    daysLeft > 3 -> DarkTheme.TextPrimary
+                                    daysLeft in 1..3 -> DarkTheme.Accent
+                                    daysLeft == 0L -> DarkTheme.Accent
+                                    else -> DarkTheme.TextMuted
+                                }
+                            )
+                        }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    DarkProgressBar(tournament.currentParticipants.toFloat() / tournament.maxParticipants)
                 }
             }
 
@@ -214,56 +240,71 @@ private fun DetailContent(
             Spacer(Modifier.height(20.dp))
 
             // ── REGISTER BUTTON ──
-            if (tournament.status == TournamentStatus.REGISTRATION_OPEN) {
-                Button(
-                    onClick = onToggleRegistration,
-                    Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRegistered) DarkTheme.TextMuted else DarkTheme.Accent
-                    )
-                ) {
-                    Icon(if (isRegistered) Icons.Default.CheckCircle else Icons.Default.PersonAdd, null, Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (isRegistered) "Вы зарегистрированы" else "Зарегистрироваться",
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                }
-                // QR-билет доступен зарегистрированному спортсмену
-                if (isRegistered) {
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
+            run {
+                val daysUntilStart = try {
+                    val clean = tournament.startDate.substringBefore("+").substringBefore("Z")
+                    val startDate = if (clean.contains("T"))
+                        java.time.LocalDateTime.parse(clean).toLocalDate()
+                    else
+                        java.time.LocalDate.parse(clean)
+                    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), startDate)
+                } catch (_: Exception) { -1L }
+
+                val canRegister = daysUntilStart >= 7
+
+                if (canRegister && tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
+                    Button(
+                        onClick = onToggleRegistration,
+                        Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isRegistered) DarkTheme.TextMuted else DarkTheme.Accent
+                        )
+                    ) {
+                        Icon(if (isRegistered) Icons.Default.CheckCircle else Icons.Default.PersonAdd, null, Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (isRegistered) "Вы зарегистрированы" else "Зарегистрироваться",
+                            fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    if (isRegistered) {
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { onShowQrTicket(tournament.name, false) },
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkTheme.CardBorder)
+                        ) {
+                            Icon(Icons.Default.QrCode2, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Мой QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                } else if (tournament.status == TournamentStatus.CHECK_IN && isRegistered) {
+                    Button(
                         onClick = { onShowQrTicket(tournament.name, false) },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.Accent),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkTheme.Accent.copy(alpha = 0.5f))
+                        colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
                     ) {
                         Icon(Icons.Default.QrCode2, null, Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Мой QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Показать QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
-                }
-            } else if (tournament.status == TournamentStatus.CHECK_IN && isRegistered) {
-                // Во время check-in показываем QR-билет prominently
-                Button(
-                    onClick = { onShowQrTicket(tournament.name, false) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
-                ) {
-                    Icon(Icons.Default.QrCode2, null, Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Показать QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                }
-            } else if (tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
-                Surface(Modifier.fillMaxWidth(), RoundedCornerShape(12.dp), DarkTheme.CardBg) {
-                    Box(
-                        Modifier.fillMaxWidth().border(0.5.dp, DarkTheme.CardBorder, RoundedCornerShape(12.dp)).padding(16.dp),
-                        Alignment.Center
-                    ) {
-                        Text(
-                            if (tournament.status == TournamentStatus.IN_PROGRESS) "Турнир уже начался" else "Регистрация закрыта",
-                            fontSize = 15.sp, color = DarkTheme.TextSecondary, fontWeight = FontWeight.Medium)
+                } else if (tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
+                    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(12.dp), DarkTheme.CardBg) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(16.dp),
+                            Alignment.Center
+                        ) {
+                            Text(
+                                when {
+                                    tournament.status == TournamentStatus.IN_PROGRESS -> "Турнир уже начался"
+                                    daysUntilStart in 0..6 -> "Регистрация закрыта (менее 7 дней до начала)"
+                                    else -> "Регистрация закрыта"
+                                },
+                                fontSize = 15.sp, color = DarkTheme.TextSecondary, fontWeight = FontWeight.Medium)
+                        }
                     }
                 }
             }

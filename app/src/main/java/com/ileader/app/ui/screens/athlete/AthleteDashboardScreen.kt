@@ -278,7 +278,9 @@ private fun DashboardContent(
                         Modifier.padding(horizontal = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        recentResults.take(3).forEach { r -> ResultCard(r) }
+                        recentResults.take(3).forEach { r ->
+                            ResultCard(r, onResultClick = { onTournamentClick(r.tournamentId) })
+                        }
                     }
                 }
             }
@@ -553,10 +555,10 @@ private fun TournamentScrollCard(tournament: Tournament, seed: Int = 0, onClick:
 }
 
 @Composable
-private fun ResultCard(result: TournamentResult) {
+private fun ResultCard(result: TournamentResult, onResultClick: () -> Unit = {}) {
     val isTop = result.position <= 3
     Surface(
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().clickable { onResultClick() },
         shape = RoundedCornerShape(16.dp),
         color = DarkTheme.CardBg
     ) {
@@ -604,6 +606,8 @@ private fun ResultCard(result: TournamentResult) {
                     color = DarkTheme.Accent
                 )
             }
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Default.ChevronRight, null, Modifier.size(18.dp), DarkTheme.TextMuted)
         }
     }
 }

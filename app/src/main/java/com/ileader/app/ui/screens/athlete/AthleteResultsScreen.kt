@@ -33,13 +33,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 fun AthleteResultsScreen(user: User) {
     val viewModel: AthleteResultsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    var selectedTournamentId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
+
+    // Детали результатов турнира
+    selectedTournamentId?.let { id ->
+        com.ileader.app.ui.screens.viewer.ViewerTournamentResultsScreen(
+            tournamentId = id,
+            user = user,
+            onBack = { selectedTournamentId = null }
+        )
+        return
+    }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> ResultsContent(user, s.data.results, s.data.sports)
+        is UiState.Success -> ResultsContent(user, s.data.results, s.data.sports, onResultClick = { selectedTournamentId = it })
     }
 }
 
@@ -47,7 +58,8 @@ fun AthleteResultsScreen(user: User) {
 private fun ResultsContent(
     user: User,
     allResults: List<TournamentResult>,
-    sports: List<Pair<String, String>>
+    sports: List<Pair<String, String>>,
+    onResultClick: (String) -> Unit
 ) {
     var selectedSport by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
@@ -170,7 +182,7 @@ private fun ResultsContent(
                 EmptyState("Результаты не найдены", "Попробуйте изменить фильтры")
             } else {
                 filteredResults.forEach { result ->
-                    ResultCard(result)
+                    ResultCard(result, onClick = { onResultClick(result.tournamentId) })
                     Spacer(Modifier.height(10.dp))
                 }
             }
@@ -213,7 +225,7 @@ private fun ResultStatCard(modifier: Modifier, icon: ImageVector, value: String,
 }
 
 @Composable
-private fun ResultCard(result: TournamentResult) {
+private fun ResultCard(result: TournamentResult, onClick: () -> Unit = {}) {
     val isTop = result.position <= 3
     val medalColor = when (result.position) {
         1 -> Color(0xFFFFD700)
@@ -228,7 +240,7 @@ private fun ResultCard(result: TournamentResult) {
     val accent = DarkTheme.Accent
     val accentSoft = DarkTheme.AccentSoft
 
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(20.dp), cardBg) {
+    Surface(Modifier.fillMaxWidth().clickable { onClick() }, RoundedCornerShape(20.dp), cardBg) {
         Row(
             Modifier
                 .border(0.5.dp, cardBorder.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
@@ -284,6 +296,9 @@ private fun ResultCard(result: TournamentResult) {
                     fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = accent
                 )
             }
+
+            Spacer(Modifier.width(6.dp))
+            Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), textMuted)
         }
     }
 }

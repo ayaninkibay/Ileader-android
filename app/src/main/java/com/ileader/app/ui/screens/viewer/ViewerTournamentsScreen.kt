@@ -214,46 +214,40 @@ private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () 
             Spacer(Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(12.dp))
-                }
+                Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(formatShortDate(tournament.startDate), fontSize = 12.sp, color = TextSecondary)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.LocationOn, null, tint = Accent, modifier = Modifier.size(12.dp))
-                }
+                Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("${tournament.region ?: ""} · ${tournament.locationName ?: ""}", fontSize = 12.sp, color = TextSecondary)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.People, null, tint = Accent, modifier = Modifier.size(12.dp))
-                }
+                Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("${tournament.participantCount} / ${tournament.maxParticipants ?: 0} участников", fontSize = 12.sp, color = TextSecondary)
             }
 
             if (tournament.prize != null) {
                 Spacer(Modifier.height(12.dp))
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = AccentSoft) {
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = CardBorder.copy(alpha = 0.3f)) {
                     Row(
                         Modifier.fillMaxWidth().padding(10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null, tint = Accent, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Призовой фонд: ", fontSize = 12.sp, color = TextSecondary)
                             Text(tournament.prize, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Подробнее", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent)
-                            Icon(Icons.Default.ChevronRight, null, tint = Accent, modifier = Modifier.size(16.dp))
+                            Text("Подробнее", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                            Icon(Icons.Default.ChevronRight, null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                         }
                     }
                 }

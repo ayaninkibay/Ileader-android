@@ -1,5 +1,6 @@
 package com.ileader.app.ui.screens.athlete
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -144,6 +145,7 @@ private fun TournamentsListContent(
     var searchQuery by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableIntStateOf(0) }
     var selectedSport by remember { mutableIntStateOf(0) }
+    var showMyOnly by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showFilterSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -151,7 +153,9 @@ private fun TournamentsListContent(
     val statusFilters = listOf("Все", "Открыты", "Активные", "Завершённые")
     val sportFilters = listOf("Все виды") + sports.map { it.first }
 
-    val filteredTournaments = allTournaments.filter { t ->
+    val myIds = remember(myTournaments) { myTournaments.map { it.id }.toSet() }
+
+    val filteredTournaments = (if (showMyOnly) allTournaments.filter { it.id in myIds } else allTournaments).filter { t ->
         val matchesSearch = searchQuery.isEmpty() ||
             t.name.lowercase().contains(searchQuery.lowercase())
         val matchesStatus = selectedStatus == 0 || when (selectedStatus) {
@@ -183,19 +187,16 @@ private fun TournamentsListContent(
 
             // ── HEADER ──
             FadeIn(visible = started, delayMs = 0) {
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Column {
-                    Text(
-                        "Поиск турниров",
-                        fontSize = 14.sp, color = DarkTheme.TextMuted, fontWeight = FontWeight.Normal
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "Турниры", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold,
-                        color = DarkTheme.TextPrimary, letterSpacing = (-0.8).sp
-                    )
-                }
-                UserAvatar(avatarUrl = user.avatarUrl, displayName = user.displayName)
+            Column {
+                Text(
+                    "Поиск турниров",
+                    fontSize = 14.sp, color = DarkTheme.TextMuted, fontWeight = FontWeight.Normal
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Турниры", fontSize = 26.sp, fontWeight = FontWeight.ExtraBold,
+                    color = DarkTheme.TextPrimary, letterSpacing = (-0.8).sp
+                )
             }
             }
 
@@ -204,9 +205,15 @@ private fun TournamentsListContent(
             // ── STATS 3 в ряд ──
             FadeIn(visible = started, delayMs = 150) {
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                TournamentStatCard(Modifier.weight(1f), Icons.Default.EmojiEvents, myCount.toString(), "Мои")
-                TournamentStatCard(Modifier.weight(1f), Icons.Default.LockOpen, openCount.toString(), "Открыты")
-                TournamentStatCard(Modifier.weight(1f), Icons.Default.PlayArrow, activeCount.toString(), "Активные")
+                TournamentStatCard(Modifier.weight(1f), Icons.Default.EmojiEvents, myCount.toString(), "Мои", selected = showMyOnly && selectedStatus == 0) {
+                    showMyOnly = !showMyOnly; selectedStatus = 0
+                }
+                TournamentStatCard(Modifier.weight(1f), Icons.Default.LockOpen, openCount.toString(), "Открыты", selected = !showMyOnly && selectedStatus == 1) {
+                    showMyOnly = false; selectedStatus = if (selectedStatus == 1) 0 else 1
+                }
+                TournamentStatCard(Modifier.weight(1f), Icons.Default.PlayArrow, activeCount.toString(), "Активные", selected = !showMyOnly && selectedStatus == 2) {
+                    showMyOnly = false; selectedStatus = if (selectedStatus == 2) 0 else 2
+                }
             }
             }
 
@@ -327,24 +334,31 @@ private fun TournamentsListContent(
 
 // ── Stat card для экрана ──
 @Composable
-private fun TournamentStatCard(modifier: Modifier, icon: ImageVector, value: String, label: String) {
+private fun TournamentStatCard(modifier: Modifier, icon: ImageVector, value: String, label: String, selected: Boolean = false, onClick: () -> Unit = {}) {
     val accent = DarkTheme.Accent
     val accentSoft = DarkTheme.AccentSoft
     val cardBg = DarkTheme.CardBg
     val textPrimary = DarkTheme.TextPrimary
     val textSecondary = DarkTheme.TextSecondary
+    val border = DarkTheme.CardBorder
 
-    Surface(modifier.height(80.dp), RoundedCornerShape(16.dp), cardBg) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) accentSoft else cardBg,
+        border = if (selected) BorderStroke(1.5.dp, accent) else null
+    ) {
         Column(
             Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
-                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(accentSoft),
+                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(if (selected) accent else accentSoft),
                 Alignment.Center
             ) {
-                Icon(icon, null, Modifier.size(16.dp), accent)
+                Icon(icon, null, Modifier.size(16.dp), if (selected) Color.White else accent)
             }
             Spacer(Modifier.height(5.dp))
             Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = textPrimary, letterSpacing = (-0.3).sp)
