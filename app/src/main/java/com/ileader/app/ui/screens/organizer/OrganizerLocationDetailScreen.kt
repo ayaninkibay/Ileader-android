@@ -1,7 +1,6 @@
 package com.ileader.app.ui.screens.organizer
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -59,7 +58,7 @@ private fun LocationDetailContent(
     val tournamentsAtLocation = data.tournamentsAtLocation
     val facilities = location.facilities ?: emptyList()
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -207,7 +206,7 @@ private fun LocationDetailContent(
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(tournament.name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                Text("${tournament.sportName ?: ""} \u2022 ${tournament.startDate ?: ""}", fontSize = 11.sp, color = TextSecondary)
+                                Text("${tournament.sportName ?: ""} \u2022 ${formatShortDate(tournament.startDate)}", fontSize = 11.sp, color = TextSecondary)
                             }
                             val isActive = isActiveStatus(tournament.status)
                             StatusBadge(statusLabel(tournament.status), if (isActive) Accent else TextMuted)

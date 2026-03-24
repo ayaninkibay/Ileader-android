@@ -40,7 +40,6 @@ fun PlaceholderScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Bg)
             .statusBarsPadding()
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally

@@ -54,7 +54,7 @@ fun AdminLocationsScreen(
                 matchSearch && matchType && matchCity
             }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Локации", onBack)
 
                 Column(

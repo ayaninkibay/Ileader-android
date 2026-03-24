@@ -29,7 +29,7 @@ fun AdminSettingsScreen(user: User) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,

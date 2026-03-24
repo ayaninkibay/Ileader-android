@@ -48,7 +48,6 @@ fun ForgotPasswordScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
     ) {
         Column(
             modifier = Modifier

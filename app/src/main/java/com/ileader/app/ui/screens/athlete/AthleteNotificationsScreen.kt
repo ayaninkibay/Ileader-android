@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.athlete
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -60,7 +59,7 @@ private fun NotificationsContent(
     val pendingInvites = invites.count { it.status == InviteStatus.PENDING }
     val pendingRequests = teamRequests.count { it.status == InviteStatus.PENDING }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // ── HEADER ──
             Row(

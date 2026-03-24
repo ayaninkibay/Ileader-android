@@ -89,7 +89,7 @@ private fun DashboardContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = Accent
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -180,7 +180,7 @@ private fun DashTournamentCard(tournament: TournamentDto, onClick: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(2.dp))
-                Text("${tournament.startDate ?: ""} \u2022 ${tournament.locations?.name ?: ""}", fontSize = 12.sp, color = TextSecondary, maxLines = 1)
+                Text("${formatShortDate(tournament.startDate)} \u2022 ${tournament.locations?.name ?: ""}", fontSize = 12.sp, color = TextSecondary)
             }
             Spacer(Modifier.width(8.dp))
             StatusBadge(statusLabel(tournament.status), if (isActiveStatus(tournament.status)) Accent else TextMuted)

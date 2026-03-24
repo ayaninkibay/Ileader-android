@@ -1,6 +1,7 @@
 package com.ileader.app.ui.screens.trainer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -67,7 +68,7 @@ fun TrainerTeamScreen(user: User) {
             var started by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { started = true }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -203,11 +204,25 @@ fun TrainerTeamScreen(user: User) {
                         selectedTeam.members.forEach { athlete ->
                             DarkCard(Modifier.clickable { selectedAthleteId = athlete.id }) {
                                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        Modifier.size(44.dp).clip(CircleShape).background(DarkTheme.AccentSoft),
-                                        Alignment.Center
-                                    ) {
-                                        Text(athlete.name.first().toString(), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.Accent)
+                                    // Аватар с бейджем спорта
+                                    Box {
+                                        UserAvatar(
+                                            avatarUrl = athlete.avatarUrl,
+                                            displayName = athlete.name,
+                                            size = 44.dp
+                                        )
+                                        Box(
+                                            Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .offset(x = 3.dp, y = 3.dp)
+                                                .size(18.dp)
+                                                .clip(CircleShape)
+                                                .background(DarkTheme.CardBg)
+                                                .border(1.5.dp, DarkTheme.CardBorder, CircleShape),
+                                            Alignment.Center
+                                        ) {
+                                            Icon(sportIcon(selectedTeam.sportName), null, Modifier.size(10.dp), DarkTheme.TextMuted)
+                                        }
                                     }
                                     Spacer(Modifier.width(12.dp))
                                     Column(Modifier.weight(1f)) {

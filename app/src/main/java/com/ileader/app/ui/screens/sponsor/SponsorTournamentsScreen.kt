@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.sponsor
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
@@ -60,7 +59,7 @@ fun SponsorTournamentsScreen(user: User) {
             var visible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { visible = true }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier.fillMaxSize().statusBarsPadding()
                         .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
@@ -162,7 +161,7 @@ private fun OpenTournamentItem(tournament: TournamentWithCountsDto, applied: Boo
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("${tournament.startDate ?: ""} — ${tournament.endDate ?: ""}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                Text("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
                 Spacer(Modifier.width(16.dp))
                 Icon(Icons.Default.LocationOn, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))

@@ -76,7 +76,7 @@ private fun TournamentsSuccessContent(
         matchSearch && matchStatus && matchSport
     }
 
-    Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -205,7 +205,7 @@ private fun TournamentCard(
 
             Text(
                 buildString {
-                    append("${tournament.startDate ?: ""} — ${tournament.endDate ?: ""}")
+                    append("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}")
                     append(" · ${tournament.participantCount}/${tournament.maxParticipants ?: "∞"}")
                     if (tournament.ageCategory != null) {
                         append(" · ${AdminMockData.ageCategoryLabel(tournament.ageCategory)}")

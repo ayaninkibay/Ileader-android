@@ -66,7 +66,7 @@ fun ViewerCommunityScreen(
             LaunchedEffect(Unit) { visible = true }
 
             Column(
-                Modifier.fillMaxSize().background(Bg)
+                Modifier.fillMaxSize()
                     .statusBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)

@@ -12,10 +12,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -77,7 +82,7 @@ private fun DashboardContent(user: User, onNavigate: (String) -> Unit) {
             val stats = s.data.stats
 
             val accentColor = Accent
-            Box(Modifier.fillMaxSize().background(Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Canvas(Modifier.fillMaxSize()) {
                     drawCircle(
                         brush = Brush.radialGradient(
@@ -112,13 +117,13 @@ private fun DashboardContent(user: User, onNavigate: (String) -> Unit) {
                     // Stats 2x2
                     FadeIn(visible, 200) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StatItem(Modifier.weight(1f), Icons.Default.People, "${stats.totalUsers}", "Пользователей")
-                            StatItem(Modifier.weight(1f), Icons.Default.EmojiEvents, "${stats.activeTournaments}", "Турниров")
+                            StatItem(Modifier.weight(1f).height(76.dp), Icons.Default.People, "${stats.totalUsers}", "Пользователей")
+                            StatItem(Modifier.weight(1f).height(76.dp), Icons.Default.EmojiEvents, "${stats.activeTournaments}", "Турниров")
                         }
                         Spacer(Modifier.height(10.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StatItem(Modifier.weight(1f), Icons.Default.SportsSoccer, "${stats.totalSports}", "Видов спорта")
-                            StatItem(Modifier.weight(1f), Icons.Default.Block, "${stats.blockedUsers}", "Заблокировано")
+                            StatItem(Modifier.weight(1f).height(76.dp), Icons.Default.SportsSoccer, "${stats.totalSports}", "Видов спорта")
+                            StatItem(Modifier.weight(1f).height(76.dp), Icons.Default.Block, "${stats.blockedUsers}", "Заблокировано")
                         }
                     }
 
@@ -233,20 +238,67 @@ private fun QuickAction(modifier: Modifier, icon: ImageVector, label: String, on
 @Composable
 private fun SimpleBarChart(data: List<AdminMockData.ChartPoint>, modifier: Modifier = Modifier) {
     val maxValue = data.maxOfOrNull { it.value } ?: 1
-    Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
-        data.forEach { point ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                Text("${point.value}", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(4.dp))
-                Box(
-                    Modifier.width(28.dp)
-                        .fillMaxHeight(fraction = (point.value.toFloat() / maxValue).coerceIn(0.05f, 1f))
-                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                        .background(Brush.verticalGradient(listOf(Accent, AccentDark)))
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(point.label, fontSize = 10.sp, color = TextMuted, textAlign = TextAlign.Center)
-            }
+    val accentColor = Accent
+    val accentDarkColor = AccentDark
+    val textMutedColor = TextMuted
+    val density = LocalDensity.current
+
+    Canvas(modifier = modifier) {
+        val labelHeight = with(density) { 14.sp.toPx() }
+        val valueHeight = with(density) { 14.sp.toPx() }
+        val spacer = with(density) { 4.dp.toPx() }
+        val cornerRadius = with(density) { 4.dp.toPx() }
+
+        val chartTop = valueHeight + spacer
+        val chartBottom = size.height - labelHeight - spacer
+        val chartHeight = chartBottom - chartTop
+        val barAreaWidth = size.width / data.size
+        val barWidth = barAreaWidth * 0.5f
+
+        data.forEachIndexed { index, point ->
+            val fraction = (point.value.toFloat() / maxValue).coerceIn(0.05f, 1f)
+            val barHeight = chartHeight * fraction
+            val centerX = barAreaWidth * index + barAreaWidth / 2f
+            val barLeft = centerX - barWidth / 2f
+            val barTop = chartBottom - barHeight
+
+            // Draw bar with gradient (top color → bottom color)
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    listOf(accentColor, accentDarkColor),
+                    startY = barTop,
+                    endY = chartBottom
+                ),
+                topLeft = Offset(barLeft, barTop),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+            )
+
+            // Value label above bar
+            drawContext.canvas.nativeCanvas.drawText(
+                "${point.value}",
+                centerX,
+                barTop - spacer,
+                android.graphics.Paint().apply {
+                    color = textMutedColor.toArgb()
+                    textSize = with(density) { 10.sp.toPx() }
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+            )
+
+            // Month label below bar
+            drawContext.canvas.nativeCanvas.drawText(
+                point.label,
+                centerX,
+                size.height,
+                android.graphics.Paint().apply {
+                    color = textMutedColor.toArgb()
+                    textSize = with(density) { 10.sp.toPx() }
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+            )
         }
     }
 }

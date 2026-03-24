@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.organizer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -100,7 +99,7 @@ private fun LocationEditContent(
 
     val isSaving = saveState is UiState.Loading
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()

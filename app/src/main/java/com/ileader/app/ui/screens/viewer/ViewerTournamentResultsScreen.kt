@@ -58,7 +58,7 @@ fun ViewerTournamentResultsScreen(
             val locationCity = tournament.locations?.city ?: tournament.region ?: ""
 
             Column(
-                Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState()).statusBarsPadding()
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding()
             ) {
                 // Header
                 Row(
@@ -78,7 +78,7 @@ fun ViewerTournamentResultsScreen(
                     buildString {
                         if (locationName.isNotBlank()) append("$locationName, ")
                         if (locationCity.isNotBlank()) append("$locationCity · ")
-                        append(formatDateRu(tournament.startDate ?: ""))
+                        append(formatShortDate(tournament.startDate))
                     },
                     fontSize = 13.sp, color = TextMuted, modifier = Modifier.padding(horizontal = 20.dp)
                 )

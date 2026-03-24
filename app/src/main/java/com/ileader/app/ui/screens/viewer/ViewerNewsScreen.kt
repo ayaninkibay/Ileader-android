@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.viewer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
@@ -54,7 +53,7 @@ fun ViewerNewsScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().background(Bg)
+        Modifier.fillMaxSize()
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)

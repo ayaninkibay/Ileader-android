@@ -1,7 +1,6 @@
 package com.ileader.app.ui.screens.sponsor
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -68,7 +67,7 @@ private fun DashboardContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = DarkTheme.Accent
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -191,7 +190,7 @@ private fun OpenTournamentCard(tournament: TournamentWithCountsDto, applied: Boo
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("${tournament.startDate ?: ""} — ${tournament.endDate ?: ""}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                Text("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

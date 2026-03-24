@@ -36,7 +36,7 @@ fun AthleteRacingLicenseScreen(
 ) {
     val license = AthleteMockData.license
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()

@@ -50,7 +50,7 @@ fun AdminLocationEditScreen(locationId: String, onBack: () -> Unit) {
                 }
             }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Редактирование локации", onBack)
 
                 Column(

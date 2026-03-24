@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.trainer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -73,7 +72,7 @@ fun TrainerTournamentsScreen(user: User) {
             var started by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { started = true }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -189,7 +188,7 @@ fun TrainerTournamentsScreen(user: User) {
                             Text("Зарегистрировать команду «${selectedTeam.name}» на турнир:", fontSize = 14.sp)
                             Spacer(Modifier.height(8.dp))
                             Text(tournament.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                            Text("${tournament.startDate} · ${tournament.location}", fontSize = 13.sp)
+                            Text("${formatShortDate(tournament.startDate)} · ${tournament.location}", fontSize = 13.sp)
                         }
                     },
                     confirmButton = {
@@ -235,11 +234,11 @@ private fun TournamentCard(tournament: Tournament, isRegistered: Boolean, onRegi
             Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(16.dp)) {
                 Column {
                     Text("Дата", fontSize = 11.sp, color = DarkTheme.TextMuted)
-                    Text(tournament.startDate, fontSize = 13.sp, color = DarkTheme.TextPrimary, fontWeight = FontWeight.Medium)
+                    Text(formatShortDate(tournament.startDate), fontSize = 13.sp, color = DarkTheme.TextPrimary, fontWeight = FontWeight.Medium)
                 }
                 Column {
                     Text("Место", fontSize = 11.sp, color = DarkTheme.TextMuted)
-                    Text(tournament.location, fontSize = 13.sp, color = DarkTheme.TextPrimary, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tournament.location, fontSize = 13.sp, color = DarkTheme.TextPrimary, fontWeight = FontWeight.Medium)
                 }
             }
 

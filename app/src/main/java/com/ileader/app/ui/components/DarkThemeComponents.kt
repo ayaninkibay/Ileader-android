@@ -71,6 +71,36 @@ object DarkTheme {
 }
 
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// SPORT ICON HELPER
+// ══════════════════════════════════════════════════════════
+
+fun sportEmoji(sportName: String) = when (sportName.lowercase().trim()) {
+    "картинг", "karting"                          -> "🏎️"
+    "стрельба", "shooting"                        -> "🎯"
+    "теннис", "tennis"                            -> "🎾"
+    "футбол", "football", "soccer"                -> "⚽"
+    "бокс", "boxing"                              -> "🥊"
+    "плавание", "swimming"                        -> "🏊"
+    "лёгкая атлетика", "легкая атлетика",
+    "athletics", "track and field"                -> "🏃"
+    "гребля", "rowing"                            -> "🚣"
+    else                                          -> "🏆"
+}
+
+fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
+    "картинг", "karting"                     -> Icons.Default.DirectionsCar
+    "стрельба", "shooting"                   -> Icons.Default.GpsFixed
+    "теннис", "tennis"                       -> Icons.Default.SportsTennis
+    "футбол", "football", "soccer"           -> Icons.Default.SportsSoccer
+    "бокс", "boxing"                         -> Icons.Default.SportsMartialArts
+    "плавание", "swimming"                   -> Icons.Default.Pool
+    "лёгкая атлетика", "легкая атлетика",
+    "athletics", "track and field"           -> Icons.Default.DirectionsRun
+    "гребля", "rowing"                       -> Icons.Default.Rowing
+    else                                     -> Icons.Default.EmojiEvents
+}
+
 // CARDS
 // ══════════════════════════════════════════════════════════
 
@@ -247,7 +277,7 @@ fun StatItem(
                     color = colors.textPrimary,
                     letterSpacing = (-0.3).sp
                 )
-                Text(label, fontSize = 11.sp, color = colors.textMuted)
+                Text(label, fontSize = 11.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -264,12 +294,14 @@ fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
     ) {
         Column(
             Modifier
+                .fillMaxSize()
                 .then(
                     if (isDark) Modifier.border(0.5.dp, colors.border.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     else Modifier
                 )
                 .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 value,
@@ -278,7 +310,7 @@ fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
                 color = colors.textPrimary,
                 letterSpacing = (-0.3).sp
             )
-            Text(label, fontSize = 11.sp, color = colors.textMuted)
+            Text(label, fontSize = 11.sp, color = colors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -475,15 +507,57 @@ fun DarkFilterChip(
     )
 }
 
+@Composable
+fun DarkSegmentedControl(
+    options: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalAppColors.current
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = colors.cardBg
+    ) {
+        Row(
+            modifier = Modifier
+                .border(0.5.dp, colors.border.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            options.forEachIndexed { index, label ->
+                Surface(
+                    onClick = { onSelect(index) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(9.dp),
+                    color = if (selectedIndex == index) colors.accent else Color.Transparent
+                ) {
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                        fontSize = 12.sp,
+                        fontWeight = if (selectedIndex == index) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedIndex == index) Color.White else colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ══════════════════════════════════════════════════════════
 // BADGES
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun StatusBadge(text: String, color: Color = LocalAppColors.current.accent) {
+fun StatusBadge(text: String, color: Color = LocalAppColors.current.textSecondary) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.10f)
+        color = Color.White.copy(alpha = 0.10f)
     ) {
         Text(
             text,
@@ -616,9 +690,7 @@ fun DarkProgressBar(progress: Float, modifier: Modifier = Modifier) {
                 .fillMaxHeight()
                 .fillMaxWidth(progress.coerceIn(0f, 1f))
                 .clip(RoundedCornerShape(3.dp))
-                .background(
-                    Brush.horizontalGradient(listOf(colors.accent, colors.accentDark))
-                )
+                .background(colors.textMuted)
         )
     }
 }

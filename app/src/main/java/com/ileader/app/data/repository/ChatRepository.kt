@@ -9,6 +9,7 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -184,7 +185,8 @@ class ChatRepository {
         val channel = client.channel("chat:$conversationId")
         val flow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
             table = "messages"
-            filter = "conversation_id=eq.$conversationId"
+        }.filter { action ->
+            (action.record["conversation_id"]?.jsonPrimitive?.content ?: "") == conversationId
         }.map { action ->
             val record = action.record
             MessageDto(

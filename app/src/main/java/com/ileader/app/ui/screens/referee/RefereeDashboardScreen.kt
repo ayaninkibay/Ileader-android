@@ -1,7 +1,6 @@
 package com.ileader.app.ui.screens.referee
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -70,7 +69,7 @@ private fun DashboardContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = Accent
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -208,7 +207,7 @@ private fun CalendarItem(tournament: RefereeTournament) {
             Column(Modifier.weight(1f)) {
                 Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(3.dp))
-                Text("${tournament.date} · ${tournament.location.take(20)}", fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${tournament.date} · ${tournament.location}", fontSize = 12.sp, color = TextSecondary)
             }
         }
     }

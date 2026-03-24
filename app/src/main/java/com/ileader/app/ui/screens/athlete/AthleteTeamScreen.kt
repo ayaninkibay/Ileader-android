@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.Team
@@ -53,110 +54,131 @@ private fun TeamContent(user: User, team: Team, onBack: () -> Unit) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
-
-            // ── BACK + TITLE ──
+            // ── HERO BANNER ──
             FadeIn(visible = started, delayMs = 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    onClick = onBack, shape = CircleShape, color = DarkTheme.CardBg,
-                    modifier = Modifier.size(40.dp).border(0.5.dp, DarkTheme.CardBorder, CircleShape)
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+            ) {
+
+                // Логотип + название по центру
+                Column(
+                    Modifier.fillMaxSize().padding(bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
                 ) {
-                    Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", Modifier.size(20.dp), DarkTheme.TextPrimary)
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text("Команда", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                        color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
-                    Spacer(Modifier.height(2.dp))
-                    Text(team.name, fontSize = 13.sp, color = DarkTheme.TextSecondary)
-                }
-            }
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // ── TEAM HEADER CARD ──
-            FadeIn(visible = started, delayMs = 150) {
-            DarkCard {
-                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
-                        Modifier.size(64.dp).clip(CircleShape)
-                            .background(Brush.linearGradient(listOf(DarkTheme.Accent, DarkTheme.AccentDark))),
+                        Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(DarkTheme.AccentSoft)
+                            .border(1.dp, DarkTheme.CardBorder, RoundedCornerShape(20.dp)),
                         Alignment.Center
                     ) {
-                        Icon(Icons.Default.Groups, null, Modifier.size(32.dp), Color.White)
+                        Icon(Icons.Default.Groups, null, Modifier.size(36.dp), DarkTheme.Accent)
                     }
-                    Spacer(Modifier.height(10.dp))
-                    Text(team.name, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                        color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
-                    Text(team.sportName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        team.name,
+                        fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = DarkTheme.TextPrimary,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(sportIcon(team.sportName), null, Modifier.size(13.dp), DarkTheme.TextSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(team.sportName, fontSize = 13.sp, color = DarkTheme.TextSecondary)
+                    }
                 }
             }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                Spacer(Modifier.height(16.dp))
 
-            // ── STATS ──
-            FadeIn(visible = started, delayMs = 300) {
-            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
+                // ── STATS ──
+                FadeIn(visible = started, delayMs = 200) {
                 val totalTournaments = team.members.sumOf { it.tournaments }
                 val totalWins = team.members.sumOf { it.wins }
 
-                TeamStatItem(Modifier.weight(1f), Icons.Default.People, team.members.size.toString(), "Участников")
-                TeamStatItem(Modifier.weight(1f), Icons.Default.EmojiEvents, totalTournaments.toString(), "Турниров")
-                TeamStatItem(Modifier.weight(1f), Icons.Default.Star, totalWins.toString(), "Побед")
-            }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // ── TEAM INFO ──
-            FadeIn(visible = started, delayMs = 450) {
-            DarkCardPadded {
-                Text("О команде", fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
-                    color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
-                Spacer(Modifier.height(10.dp))
-                Text(team.description, fontSize = 14.sp, color = DarkTheme.TextSecondary, lineHeight = 20.sp)
-
-                Spacer(Modifier.height(14.dp))
-
-                TeamInfoRow(Icons.Default.Person, "Тренер", team.trainerName)
-                TeamInfoRow(Icons.Default.SportsSoccer, "Вид спорта", team.sportName)
-                TeamInfoRow(Icons.Default.CalendarMonth, "Основана", team.foundedDate)
-                if (team.sponsorName != null) {
-                    TeamInfoRow(Icons.Default.Handshake, "Спонсор", team.sponsorName)
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
+                    TeamStatItem(Modifier.weight(1f), Icons.Default.People, team.members.size.toString(), "Участников")
+                    TeamStatItem(Modifier.weight(1f), Icons.Default.EmojiEvents, totalTournaments.toString(), "Турниров")
+                    TeamStatItem(Modifier.weight(1f), Icons.Default.Star, totalWins.toString(), "Побед")
                 }
-            }
-            }
+                }
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-            // ── MEMBERS ──
-            FadeIn(visible = started, delayMs = 600) {
-            Column {
-            Text("Участники команды", fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
-            Spacer(Modifier.height(10.dp))
+                // ── TEAM INFO ──
+                FadeIn(visible = started, delayMs = 350) {
+                Surface(Modifier.fillMaxWidth(), RoundedCornerShape(20.dp), DarkTheme.CardBg) {
+                    Column(
+                        Modifier
+                            .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            "О команде", fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+                            color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(team.description, fontSize = 14.sp, color = DarkTheme.TextSecondary, lineHeight = 20.sp)
 
-            team.members.forEach { member ->
-                MemberCard(member = member, isCurrentUser = member.id == user.id)
-                Spacer(Modifier.height(8.dp))
-            }
-            }
-            }
+                        Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(32.dp))
+                        // Разделитель
+                        Box(Modifier.fillMaxWidth().height(0.5.dp).background(DarkTheme.CardBorder.copy(alpha = 0.5f)))
+
+                        Spacer(Modifier.height(14.dp))
+
+                        TeamInfoRow(Icons.Default.Person, "Тренер", team.trainerName)
+                        TeamInfoRow(Icons.Default.SportsSoccer, "Вид спорта", team.sportName)
+                        TeamInfoRow(Icons.Default.CalendarMonth, "Основана", team.foundedDate)
+                        if (team.sponsorName != null) {
+                            TeamInfoRow(Icons.Default.Handshake, "Спонсор", team.sponsorName)
+                        }
+                    }
+                }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // ── MEMBERS ──
+                FadeIn(visible = started, delayMs = 500) {
+                Column {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    Text(
+                        "Участники команды", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                        color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp
+                    )
+                    Surface(shape = RoundedCornerShape(10.dp), color = DarkTheme.AccentSoft) {
+                        Text(
+                            "${team.members.size} чел.",
+                            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.Accent
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+
+                team.members.forEach { member ->
+                    MemberCard(member = member, isCurrentUser = member.id == user.id, sportName = team.sportName)
+                    Spacer(Modifier.height(8.dp))
+                }
+                }
+                }
+
+                Spacer(Modifier.height(32.dp))
+            }
         }
     }
 }
@@ -165,19 +187,28 @@ private fun TeamContent(user: User, team: Team, onBack: () -> Unit) {
 
 @Composable
 private fun TeamStatItem(modifier: Modifier, icon: ImageVector, value: String, label: String) {
-    Surface(modifier, RoundedCornerShape(14.dp), DarkTheme.CardBg) {
+    val accent = DarkTheme.Accent
+    val accentSoft = DarkTheme.AccentSoft
+    val cardBg = DarkTheme.CardBg
+    val cardBorder = DarkTheme.CardBorder
+    val textPrimary = DarkTheme.TextPrimary
+    val textMuted = DarkTheme.TextMuted
+
+    Surface(modifier.height(80.dp), RoundedCornerShape(16.dp), cardBg) {
         Column(
-            Modifier.border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(14.dp)).padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            Modifier
+                .border(0.5.dp, cardBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Box(
-                Modifier.size(36.dp).clip(CircleShape).background(DarkTheme.AccentSoft),
+                Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(accentSoft),
                 Alignment.Center
-            ) { Icon(icon, null, Modifier.size(18.dp), DarkTheme.Accent) }
-            Spacer(Modifier.height(8.dp))
-            Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold,
-                color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
-            Text(label, fontSize = 11.sp, color = DarkTheme.TextMuted)
+            ) { Icon(icon, null, Modifier.size(16.dp), accent) }
+            Spacer(Modifier.height(5.dp))
+            Text(value, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = textPrimary, letterSpacing = (-0.3).sp)
+            Text(label, fontSize = 10.sp, color = textMuted)
         }
     }
 }
@@ -185,7 +216,10 @@ private fun TeamStatItem(modifier: Modifier, icon: ImageVector, value: String, l
 @Composable
 private fun TeamInfoRow(icon: ImageVector, label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(32.dp).clip(CircleShape).background(DarkTheme.CardBorder.copy(alpha = 0.5f)), Alignment.Center) {
+        Box(
+            Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(DarkTheme.CardBorder.copy(alpha = 0.5f)),
+            Alignment.Center
+        ) {
             Icon(icon, null, Modifier.size(16.dp), DarkTheme.TextMuted)
         }
         Spacer(Modifier.width(10.dp))
@@ -197,45 +231,80 @@ private fun TeamInfoRow(icon: ImageVector, label: String, value: String) {
 }
 
 @Composable
-private fun MemberCard(member: TeamMember, isCurrentUser: Boolean) {
+private fun MemberCard(member: TeamMember, isCurrentUser: Boolean, sportName: String) {
+    val accent = DarkTheme.Accent
+    val accentSoft = DarkTheme.AccentSoft
+    val cardBg = DarkTheme.CardBg
+    val cardBorder = DarkTheme.CardBorder
+    val textPrimary = DarkTheme.TextPrimary
+    val textMuted = DarkTheme.TextMuted
+
     Surface(
-        Modifier.fillMaxWidth(), RoundedCornerShape(16.dp),
-        if (isCurrentUser) DarkTheme.Accent.copy(alpha = 0.06f) else DarkTheme.CardBg,
+        Modifier.fillMaxWidth(),
+        RoundedCornerShape(18.dp),
+        if (isCurrentUser) accent.copy(alpha = 0.07f) else cardBg,
         border = ButtonDefaults.outlinedButtonBorder(true).copy(
             brush = Brush.linearGradient(
-                if (isCurrentUser) listOf(DarkTheme.Accent.copy(alpha = 0.3f), DarkTheme.Accent.copy(alpha = 0.1f))
-                else listOf(DarkTheme.CardBorder.copy(alpha = 0.6f), DarkTheme.CardBorder.copy(alpha = 0.2f))
+                if (isCurrentUser) listOf(accent.copy(alpha = 0.35f), accent.copy(alpha = 0.1f))
+                else listOf(cardBorder.copy(alpha = 0.6f), cardBorder.copy(alpha = 0.2f))
             )
         )
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(44.dp).clip(CircleShape).background(
-                    if (isCurrentUser) DarkTheme.AccentSoft else DarkTheme.CardBorder.copy(alpha = 0.5f)
-                ),
-                Alignment.Center
-            ) {
-                Icon(Icons.Default.Person, null, Modifier.size(24.dp),
-                    if (isCurrentUser) DarkTheme.Accent else DarkTheme.TextMuted)
+            // Аватар участника с бейджем спорта
+            Box {
+                UserAvatar(
+                    avatarUrl = member.avatarUrl,
+                    displayName = member.name,
+                    size = 48.dp
+                )
+                // Спортивная иконка-бейдж
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 4.dp, y = 4.dp)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(if (isCurrentUser) accent else cardBg)
+                        .border(1.5.dp, if (isCurrentUser) accent.copy(alpha = 0.3f) else cardBorder, CircleShape),
+                    Alignment.Center
+                ) {
+                    Icon(sportIcon(sportName), null, Modifier.size(11.dp), if (isCurrentUser) Color.White else textMuted)
+                }
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(member.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                        color = if (isCurrentUser) DarkTheme.Accent else DarkTheme.TextPrimary)
+                    Text(
+                        member.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                        color = if (isCurrentUser) accent else textPrimary,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                     if (isCurrentUser) {
                         Spacer(Modifier.width(6.dp))
-                        Surface(shape = RoundedCornerShape(6.dp), color = DarkTheme.AccentSoft) {
-                            Text("Вы", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontSize = 10.sp, color = DarkTheme.Accent, fontWeight = FontWeight.Bold)
+                        Surface(shape = RoundedCornerShape(6.dp), color = accentSoft) {
+                            Text(
+                                "Вы", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                fontSize = 10.sp, color = accent, fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
+                Spacer(Modifier.height(2.dp))
                 Text(member.role, fontSize = 12.sp, color = DarkTheme.TextSecondary)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("${member.wins} побед", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
-                Text("${member.tournaments} турн.", fontSize = 11.sp, color = DarkTheme.TextMuted)
+                Surface(shape = RoundedCornerShape(8.dp), color = if (isCurrentUser) accentSoft else cardBorder.copy(alpha = 0.3f)) {
+                    Text(
+                        "${member.wins} побед",
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                        color = if (isCurrentUser) accent else textPrimary
+                    )
+                }
+                Spacer(Modifier.height(3.dp))
+                Text("${member.tournaments} турн.", fontSize = 11.sp, color = textMuted)
             }
         }
     }

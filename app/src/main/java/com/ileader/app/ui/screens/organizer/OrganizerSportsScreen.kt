@@ -1,7 +1,6 @@
 package com.ileader.app.ui.screens.organizer
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,7 +56,7 @@ private fun SportsContent(data: SportsData) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()

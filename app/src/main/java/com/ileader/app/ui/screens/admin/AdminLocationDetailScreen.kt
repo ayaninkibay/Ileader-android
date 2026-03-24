@@ -42,7 +42,7 @@ fun AdminLocationDetailScreen(
             var showDeleteDialog by remember { mutableStateOf(false) }
             val typeColor = AdminMockData.locationTypeColor(location.type ?: "")
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Локация", onBack)
 
                 Column(
@@ -168,7 +168,7 @@ fun AdminLocationDetailScreen(
                                     ) {
                                         Column(Modifier.weight(1f)) {
                                             Text(t.name, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = TextPrimary)
-                                            Text("${t.sportName ?: ""} • ${t.startDate ?: ""} — ${t.endDate ?: ""}",
+                                            Text("${t.sportName ?: ""} • ${formatShortDate(t.startDate)} — ${formatShortDate(t.endDate)}",
                                                 fontSize = 12.sp, color = TextSecondary)
                                         }
                                         StatusBadge(

@@ -49,7 +49,7 @@ fun AdminTournamentEditScreen(tournamentId: String, onBack: () -> Unit) {
                 }
             }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Редактирование турнира", onBack)
 
                 Column(

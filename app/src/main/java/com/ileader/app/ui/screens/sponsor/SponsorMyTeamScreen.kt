@@ -49,7 +49,7 @@ private fun MyTeamContent(sponsorship: SponsorshipDto, members: List<TeamMemberD
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().statusBarsPadding()
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
@@ -98,7 +98,7 @@ private fun MyTeamContent(sponsorship: SponsorshipDto, members: List<TeamMemberD
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("${sponsorship.startDate ?: ""} — ${sponsorship.endDate ?: "Бессрочно"}",
+                        Text("${formatShortDate(sponsorship.startDate)} — ${if (sponsorship.endDate.isNullOrEmpty()) "Бессрочно" else formatShortDate(sponsorship.endDate)}",
                             fontSize = 13.sp, color = DarkTheme.TextSecondary)
                     }
                 }
@@ -159,10 +159,11 @@ private fun TeamStatItem(modifier: Modifier, icon: ImageVector, value: String, l
 private fun MemberCard(member: TeamMemberDto) {
     DarkCard {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(44.dp).clip(CircleShape).background(Brush.linearGradient(listOf(DarkTheme.Accent, DarkTheme.AccentDark))),
-                contentAlignment = Alignment.Center) {
-                Text((member.profiles?.name ?: "?").first().toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
+            UserAvatar(
+                avatarUrl = member.profiles?.avatarUrl,
+                displayName = member.profiles?.name ?: "?",
+                size = 44.dp
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(member.profiles?.name ?: "", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)

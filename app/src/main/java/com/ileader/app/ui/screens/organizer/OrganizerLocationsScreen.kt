@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.organizer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -121,7 +120,7 @@ private fun LocationsListSuccessContent(
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -243,7 +242,7 @@ private fun LocationCard(location: LocationDto, tournamentCount: Int, onClick: (
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(14.dp), tint = TextSecondary)
                 Spacer(Modifier.width(4.dp))
-                Text("${location.address ?: ""}, ${location.city ?: ""}", fontSize = 12.sp, color = TextSecondary, maxLines = 1)
+                Text("${location.address ?: ""}, ${location.city ?: ""}", fontSize = 12.sp, color = TextSecondary)
             }
 
             if ((location.capacity ?: 0) > 0) {

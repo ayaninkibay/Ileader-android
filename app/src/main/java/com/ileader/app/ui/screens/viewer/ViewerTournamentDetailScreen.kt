@@ -74,7 +74,6 @@ fun ViewerTournamentDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Bg)
                     .verticalScroll(rememberScrollState())
             ) {
                 // Hero header
@@ -144,7 +143,7 @@ fun ViewerTournamentDetailScreen(
                     Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    QuickInfoCard(Icons.Default.CalendarMonth, "Дата", formatDateShort(tournament.startDate ?: ""), Modifier.weight(1f))
+                    QuickInfoCard(Icons.Default.CalendarMonth, "Дата", formatShortDate(tournament.startDate), Modifier.weight(1f))
                     QuickInfoCard(Icons.Default.LocationOn, "Место", locationCity, Modifier.weight(1f))
                     QuickInfoCard(Icons.Default.People, "Участники", "${data.participants.size}/${tournament.maxParticipants ?: 0}", Modifier.weight(1f))
                     QuickInfoCard(Icons.Default.EmojiEvents, "Призы", tournament.prize ?: "—", Modifier.weight(1f))
@@ -314,13 +313,4 @@ private fun QuickInfoCard(icon: ImageVector, label: String, value: String, modif
             Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center, maxLines = 1)
         }
     }
-}
-
-private fun formatDateShort(dateStr: String): String {
-    val parts = dateStr.split("-")
-    if (parts.size < 3) return dateStr
-    val day = parts[2]
-    val monthNames = listOf("", "янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
-    val month = parts[1].toIntOrNull() ?: return dateStr
-    return "$day ${monthNames.getOrElse(month) { "" }}"
 }

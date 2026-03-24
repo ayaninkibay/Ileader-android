@@ -61,7 +61,7 @@ fun ViewerAthleteProfileScreen(
             }
 
             Column(
-                Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             ) {
                 // Hero
                 Box(

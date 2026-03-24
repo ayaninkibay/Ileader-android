@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.User
+import com.ileader.app.ui.components.SportBackground
 import com.ileader.app.ui.navigation.BottomNavItem
 import com.ileader.app.ui.navigation.getBottomNavItems
 import com.ileader.app.ui.screens.athlete.*
@@ -86,15 +87,14 @@ fun MainScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.bg)
+        modifier = Modifier.fillMaxSize().background(colors.bg)
     ) {
         // Content area — takes full space, padded at bottom for nav bar
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = if (chatRoute?.startsWith("chat/") == true) 0.dp else 76.dp)
+                .navigationBarsPadding()
+                .padding(bottom = if (chatRoute?.startsWith("chat/") == true) 0.dp else 74.dp)
         ) {
             when {
                 chatRoute == "list" -> ChatListScreen(
@@ -166,7 +166,7 @@ private fun ILeaderBottomBar(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(62.dp)
                 .floatingShadow(isDark),
             color = colors.cardBg,
             shape = RoundedCornerShape(20.dp),
@@ -174,7 +174,7 @@ private fun ILeaderBottomBar(
             shadowElevation = 0.dp
         ) {
             Row(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -223,25 +223,13 @@ private fun ILeaderBottomBar(
                                 imageVector = item.icon,
                                 contentDescription = item.label,
                                 modifier = Modifier
-                                    .size(22.dp)
+                                    .size(26.dp)
                                     .alpha(iconAlpha),
                                 tint = if (isSelected) colors.accent else colors.textMuted
                             )
                         }
 
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = item.label,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) colors.accent else colors.textMuted,
-                            letterSpacing = 0.sp,
-                            maxLines = 1,
-                            modifier = Modifier.alpha(iconAlpha)
-                        )
-
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(6.dp))
 
                         // Indicator bar
                         Box(

@@ -56,7 +56,7 @@ private fun ChatListContent(
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             FadeIn(visible, 0) {
                 Column(Modifier.padding(horizontal = 20.dp)) {

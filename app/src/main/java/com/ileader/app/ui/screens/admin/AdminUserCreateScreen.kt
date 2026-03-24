@@ -53,7 +53,7 @@ fun AdminUserCreateScreen(onBack: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Bg
     ) { _ ->
-    Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         BackHeader("Создание пользователя", onBack)
 
         Column(

@@ -30,76 +30,18 @@ fun Modifier.coloredShadow(
     offsetY: Dp = 4.dp,
     cornerRadius: Dp = 16.dp,
     spread: Dp = 0.dp
-): Modifier = this.then(
-    Modifier.drawBehind {
-        val shadowColor = color.toArgb()
-        val paint = Paint()
-        val frameworkPaint = paint.asFrameworkPaint()
-
-        frameworkPaint.color = shadowColor
-        if (blurRadius > 0.dp) {
-            frameworkPaint.maskFilter = BlurMaskFilter(
-                blurRadius.toPx(),
-                BlurMaskFilter.Blur.NORMAL
-            )
-        }
-
-        val spreadPx = spread.toPx()
-        val offsetXPx = offsetX.toPx()
-        val offsetYPx = offsetY.toPx()
-        val cornerRadiusPx = cornerRadius.toPx()
-
-        val path = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    left = -spreadPx + offsetXPx,
-                    top = -spreadPx + offsetYPx,
-                    right = size.width + spreadPx + offsetXPx,
-                    bottom = size.height + spreadPx + offsetYPx,
-                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
-                )
-            )
-        }
-
-        drawIntoCanvas { canvas ->
-            canvas.drawPath(path, paint)
-        }
-    }
-)
+): Modifier = this
 
 /**
  * Subtle card shadow for light theme — barely visible lift.
  */
 fun Modifier.cardShadow(
     isDark: Boolean = false
-): Modifier = if (isDark) {
-    this // No shadow in dark theme — use borders instead
-} else {
-    this.coloredShadow(
-        color = Color.Black.copy(alpha = 0.06f),
-        blurRadius = 10.dp,
-        offsetY = 4.dp,
-        cornerRadius = 16.dp
-    )
-}
+): Modifier = this
 
 /**
  * Elevated shadow for floating elements (FABs, bottom bars).
  */
 fun Modifier.floatingShadow(
     isDark: Boolean = false
-): Modifier = if (isDark) {
-    this.coloredShadow(
-        color = Color.Black.copy(alpha = 0.4f),
-        blurRadius = 12.dp,
-        offsetY = (-2).dp,
-        cornerRadius = 20.dp
-    )
-} else {
-    this.coloredShadow(
-        color = Color.Black.copy(alpha = 0.10f),
-        blurRadius = 14.dp,
-        offsetY = (-2).dp,
-        cornerRadius = 20.dp
-    )
-}
+): Modifier = this

@@ -40,7 +40,7 @@ fun ChatScreen(
 
     LaunchedEffect(conversationId) { vm.load(conversationId, user.id) }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Top bar
             ChatTopBar(otherUserName, onBack)

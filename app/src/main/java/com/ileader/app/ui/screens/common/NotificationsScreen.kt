@@ -51,7 +51,7 @@ private fun NotificationsContent(user: User, notifications: List<NotificationDto
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Header
             FadeIn(visible, 0) {

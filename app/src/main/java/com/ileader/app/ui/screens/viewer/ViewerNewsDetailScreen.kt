@@ -57,7 +57,7 @@ fun ViewerNewsDetailScreen(
     LaunchedEffect(Unit) { started = true }
 
     Column(
-        Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState()).statusBarsPadding()
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).statusBarsPadding()
     ) {
         FadeIn(visible = started, delayMs = 0) {
         Row(

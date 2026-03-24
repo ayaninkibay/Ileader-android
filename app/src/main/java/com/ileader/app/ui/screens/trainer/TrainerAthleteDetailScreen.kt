@@ -55,7 +55,7 @@ fun TrainerAthleteDetailScreen(
             var isEditingNote by remember { mutableStateOf(false) }
             var showGoalDialog by remember { mutableStateOf(false) }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()

@@ -59,7 +59,7 @@ fun OrganizerTournamentResultsScreen(
                 }
             }
 
-            Box(Modifier.fillMaxSize().background(Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -104,7 +104,7 @@ fun OrganizerTournamentResultsScreen(
                                         color = TextPrimary
                                     )
                                     Text(
-                                        "${tournament.sports?.name ?: ""} • ${tournament.startDate ?: ""}",
+                                        "${tournament.sports?.name ?: ""} • ${formatShortDate(tournament.startDate)}",
                                         fontSize = 12.sp,
                                         color = TextSecondary
                                     )

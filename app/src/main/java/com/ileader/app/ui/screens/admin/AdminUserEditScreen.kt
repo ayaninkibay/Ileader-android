@@ -43,7 +43,7 @@ fun AdminUserEditScreen(userId: String, onBack: () -> Unit) {
             var selectedSubtype by remember(user) { mutableStateOf(user.athleteSubtype) }
             var status by remember(user) { mutableStateOf(user.status) }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Редактирование пользователя", onBack)
 
                 Column(

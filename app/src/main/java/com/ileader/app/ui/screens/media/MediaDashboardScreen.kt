@@ -1,7 +1,6 @@
 package com.ileader.app.ui.screens.media
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,7 +55,7 @@ private fun DashboardContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = DarkTheme.Accent
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -212,7 +211,7 @@ private fun TournamentPreviewItem(tournament: TournamentWithCountsDto) {
                 Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     color = DarkTheme.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(3.dp))
-                Text("${formatDate(tournament.startDate)} · ${tournament.locationName ?: ""}",
+                Text("${formatShortDate(tournament.startDate)} · ${tournament.locationName ?: ""}",
                     fontSize = 12.sp, color = DarkTheme.TextSecondary)
             }
             StatusBadge(tournamentStatusLabel(tournament.status),

@@ -52,7 +52,7 @@ fun ViewerTrainerProfileScreen(
             val rating = data.sports.firstOrNull()?.rating ?: 0
 
             Column(
-                Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             ) {
                 Box(
                     Modifier.fillMaxWidth()

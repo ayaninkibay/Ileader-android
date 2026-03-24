@@ -52,7 +52,7 @@ fun MediaTeamScreen(
 
 @Composable
 private fun NoTeamContent(user: User) {
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.fillMaxSize().statusBarsPadding().padding(40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -103,7 +103,7 @@ private fun TeamContent(user: User, data: MediaTeamData) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().statusBarsPadding()
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
@@ -203,14 +203,11 @@ private fun TeamMemberItem(member: TeamMemberDto, ownerId: String?) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                Modifier.size(44.dp).clip(CircleShape)
-                    .background(DarkTheme.AccentSoft),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(memberName.take(1), fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold, color = DarkTheme.Accent)
-            }
+            UserAvatar(
+                avatarUrl = member.profiles?.avatarUrl,
+                displayName = memberName,
+                size = 44.dp
+            )
             Column(Modifier.weight(1f)) {
                 Text(memberName, fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp, color = DarkTheme.TextPrimary)

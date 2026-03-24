@@ -36,7 +36,7 @@ fun AdminApplicationsScreen(onBack: () -> Unit) {
         is UiState.Success -> {
             val registrations = s.data.verifications
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Заявки на регистрацию", onBack)
 
                 Column(

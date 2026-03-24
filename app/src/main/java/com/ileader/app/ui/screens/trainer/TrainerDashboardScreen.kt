@@ -65,7 +65,7 @@ fun TrainerDashboardScreen(
             LaunchedEffect(Unit) { visible = true }
 
             val accentColor = DarkTheme.Accent
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Canvas(Modifier.fillMaxSize()) {
                     drawCircle(
                         brush = Brush.radialGradient(
@@ -192,7 +192,7 @@ fun TrainerDashboardScreen(
                                             Column(Modifier.weight(1f)) {
                                                 Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                 Spacer(Modifier.height(3.dp))
-                                                Text("${tournament.startDate} · ${tournament.sportName}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                                                Text("${formatShortDate(tournament.startDate)} · ${tournament.sportName}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
                                             }
                                             val isActive = tournament.status == TournamentStatus.REGISTRATION_OPEN || tournament.status == TournamentStatus.IN_PROGRESS
                                             StatusBadge(tournament.status.displayName, if (isActive) DarkTheme.Accent else DarkTheme.TextMuted)

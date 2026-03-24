@@ -92,7 +92,7 @@ private fun UsersListSuccessContent(
         matchSearch && matchRole && matchStatus
     }
 
-    Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             Arrangement.SpaceBetween, Alignment.CenterVertically
@@ -118,10 +118,10 @@ private fun UsersListSuccessContent(
         ) {
             FadeIn(visible = started, delayMs = 0) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniStat("Всего", "${users.size}", modifier = Modifier.weight(1f))
-                    MiniStat("Активных", "$activeCount", modifier = Modifier.weight(1f))
-                    MiniStat("Заблок.", "$blockedCount", modifier = Modifier.weight(1f))
-                    MiniStat("Новых", "$newThisMonth", modifier = Modifier.weight(1f))
+                    MiniStat("Всего", "${users.size}", modifier = Modifier.weight(1f).height(64.dp))
+                    MiniStat("Активных", "$activeCount", modifier = Modifier.weight(1f).height(64.dp))
+                    MiniStat("Заблок.", "$blockedCount", modifier = Modifier.weight(1f).height(64.dp))
+                    MiniStat("Новых", "$newThisMonth", modifier = Modifier.weight(1f).height(64.dp))
                 }
             }
 

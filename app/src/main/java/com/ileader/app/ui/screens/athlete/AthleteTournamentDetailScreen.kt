@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.bracket.BracketUtils
@@ -27,13 +28,13 @@ import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.bracket.BracketView
 import com.ileader.app.ui.components.bracket.MatchDetailDialog
 import com.ileader.app.ui.viewmodels.AthleteTournamentsViewModel
-
 @Composable
 fun AthleteTournamentDetailScreen(
     tournamentId: String,
     user: User,
     viewModel: AthleteTournamentsViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onShowQrTicket: (tournamentName: String, isCheckedIn: Boolean) -> Unit = { _, _ -> }
 ) {
     val detailState by viewModel.detailState.collectAsState()
     val isRegistered by viewModel.isRegistered.collectAsState()
@@ -51,7 +52,8 @@ fun AthleteTournamentDetailScreen(
             onToggleRegistration = { viewModel.toggleRegistration(tournamentId, user.id) },
             onBack = onBack,
             bracketData = bracketData,
-            userId = user.id
+            userId = user.id,
+            onShowQrTicket = onShowQrTicket
         )
     }
 }
@@ -63,9 +65,10 @@ private fun DetailContent(
     onToggleRegistration: () -> Unit,
     onBack: () -> Unit,
     bracketData: com.ileader.app.ui.viewmodels.AthleteTournamentBracketData = com.ileader.app.ui.viewmodels.AthleteTournamentBracketData(),
-    userId: String = ""
+    userId: String = "",
+    onShowQrTicket: (String, Boolean) -> Unit = { _, _ -> }
 ) {
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -98,11 +101,11 @@ private fun DetailContent(
             Spacer(Modifier.height(20.dp))
 
             // ── INFO CHIPS ──
-            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
-                InfoChip(Modifier.weight(1f), Icons.Default.CalendarMonth, tournament.startDate)
-                InfoChip(Modifier.weight(1f), Icons.Default.Groups, "${tournament.currentParticipants}/${tournament.maxParticipants}")
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), Arrangement.spacedBy(10.dp)) {
+                InfoChip(Modifier.weight(1f).fillMaxHeight(), Icons.Default.CalendarMonth, formatShortDate(tournament.startDate))
+                InfoChip(Modifier.weight(1f).fillMaxHeight(), Icons.Default.Groups, "${tournament.currentParticipants}/${tournament.maxParticipants}")
                 if (tournament.format.isNotEmpty()) {
-                    InfoChip(Modifier.weight(1f), Icons.Default.AccountTree, tournament.format.take(12))
+                    InfoChip(Modifier.weight(1f).fillMaxHeight(), Icons.Default.AccountTree, tournament.format)
                 }
             }
 
@@ -225,6 +228,33 @@ private fun DetailContent(
                     Text(if (isRegistered) "Вы зарегистрированы" else "Зарегистрироваться",
                         fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
+                // QR-билет доступен зарегистрированному спортсмену
+                if (isRegistered) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { onShowQrTicket(tournament.name, false) },
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.Accent),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkTheme.Accent.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.Default.QrCode2, null, Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Мой QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            } else if (tournament.status == TournamentStatus.CHECK_IN && isRegistered) {
+                // Во время check-in показываем QR-билет prominently
+                Button(
+                    onClick = { onShowQrTicket(tournament.name, false) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
+                ) {
+                    Icon(Icons.Default.QrCode2, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Показать QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                }
             } else if (tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
                 Surface(Modifier.fillMaxWidth(), RoundedCornerShape(12.dp), DarkTheme.CardBg) {
                     Box(
@@ -249,13 +279,24 @@ private fun DetailContent(
 private fun InfoChip(modifier: Modifier = Modifier, icon: ImageVector, text: String) {
     Surface(modifier, RoundedCornerShape(12.dp), DarkTheme.CardBg) {
         Row(
-            Modifier.border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).padding(10.dp),
+            Modifier
+                .fillMaxSize()
+                .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, Modifier.size(16.dp), DarkTheme.Accent)
-            Spacer(Modifier.width(6.dp))
-            Text(text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
+            Icon(icon, null, Modifier.size(14.dp), DarkTheme.Accent)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = DarkTheme.TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

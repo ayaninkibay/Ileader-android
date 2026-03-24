@@ -47,7 +47,7 @@ fun RefereeTeamScreen(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = Accent
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -240,12 +240,12 @@ private fun TeamContent(team: Team) {
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                Modifier.size(40.dp).clip(CircleShape).background(AccentSoft),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(member.name.take(2).uppercase(), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent)
-                            }
+                            UserAvatar(
+                                avatarUrl = member.avatarUrl,
+                                displayName = member.name,
+                                size = 40.dp,
+                                fontSize = 14.sp
+                            )
                             Spacer(Modifier.width(12.dp))
                             Column {
                                 Text(member.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)

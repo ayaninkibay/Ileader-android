@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.sponsor
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -63,7 +62,7 @@ private fun DetailContent(
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
@@ -99,7 +98,7 @@ private fun DetailContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("${detail.startDate ?: ""} — ${detail.endDate ?: ""}", fontSize = 13.sp, color = DarkTheme.TextSecondary)
+                            Text("${formatShortDate(detail.startDate)} — ${formatShortDate(detail.endDate)}", fontSize = 13.sp, color = DarkTheme.TextSecondary)
                         }
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -151,7 +150,7 @@ private fun DetailContent(
                             Spacer(Modifier.height(12.dp))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 DetailInfoBox(Modifier.weight(1f), "Сумма", SponsorUtils.formatAmount(sponsorshipAmount.toLong()))
-                                DetailInfoBox(Modifier.weight(1f), "Начало", detail.startDate ?: "")
+                                DetailInfoBox(Modifier.weight(1f), "Начало", formatShortDate(detail.startDate))
                                 DetailInfoBox(Modifier.weight(1f), "Окончание", detail.endDate ?: "")
                             }
                         }

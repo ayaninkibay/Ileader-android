@@ -55,7 +55,7 @@ fun TrainerNotificationsScreen(
             val pendingCount = notifications.count { it.status == InviteStatus.PENDING }
             val acceptedCount = notifications.count { it.status == InviteStatus.ACCEPTED }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()

@@ -53,7 +53,7 @@ fun TrainerStatisticsScreen(user: User) {
             var started by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { started = true }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()

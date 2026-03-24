@@ -50,7 +50,7 @@ fun AdminRequestsScreen(user: User) {
             val pendingTeamReqs = teamReqs.count { it.status == "pending" }
             val acceptedCount = invites.count { it.status == "accepted" } + teamReqs.count { it.status == "accepted" }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically

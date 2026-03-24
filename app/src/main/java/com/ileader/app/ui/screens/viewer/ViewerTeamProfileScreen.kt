@@ -54,7 +54,7 @@ fun ViewerTeamProfileScreen(
             val ownerName = team.profiles?.name ?: ""
 
             Column(
-                Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             ) {
                 Box(
                     Modifier.fillMaxWidth()

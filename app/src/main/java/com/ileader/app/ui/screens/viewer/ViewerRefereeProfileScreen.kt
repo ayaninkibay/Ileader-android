@@ -51,7 +51,7 @@ fun ViewerRefereeProfileScreen(
             val sportName = data.sports.firstOrNull()?.sports?.name ?: ""
 
             Column(
-                Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             ) {
                 Box(
                     Modifier.fillMaxWidth()

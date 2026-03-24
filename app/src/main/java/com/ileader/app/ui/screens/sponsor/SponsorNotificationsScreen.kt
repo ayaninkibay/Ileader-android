@@ -65,7 +65,7 @@ private fun NotificationsContent(user: User, invites: List<TournamentInviteDto>,
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().statusBarsPadding()
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)

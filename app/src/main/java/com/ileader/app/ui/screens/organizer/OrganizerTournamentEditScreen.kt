@@ -98,7 +98,7 @@ private fun WizardContent(
     val title = if (isCreate) "Создать турнир" else "Редактировать турнир"
     val isSaving = saveState is UiState.Loading
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Spacer(Modifier.height(8.dp))
             BackHeader(title, onBack)

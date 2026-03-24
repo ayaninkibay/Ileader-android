@@ -47,7 +47,8 @@ fun OrganizerTournamentDetailScreen(
     userId: String,
     onBack: () -> Unit,
     onEditClick: () -> Unit,
-    onResultsClick: () -> Unit
+    onResultsClick: () -> Unit,
+    onCheckInClick: (tournamentName: String) -> Unit = {}
 ) {
     val vm: OrganizerTournamentDetailViewModel = viewModel()
     val state by vm.state.collectAsState()
@@ -57,7 +58,7 @@ fun OrganizerTournamentDetailScreen(
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { vm.load(tournamentId) }
-        is UiState.Success -> DetailContent(s.data, vm, tournamentId, onBack, onEditClick, onResultsClick)
+        is UiState.Success -> DetailContent(s.data, vm, tournamentId, onBack, onEditClick, onResultsClick, onCheckInClick)
     }
 }
 
@@ -68,14 +69,15 @@ private fun DetailContent(
     tournamentId: String,
     onBack: () -> Unit,
     onEditClick: () -> Unit,
-    onResultsClick: () -> Unit
+    onResultsClick: () -> Unit,
+    onCheckInClick: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
     val participants = data.participants
     var selectedTab by remember { mutableIntStateOf(0) }
     val generating by vm.generating.collectAsState()
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Spacer(Modifier.height(8.dp))
 
@@ -104,10 +106,9 @@ private fun DetailContent(
                     StatusBadge("Приватный", TextSecondary)
                 }
                 Spacer(Modifier.weight(1f))
-                val startDate = tournament.startDate ?: ""
                 val endDate = tournament.endDate
                 Text(
-                    "$startDate${if (endDate != null) " — $endDate" else ""}",
+                    "${formatShortDate(tournament.startDate)}${if (endDate != null) " — ${formatShortDate(endDate)}" else ""}",
                     color = TextSecondary, fontSize = 12.sp
                 )
             }
@@ -139,6 +140,24 @@ private fun DetailContent(
                     Icon(Icons.Default.Leaderboard, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Результаты")
+                }
+            }
+
+            // QR Check-in button
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { onCheckInClick(tournament.name) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Accent),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Accent.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("QR Check-in")
                 }
             }
 

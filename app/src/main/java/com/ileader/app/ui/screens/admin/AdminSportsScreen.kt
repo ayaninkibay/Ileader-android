@@ -52,7 +52,7 @@ fun AdminSportsScreen(
                     }
                 }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Виды спорта", onBack) {
                     Button(
                         onClick = { /* mock: add sport */ },

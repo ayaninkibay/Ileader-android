@@ -2,7 +2,6 @@ package com.ileader.app.ui.screens.referee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
@@ -102,7 +101,7 @@ private fun TournamentsListContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = Accent
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(

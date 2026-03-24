@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.organizer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -37,6 +36,7 @@ private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
 fun OrganizerTournamentsScreen(user: User) {
     var screenMode by remember { mutableStateOf("list") }
     var selectedId by remember { mutableStateOf<String?>(null) }
+    var selectedName by remember { mutableStateOf("") }
 
     when (screenMode) {
         "list" -> TournamentsListContent(
@@ -51,7 +51,8 @@ fun OrganizerTournamentsScreen(user: User) {
                 userId = user.id,
                 onBack = { screenMode = "list" },
                 onEditClick = { screenMode = "edit" },
-                onResultsClick = { screenMode = "results" }
+                onResultsClick = { screenMode = "results" },
+                onCheckInClick = { name -> selectedName = name; screenMode = "qr_scan" }
             )
         }
         "edit" -> {
@@ -72,6 +73,15 @@ fun OrganizerTournamentsScreen(user: User) {
             val id = selectedId ?: return
             OrganizerTournamentResultsScreen(
                 tournamentId = id,
+                onBack = { screenMode = "detail" }
+            )
+        }
+        "qr_scan" -> {
+            val id = selectedId ?: return
+            OrganizerQrScannerScreen(
+                user = user,
+                tournamentId = id,
+                tournamentName = selectedName,
                 onBack = { screenMode = "detail" }
             )
         }
@@ -141,7 +151,7 @@ private fun TournamentsLoadedContent(
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -267,13 +277,13 @@ private fun OrgTournamentCard(tournament: TournamentWithCountsDto, onClick: () -
                 Spacer(Modifier.height(8.dp))
             }
 
-            val startDate = tournament.startDate
-            if (!startDate.isNullOrEmpty()) {
+            val startDate = formatShortDate(tournament.startDate)
+            if (startDate.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(14.dp), tint = TextSecondary)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "$startDate${if (tournament.endDate != null) " — ${tournament.endDate}" else ""}",
+                        "$startDate${if (tournament.endDate != null) " — ${formatShortDate(tournament.endDate)}" else ""}",
                         fontSize = 12.sp, color = TextSecondary
                     )
                 }

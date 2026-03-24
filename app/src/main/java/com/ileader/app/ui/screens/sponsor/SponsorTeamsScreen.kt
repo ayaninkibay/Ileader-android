@@ -64,7 +64,7 @@ fun SponsorTeamsScreen(user: User) {
             var visible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { visible = true }
 
-            Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -152,7 +152,7 @@ private fun TeamSponsorshipCard(item: SponsorshipDto, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(2.dp))
-                    Text("${item.startDate ?: ""} — ${item.endDate ?: ""}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                    Text("${formatShortDate(item.startDate)} — ${formatShortDate(item.endDate)}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
                 }
             }
             Text(SponsorUtils.formatAmount((item.amount ?: 0.0).toLong()),

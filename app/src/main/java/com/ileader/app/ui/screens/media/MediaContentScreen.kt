@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.media
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -77,7 +76,7 @@ private fun ContentListScreen(user: User, data: MediaContentData, vm: MediaConte
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().statusBarsPadding()
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
@@ -223,7 +222,7 @@ private fun ArticleDetailContent(article: ArticleDto, onBack: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize().statusBarsPadding()
                 .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)

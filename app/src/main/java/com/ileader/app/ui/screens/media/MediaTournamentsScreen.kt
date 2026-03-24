@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.media
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -72,7 +71,7 @@ private fun TournamentsContent(
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
 
-    Box(Modifier.fillMaxSize().background(DarkTheme.Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -204,7 +203,7 @@ private fun TournamentCard(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.DateRange, null, Modifier.size(14.dp), DarkTheme.TextSecondary)
-                    Text(formatDate(t.startDate), fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                    Text(formatShortDate(t.startDate), fontSize = 12.sp, color = DarkTheme.TextSecondary)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.LocationOn, null, Modifier.size(14.dp), DarkTheme.TextSecondary)

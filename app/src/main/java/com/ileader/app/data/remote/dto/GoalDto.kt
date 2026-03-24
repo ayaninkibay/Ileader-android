@@ -47,8 +47,13 @@ data class GoalInsertDto(
 
 @Serializable
 data class GoalUpdateDto(
+    val title: String? = null,
+    val description: String? = null,
     val status: String? = null,
     val progress: Int? = null,
+    @SerialName("target_rating") val targetRating: Int? = null,
+    @SerialName("target_wins") val targetWins: Int? = null,
+    @SerialName("target_points") val targetPoints: Int? = null,
     @SerialName("current_wins") val currentWins: Int? = null,
     @SerialName("current_podiums") val currentPodiums: Int? = null,
     @SerialName("current_points") val currentPoints: Int? = null

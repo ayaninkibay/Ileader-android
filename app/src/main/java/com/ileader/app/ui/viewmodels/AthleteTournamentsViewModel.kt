@@ -45,7 +45,7 @@ class AthleteTournamentsViewModel : ViewModel() {
             try {
                 val myTournaments = repo.getMyTournaments(userId)
                 val available = repo.getAvailableTournaments()
-                val sports = repo.getSports(userId)
+                val sports = repo.getAllSports()
 
                 // Combine: my tournaments + available (dedup by id)
                 val myIds = myTournaments.map { it.id }.toSet()

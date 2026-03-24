@@ -71,7 +71,7 @@ fun ViewerHomeScreen(
             }
 
             val accentColor = Accent
-            Box(Modifier.fillMaxSize().background(Bg)) {
+            Box(Modifier.fillMaxSize()) {
                 Canvas(Modifier.fillMaxSize()) {
                     drawCircle(
                         brush = Brush.radialGradient(
@@ -329,13 +329,11 @@ private fun HomeTournamentCard(tournament: TournamentWithCountsDto, onClick: () 
                     .background(Brush.linearGradient(listOf(Accent, AccentDark))),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        (tournament.startDate ?: "").substringAfterLast("-"),
-                        fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color.White
-                    )
-                    Text(getMonthShort(tournament.startDate ?: ""), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f))
-                }
+                Text(
+                    formatShortDate(tournament.startDate),
+                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                    textAlign = TextAlign.Center
+                )
             }
 
             Spacer(Modifier.width(12.dp))
@@ -388,7 +386,7 @@ private fun HomeNewsCard(article: ViewerMockData.NewsArticle) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     StatusBadge(article.category)
                     Spacer(Modifier.width(8.dp))
-                    Text(formatDateRu(article.date), fontSize = 12.sp, color = TextMuted)
+                    Text(formatShortDate(article.date), fontSize = 12.sp, color = TextMuted)
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(article.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -400,16 +398,6 @@ private fun HomeNewsCard(article: ViewerMockData.NewsArticle) {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
-
-private fun getMonthShort(dateStr: String): String {
-    val month = dateStr.substring(5, 7).toIntOrNull() ?: return ""
-    return when (month) {
-        1 -> "янв"; 2 -> "фев"; 3 -> "мар"; 4 -> "апр"
-        5 -> "май"; 6 -> "июн"; 7 -> "июл"; 8 -> "авг"
-        9 -> "сен"; 10 -> "окт"; 11 -> "ноя"; 12 -> "дек"
-        else -> ""
-    }
-}
 
 internal fun formatDateRu(dateStr: String): String {
     val parts = dateStr.split("-")

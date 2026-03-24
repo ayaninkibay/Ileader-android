@@ -81,7 +81,6 @@ fun ViewerTournamentsScreen(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .background(Bg)
                     .statusBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
@@ -192,8 +191,11 @@ fun ViewerTournamentsScreen(
 @Composable
 private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
     val status = tournament.status ?: ""
-    val isActive = status == "registration_open" || status == "in_progress"
-    val chipColor = if (isActive) Accent else TextMuted
+    val chipColor = when (status) {
+        "registration_open" -> Color(0xFF22C55E)
+        "in_progress" -> Color(0xFFF59E0B)
+        else -> TextMuted
+    }
 
     DarkCard(Modifier.clickable { onClick() }) {
         Column(Modifier.padding(14.dp)) {
@@ -216,7 +218,7 @@ private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () 
                     Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(12.dp))
                 }
                 Spacer(Modifier.width(6.dp))
-                Text(formatDateRu(tournament.startDate ?: ""), fontSize = 12.sp, color = TextSecondary)
+                Text(formatShortDate(tournament.startDate), fontSize = 12.sp, color = TextSecondary)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -224,7 +226,7 @@ private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () 
                     Icon(Icons.Default.LocationOn, null, tint = Accent, modifier = Modifier.size(12.dp))
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("${tournament.region ?: ""} · ${tournament.locationName ?: ""}", fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${tournament.region ?: ""} · ${tournament.locationName ?: ""}", fontSize = 12.sp, color = TextSecondary)
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

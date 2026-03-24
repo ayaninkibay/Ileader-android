@@ -39,7 +39,7 @@ fun AdminSportEditScreen(sportId: String, onBack: () -> Unit) {
             var description by remember(sport) { mutableStateOf(sport.description ?: "") }
             var isActive by remember(sport) { mutableStateOf(sport.isActive) }
 
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding()) {
+            Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 BackHeader("Редактирование: ${sport.name}", onBack)
 
                 Column(

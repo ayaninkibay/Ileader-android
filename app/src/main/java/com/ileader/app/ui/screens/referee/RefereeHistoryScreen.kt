@@ -2,7 +2,6 @@ package com.ileader.app.ui.screens.referee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -78,7 +77,7 @@ private fun HistoryContent(
     LaunchedEffect(Unit) { visible = true }
 
     val accentColor = Accent
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -252,7 +251,7 @@ private fun HistoryTournamentCard(tournament: RefereeTournament, allViolations: 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.LocationOn, null, Modifier.size(14.dp), TextMuted)
             Spacer(Modifier.width(4.dp))
-            Text(tournament.location.take(25), fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(tournament.location, fontSize = 12.sp, color = TextSecondary)
         }
 
         tournament.rating?.let { rating ->

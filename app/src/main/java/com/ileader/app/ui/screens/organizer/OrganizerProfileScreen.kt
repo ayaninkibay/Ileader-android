@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.organizer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -106,7 +105,7 @@ private fun ProfileContent(
     // Format createdAt date for display
     val memberSince = profile.createdAt?.take(10) ?: ""
 
-    Box(Modifier.fillMaxSize().background(Bg)) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()

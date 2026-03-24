@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.GoalInsertDto
+import com.ileader.app.data.remote.dto.GoalUpdateDto
 import com.ileader.app.data.repository.AthleteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +73,36 @@ class AthleteGoalsViewModel : ViewModel() {
                 load(currentUserId)
             } catch (e: Exception) {
                 _mutationError.value = e.message ?: "Ошибка операции"
+            }
+        }
+    }
+
+    fun updateGoal(
+        goalId: String,
+        type: GoalType,
+        title: String,
+        description: String,
+        targetValue: Int,
+        status: GoalStatus
+    ) {
+        viewModelScope.launch {
+            try {
+                val statusStr = when (status) {
+                    GoalStatus.ACTIVE -> "active"
+                    GoalStatus.COMPLETED -> "completed"
+                    GoalStatus.FAILED -> "failed"
+                }
+                repo.updateGoal(goalId, GoalUpdateDto(
+                    title = title,
+                    description = description.ifEmpty { null },
+                    status = statusStr,
+                    targetRating = if (type == GoalType.RATING) targetValue else null,
+                    targetWins = if (type == GoalType.TOURNAMENT) targetValue else null,
+                    targetPoints = if (type == GoalType.POINTS) targetValue else null
+                ))
+                load(currentUserId)
+            } catch (e: Exception) {
+                _mutationError.value = e.message ?: "Ошибка обновления"
             }
         }
     }

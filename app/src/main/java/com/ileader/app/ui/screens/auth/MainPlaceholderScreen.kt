@@ -30,7 +30,6 @@ fun MainPlaceholderScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(24.dp),
