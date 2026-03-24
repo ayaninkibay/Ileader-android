@@ -1,0 +1,251 @@
+package com.ileader.app.data.repository
+
+import com.ileader.app.data.remote.SupabaseModule
+import com.ileader.app.data.remote.dto.*
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Order
+
+class ViewerRepository {
+    private val client = SupabaseModule.client
+
+    companion object {
+        private val roleIdCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    }
+
+    private suspend fun getRoleId(roleName: String): String {
+        return roleIdCache.getOrPut(roleName) {
+            client.from("roles")
+                .select { filter { eq("name", roleName) } }
+                .decodeSingle<RoleDto>()
+                .id
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // HOME
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getPlatformStats(): Triple<Int, Int, Int> {
+        val usersCount = client.from("profiles")
+            .select(Columns.raw("id")) { filter { eq("status", "active") } }
+            .decodeList<IdOnlyDto>().size
+
+        val tournamentsCount = client.from("tournaments")
+            .select(Columns.raw("id"))
+            .decodeList<IdOnlyDto>().size
+
+        val sportsCount = client.from("sports")
+            .select(Columns.raw("id")) { filter { eq("is_active", true) } }
+            .decodeList<IdOnlyDto>().size
+
+        return Triple(usersCount, tournamentsCount, sportsCount)
+    }
+
+    suspend fun getSports(): List<SportDto> {
+        return client.from("sports")
+            .select { filter { eq("is_active", true) } }
+            .decodeList<SportDto>()
+    }
+
+    suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> {
+        return client.from("v_tournament_with_counts")
+            .select {
+                filter {
+                    eq("visibility", "public")
+                    or {
+                        eq("status", "registration_open")
+                        eq("status", "in_progress")
+                    }
+                }
+                order("start_date", Order.ASCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<TournamentWithCountsDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // TOURNAMENTS
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getPublicTournaments(): List<TournamentWithCountsDto> {
+        return client.from("v_tournament_with_counts")
+            .select {
+                filter { eq("visibility", "public") }
+                order("start_date", Order.DESCENDING)
+                limit(100)
+            }
+            .decodeList<TournamentWithCountsDto>()
+    }
+
+    suspend fun getTournamentDetail(tournamentId: String): TournamentDto {
+        return client.from("tournaments")
+            .select(Columns.raw("*, sports(id, name, slug), locations(*), profiles!organizer_id(name)"))
+            { filter { eq("id", tournamentId) } }
+            .decodeSingle<TournamentDto>()
+    }
+
+    suspend fun getTournamentParticipants(tournamentId: String): List<ParticipantDto> {
+        return client.from("tournament_participants")
+            .select(Columns.raw("*, profiles(name, avatar_url, city)"))
+            {
+                filter {
+                    eq("tournament_id", tournamentId)
+                    eq("status", "confirmed")
+                }
+                order("seed", Order.ASCENDING)
+            }
+            .decodeList<ParticipantDto>()
+    }
+
+    suspend fun getTournamentResults(tournamentId: String): List<ResultDto> {
+        return client.from("tournament_results")
+            .select(Columns.raw("*, profiles!athlete_id(name, avatar_url, city)"))
+            {
+                filter { eq("tournament_id", tournamentId) }
+                order("position", Order.ASCENDING)
+            }
+            .decodeList<ResultDto>()
+    }
+
+    suspend fun getTournamentBracket(tournamentId: String): List<BracketMatchDto> {
+        return client.from("bracket_matches")
+            .select {
+                filter { eq("tournament_id", tournamentId) }
+                order("round", Order.ASCENDING)
+                order("match_number", Order.ASCENDING)
+            }
+            .decodeList<BracketMatchDto>()
+    }
+
+    suspend fun getTournamentGroups(tournamentId: String): List<TournamentGroupDto> {
+        return client.from("tournament_groups")
+            .select { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<TournamentGroupDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // COMMUNITY
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getAthletes(): List<CommunityProfileDto> {
+        val roleId = getRoleId("athlete")
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city, bio, athlete_subtype, user_sports(rating, is_primary, sports(id, name))"))
+            {
+                filter {
+                    eq("primary_role_id", roleId)
+                    eq("status", "active")
+                }
+                limit(50)
+            }
+            .decodeList<CommunityProfileDto>()
+    }
+
+    suspend fun getTrainers(): List<CommunityProfileDto> {
+        val roleId = getRoleId("trainer")
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
+            {
+                filter {
+                    eq("primary_role_id", roleId)
+                    eq("status", "active")
+                }
+                limit(50)
+            }
+            .decodeList<CommunityProfileDto>()
+    }
+
+    suspend fun getReferees(): List<CommunityProfileDto> {
+        val roleId = getRoleId("referee")
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
+            {
+                filter {
+                    eq("primary_role_id", roleId)
+                    eq("status", "active")
+                }
+                limit(50)
+            }
+            .decodeList<CommunityProfileDto>()
+    }
+
+    suspend fun getTeams(): List<TeamWithStatsDto> {
+        return client.from("teams")
+            .select(Columns.raw("*, sports(id, name), profiles!owner_id(name), team_members(count)"))
+            { filter { eq("is_active", true) } }
+            .decodeList<TeamWithStatsDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // PUBLIC PROFILES
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getPublicProfile(userId: String): ProfileDto {
+        return client.from("profiles")
+            .select { filter { eq("id", userId) } }
+            .decodeSingle<ProfileDto>()
+    }
+
+    suspend fun getUserSports(userId: String): List<UserSportDto> {
+        return client.from("user_sports")
+            .select(Columns.raw("*, sports(id, name, slug)"))
+            { filter { eq("user_id", userId) } }
+            .decodeList<UserSportDto>()
+    }
+
+    suspend fun getUserSportStats(userId: String): List<UserSportStatsDto> {
+        return client.from("v_user_sport_stats")
+            .select { filter { eq("user_id", userId) } }
+            .decodeList<UserSportStatsDto>()
+    }
+
+    suspend fun getAthleteResults(athleteId: String, limit: Int = 10): List<ResultDto> {
+        return client.from("tournament_results")
+            .select(Columns.raw("*, tournaments(id, name, start_date, sports(id, name))"))
+            {
+                filter { eq("athlete_id", athleteId) }
+                order("position", Order.ASCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<ResultDto>()
+    }
+
+    suspend fun getAthleteMembership(athleteId: String): TeamMembershipDto? {
+        return try {
+            client.from("team_members")
+                .select(Columns.raw("*, teams(id, name, city, sports(id, name))"))
+                { filter { eq("user_id", athleteId) } }
+                .decodeSingleOrNull<TeamMembershipDto>()
+        } catch (_: Exception) { null }
+    }
+
+    suspend fun getTeamDetail(teamId: String): TeamDto {
+        return client.from("teams")
+            .select(Columns.raw("*, sports(id, name), profiles!owner_id(name, avatar_url)"))
+            { filter { eq("id", teamId) } }
+            .decodeSingle<TeamDto>()
+    }
+
+    suspend fun getTeamMembers(teamId: String): List<TeamMemberDto> {
+        return client.from("team_members")
+            .select(Columns.raw("*, profiles(name, avatar_url, city)"))
+            { filter { eq("team_id", teamId) } }
+            .decodeList<TeamMemberDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // PROFILE (own)
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getProfile(userId: String): ProfileDto {
+        return client.from("profiles")
+            .select { filter { eq("id", userId) } }
+            .decodeSingle<ProfileDto>()
+    }
+
+    suspend fun updateProfile(userId: String, data: ProfileUpdateDto) {
+        client.from("profiles")
+            .update(data) { filter { eq("id", userId) } }
+    }
+}

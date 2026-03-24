@@ -1,0 +1,261 @@
+package com.ileader.app.ui.screens.viewer
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ileader.app.data.models.User
+import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.TournamentWithCountsDto
+import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.*
+import com.ileader.app.ui.viewmodels.ViewerTournamentsViewModel
+
+private val Bg: Color @Composable get() = DarkTheme.Bg
+private val CardBg: Color @Composable get() = DarkTheme.CardBg
+private val CardBorder: Color @Composable get() = DarkTheme.CardBorder
+private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
+private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
+private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
+private val Accent: Color @Composable get() = DarkTheme.Accent
+private val AccentDark: Color @Composable get() = DarkTheme.AccentDark
+private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
+
+@Composable
+fun ViewerTournamentsScreen(
+    user: User,
+    onNavigateToDetail: (String) -> Unit = {}
+) {
+    val viewModel: ViewerTournamentsViewModel = viewModel()
+    val state by viewModel.state.collectAsState()
+    LaunchedEffect(Unit) { viewModel.load() }
+
+    when (val s = state) {
+        is UiState.Loading -> LoadingScreen()
+        is UiState.Error -> ErrorScreen(s.message) { viewModel.load() }
+        is UiState.Success -> {
+            val data = s.data
+            var searchQuery by remember { mutableStateOf("") }
+            var statusFilter by remember { mutableIntStateOf(0) }
+            var sportFilter by remember { mutableIntStateOf(0) }
+            var visible by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { visible = true }
+
+            val statuses = listOf("all" to "Все", "registration_open" to "Регистрация", "in_progress" to "Идёт", "completed" to "Завершён")
+            val sportFilters = remember(data.sports) {
+                buildList {
+                    add("all" to "Все виды")
+                    data.sports.forEach { add(it.id to it.name) }
+                }
+            }
+
+            val filteredTournaments = remember(searchQuery, statusFilter, sportFilter, data.tournaments) {
+                val statusValue = statuses.getOrNull(statusFilter)?.first ?: "all"
+                val sportValue = sportFilters.getOrNull(sportFilter)?.first ?: "all"
+                data.tournaments.filter { t ->
+                    (statusValue == "all" || t.status == statusValue) &&
+                    (sportValue == "all" || t.sportId == sportValue) &&
+                    (searchQuery.isBlank() || (t.name.contains(searchQuery, true)) || (t.region ?: "").contains(searchQuery, true))
+                }
+            }
+
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .background(Bg)
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+            ) {
+                Spacer(Modifier.height(16.dp))
+
+                FadeIn(visible, 0) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Турниры", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = (-0.5).sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text("Все соревнования в одном месте", fontSize = 14.sp, color = TextSecondary)
+                        }
+                        UserAvatar(avatarUrl = user.avatarUrl, displayName = user.displayName)
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                FadeIn(visible, 200) {
+                    DarkSearchField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = "Поиск по названию, региону..."
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                FadeIn(visible, 300) {
+                    Column {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            statuses.forEachIndexed { index, (_, label) ->
+                                DarkFilterChip(
+                                    text = label,
+                                    selected = statusFilter == index,
+                                    onClick = { statusFilter = index }
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            sportFilters.forEachIndexed { index, (_, label) ->
+                                DarkFilterChip(
+                                    text = label,
+                                    selected = sportFilter == index,
+                                    onClick = { sportFilter = index }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                FadeIn(visible, 400) {
+                    Column {
+                        Text("Найдено: ${filteredTournaments.size} турниров", fontSize = 13.sp, color = TextMuted)
+
+                        Spacer(Modifier.height(12.dp))
+
+                        if (filteredTournaments.isEmpty()) {
+                            DarkCard {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(Modifier.size(52.dp).clip(CircleShape).background(CardBorder.copy(alpha = 0.3f)), contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.SearchOff, null, tint = TextMuted, modifier = Modifier.size(24.dp))
+                                    }
+                                    Spacer(Modifier.height(12.dp))
+                                    Text("Турниры не найдены", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text("Попробуйте изменить фильтры", fontSize = 12.sp, color = TextMuted, textAlign = TextAlign.Center)
+                                    Spacer(Modifier.height(16.dp))
+                                    Button(
+                                        onClick = { statusFilter = 0; sportFilter = 0; searchQuery = "" },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                    ) {
+                                        Text("Сбросить фильтры", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                filteredTournaments.forEach { tournament ->
+                                    TournamentListCard(tournament) { onNavigateToDetail(tournament.id) }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
+    val status = tournament.status ?: ""
+    val isActive = status == "registration_open" || status == "in_progress"
+    val chipColor = if (isActive) Accent else TextMuted
+
+    DarkCard(Modifier.clickable { onClick() }) {
+        Column(Modifier.padding(14.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                StatusBadge(getStatusLabel(status), chipColor)
+                Surface(shape = RoundedCornerShape(8.dp), color = CardBorder.copy(alpha = 0.5f)) {
+                    Text(tournament.sportName ?: "", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(tournament.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(12.dp))
+                }
+                Spacer(Modifier.width(6.dp))
+                Text(formatDateRu(tournament.startDate ?: ""), fontSize = 12.sp, color = TextSecondary)
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.LocationOn, null, tint = Accent, modifier = Modifier.size(12.dp))
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("${tournament.region ?: ""} · ${tournament.locationName ?: ""}", fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(18.dp).clip(CircleShape).background(AccentSoft), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.People, null, tint = Accent, modifier = Modifier.size(12.dp))
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("${tournament.participantCount} / ${tournament.maxParticipants ?: 0} участников", fontSize = 12.sp, color = TextSecondary)
+            }
+
+            if (tournament.prize != null) {
+                Spacer(Modifier.height(12.dp))
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = AccentSoft) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.EmojiEvents, null, tint = Accent, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Призовой фонд: ", fontSize = 12.sp, color = TextSecondary)
+                            Text(tournament.prize, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Подробнее", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                            Icon(Icons.Default.ChevronRight, null, tint = Accent, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

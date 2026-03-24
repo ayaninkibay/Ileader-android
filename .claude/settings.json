@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/zhami/Documents/ileader/**)",
+      "Bash(xargs cat)",
+      "Bash(wc -l \"/c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app\"/**/*.kt)",
+      "Bash(xargs wc -l)",
+      "Bash(ls gradlew*)",
+      "Bash(adb devices)",
+      "Read(//c/Users/zhami/Documents/ileader-android/$LOCALAPPDATA/Android/Sdk/platform-tools/**)",
+      "Bash(\"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe\" devices)",
+      "Bash(./gradlew installDebug)",
+      "Read(//c/Program Files/Java/**)",
+      "Read(//c/Users/zhami/Documents/ileader-android/$LOCALAPPDATA/Android/**)",
+      "Read(//c/Program Files/Android/Android Studio/jbr/bin/**)",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/java.exe\" -version)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew installDebug)",
+      "Bash(while read f)",
+      "Bash(do sed -i 's/\\\\\\(private\\\\|internal\\\\\\) val \\\\\\(\\\\w\\\\+\\\\\\) = DarkTheme\\\\.\\\\\\(\\\\w\\\\+\\\\\\)/\\\\1 val \\\\2: Color @Composable get\\(\\) = DarkTheme.\\\\3/g' \"$f\")",
+      "Bash(done)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew compileDebugKotlin)",
+      "Bash(for dir in admin athlete auth common main media organizer referee sponsor trainer viewer)",
+      "Bash(do echo \"=== $dir ===\")",
+      "Read(//c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/**)",
+      "Read(//c/Users/zhami/Documents/**)",
+      "Bash(grep -L \"FadeIn\" \"c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\"/**/*.kt)",
+      "Bash(grep -E \"\\(Screen|Components|Helpers\\)\\\\.kt$\")",
+      "Bash(grep -l \"FadeIn\" c:UserszhamiDocumentsileader-androidappsrcmainjavacomileaderappuiscreens/athlete/*.kt)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep \".kt$\")",
+      "Bash(ls -1 /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/athlete/*.kt)",
+      "Bash(ls -1 /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/trainer/*.kt)",
+      "Bash(ls -1 /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/organizer/*.kt)",
+      "Bash(find \"c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\" -name \"*.kt\" -exec wc -l {} +)",
+      "Bash(grep -v \"http\\\\|//\")",
+      "Bash(grep -l \"PlaceholderScreen\\\\|MainPlaceholderScreen\" /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/*/*.kt)",
+      "Bash(find \"/c/Users/zhami/Documents/ileader/src/app/\\(public\\)\" -name \"page.tsx\")",
+      "Bash(find \"/c/Users/zhami/Documents/ileader/src/app/\\(ileader\\)\" -name \"page.tsx\" -path \"*/dashboard/*\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\zhami\\.claude\\projects\\c--Users-zhami-Documents-ileader-android\\memory"
+    ]
+  }
+}
