@@ -97,12 +97,12 @@ val DarkAppColors = AppColorScheme(
 // ── LIGHT palette (synced with website: --background: #f5f5f7) ──
 
 val LightAppColors = AppColorScheme(
-    bg = Color(0xFFD8D8DC),
-    bgSecondary = Color(0xFFCFCFD4),
-    cardBg = Color(0xFFE8E8EC),
-    cardHover = Color(0xFFEEEEF2),
-    border = Color(0xFFC0C0C6),
-    borderLight = Color(0xFFD4D4DA),
+    bg = Color(0xFFEDEDF0),
+    bgSecondary = Color(0xFFE5E5E9),
+    cardBg = Color(0xFFF5F5F7),
+    cardHover = Color(0xFFEFEFF2),
+    border = Color(0xFFD4D4D9),
+    borderLight = Color(0xFFE0E0E5),
     textPrimary = Color(0xFF1A1A1A),
     textSecondary = Color(0xFF6B7280),
     textMuted = Color(0xFF9CA3AF),

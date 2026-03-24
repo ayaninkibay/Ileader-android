@@ -74,7 +74,11 @@ fun ILeaderTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = true // Всегда тёмная тема
+    val darkTheme = when (themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
 
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val appColors = if (darkTheme) DarkAppColors else LightAppColors
