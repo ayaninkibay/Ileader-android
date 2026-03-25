@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -38,7 +40,10 @@ import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.cardShadow
+import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.delay
+
+val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState> { error("No SnackbarHostState") }
 
 // ══════════════════════════════════════════════════════════
 // BACKWARD-COMPATIBLE ACCESSOR
@@ -600,7 +605,13 @@ fun RoleBadge(role: com.ileader.app.data.models.UserRole) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun EmptyState(title: String, subtitle: String = "Данные появятся позже") {
+fun EmptyState(
+    title: String,
+    subtitle: String = "Данные появятся позже",
+    icon: ImageVector = Icons.Default.SearchOff,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
     val colors = LocalAppColors.current
     DarkCard {
         Column(
@@ -617,7 +628,7 @@ fun EmptyState(title: String, subtitle: String = "Данные появятся 
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.SearchOff, null,
+                    icon, null,
                     tint = colors.textMuted,
                     modifier = Modifier.size(24.dp)
                 )
@@ -636,6 +647,16 @@ fun EmptyState(title: String, subtitle: String = "Данные появятся 
                 color = colors.textMuted,
                 textAlign = TextAlign.Center
             )
+            if (actionLabel != null && onAction != null) {
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = onAction,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
+                ) {
+                    Text(actionLabel, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
     }
 }
@@ -696,17 +717,162 @@ fun DarkProgressBar(progress: Float, modifier: Modifier = Modifier) {
 }
 
 // ══════════════════════════════════════════════════════════
+// SHIMMER / SKELETON LOADING
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun shimmerBrush(): Brush {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f, targetValue = 1000f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing)),
+        label = "shimmer"
+    )
+    val colors = LocalAppColors.current
+    return Brush.linearGradient(
+        colors = listOf(
+            colors.cardBg,
+            colors.border.copy(alpha = 0.3f),
+            colors.cardBg
+        ),
+        start = Offset(translateAnim - 500f, 0f),
+        end = Offset(translateAnim, 0f)
+    )
+}
+
+@Composable
+fun ShimmerBox(modifier: Modifier) {
+    Box(modifier.clip(RoundedCornerShape(12.dp)).background(shimmerBrush()))
+}
+
+enum class LoadingVariant { SPINNER, DASHBOARD, LIST, DETAIL }
+
+// ══════════════════════════════════════════════════════════
 // FULL-SCREEN STATES
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun LoadingScreen() {
+fun LoadingScreen(variant: LoadingVariant = LoadingVariant.SPINNER) {
+    when (variant) {
+        LoadingVariant.SPINNER -> {
+            val colors = LocalAppColors.current
+            Box(
+                Modifier.fillMaxSize().background(colors.bg),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = colors.accent, strokeWidth = 3.dp)
+            }
+        }
+        LoadingVariant.DASHBOARD -> SkeletonDashboard()
+        LoadingVariant.LIST -> SkeletonList()
+        LoadingVariant.DETAIL -> SkeletonDetail()
+    }
+}
+
+@Composable
+private fun SkeletonDashboard() {
     val colors = LocalAppColors.current
-    Box(
-        Modifier.fillMaxSize().background(colors.bg),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
     ) {
-        CircularProgressIndicator(color = colors.accent, strokeWidth = 3.dp)
+        Spacer(Modifier.height(16.dp))
+        // 3 stat cards
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            repeat(3) {
+                ShimmerBox(Modifier.weight(1f).height(80.dp))
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        // Hero card
+        ShimmerBox(Modifier.fillMaxWidth().height(200.dp))
+        Spacer(Modifier.height(20.dp))
+        // Section title
+        ShimmerBox(Modifier.width(140.dp).height(20.dp))
+        Spacer(Modifier.height(12.dp))
+        // 2 small cards
+        repeat(2) {
+            ShimmerBox(Modifier.fillMaxWidth().height(100.dp))
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonList() {
+    val colors = LocalAppColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(shimmerBrush())
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxSize()) {
+                    ShimmerBox(Modifier.fillMaxWidth(0.6f).height(16.dp))
+                    ShimmerBox(Modifier.fillMaxWidth(0.4f).height(12.dp))
+                    ShimmerBox(Modifier.fillMaxWidth(0.8f).height(12.dp))
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun SkeletonDetail() {
+    val colors = LocalAppColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp)
+    ) {
+        Spacer(Modifier.height(16.dp))
+        // Header: circle + tall box
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ShimmerBox(Modifier.size(40.dp).clip(CircleShape))
+            ShimmerBox(Modifier.weight(1f).height(40.dp))
+        }
+        Spacer(Modifier.height(20.dp))
+        // 3 info chips
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            repeat(3) {
+                ShimmerBox(Modifier.weight(1f).height(36.dp))
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        // 2 section cards
+        repeat(2) {
+            ShimmerBox(Modifier.fillMaxWidth().height(160.dp))
+            Spacer(Modifier.height(16.dp))
+        }
     }
 }
 

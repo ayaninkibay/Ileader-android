@@ -37,7 +37,7 @@ fun AthleteGoalsScreen(user: User) {
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.LIST)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> GoalsContent(user, s.data.goals, s.data.stats, viewModel)
     }
@@ -168,7 +168,7 @@ private fun GoalsContent(
             FadeIn(visible = started, delayMs = 450) {
             Column {
             if (filteredGoals.isEmpty()) {
-                EmptyState("Нет целей", "Создайте свою первую цель!")
+                EmptyState("Нет целей", "Создайте свою первую цель!", actionLabel = "Создать цель", onAction = { showAddDialog = true })
             } else {
                 filteredGoals.forEach { goal ->
                     GoalCard(goal, onEdit = { editingGoal = goal })

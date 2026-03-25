@@ -78,7 +78,7 @@ fun ViewerNewsDetailScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusBadge(article.category)
                 Spacer(Modifier.width(8.dp))
-                Text(formatDateRu(article.date), fontSize = 12.sp, color = TextMuted)
+                Text(formatShortDate(article.date), fontSize = 12.sp, color = TextMuted)
             }
             Spacer(Modifier.height(16.dp))
             Text(article.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary, lineHeight = 28.sp, letterSpacing = (-0.3).sp)
@@ -109,7 +109,7 @@ fun ViewerNewsDetailScreen(
                             Column(Modifier.weight(1f)) {
                                 Text(related.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2)
                                 Spacer(Modifier.height(2.dp))
-                                Text(formatDateRu(related.date), fontSize = 12.sp, color = TextMuted)
+                                Text(formatShortDate(related.date), fontSize = 12.sp, color = TextMuted)
                             }
                             Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(20.dp))
                         }

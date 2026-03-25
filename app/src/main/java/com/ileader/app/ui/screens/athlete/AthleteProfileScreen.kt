@@ -45,7 +45,7 @@ fun AthleteProfileScreen(user: User, onSignOut: () -> Unit) {
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DETAIL)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> ProfileContent(
             user = s.data.user,

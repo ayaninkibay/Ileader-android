@@ -121,7 +121,7 @@ fun AthleteTournamentsScreen(user: User) {
     }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.LIST)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> TournamentsListContent(
             user = user,
@@ -317,7 +317,7 @@ private fun TournamentsListContent(
             FadeIn(visible = started, delayMs = 600) {
             Column {
             if (filteredTournaments.isEmpty()) {
-                EmptyState("Турниры не найдены", "Попробуйте изменить фильтры")
+                EmptyState("Турниры не найдены", "Попробуйте изменить фильтры", actionLabel = "Сбросить фильтры", onAction = { selectedStatus = 0; selectedSport = 0; searchQuery = "" })
             } else {
                 filteredTournaments.forEachIndexed { i, tournament ->
                     TournamentListCard(tournament, seed = i, onClick = { onTournamentClick(tournament.id) })

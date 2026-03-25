@@ -114,7 +114,7 @@ private fun NewsCard(article: ViewerMockData.NewsArticle, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusBadge(article.category)
                 Spacer(Modifier.width(8.dp))
-                Text(formatDateRu(article.date), fontSize = 12.sp, color = TextMuted)
+                Text(formatShortDate(article.date), fontSize = 12.sp, color = TextMuted)
             }
 
             Spacer(Modifier.height(10.dp))

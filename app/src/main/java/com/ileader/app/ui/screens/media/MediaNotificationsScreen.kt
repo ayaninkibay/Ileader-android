@@ -341,7 +341,7 @@ private fun InviteCard(
     val tournamentName = invite.tournaments?.name ?: ""
     val sportName = invite.tournaments?.sports?.name ?: ""
     val locationCity = invite.tournaments?.locations?.city ?: ""
-    val createdAt = formatDate(invite.createdAt)
+    val createdAt = formatShortDate(invite.createdAt)
 
     // Parse contact phone from comments jsonb
     val contactPhone = invite.comments?.let { commentsEl ->

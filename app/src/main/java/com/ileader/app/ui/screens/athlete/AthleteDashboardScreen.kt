@@ -111,7 +111,7 @@ fun AthleteDashboardScreen(
     }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> DashboardContent(
             user, s.data.stats, s.data.upcoming, s.data.recentResults,

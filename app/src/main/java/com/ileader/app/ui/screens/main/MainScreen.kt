@@ -41,6 +41,8 @@ import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.floatingShadow
+import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.LocalSnackbarHost
 import com.ileader.app.ui.viewmodels.NotificationsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -53,6 +55,7 @@ fun MainScreen(
 ) {
     val colors = LocalAppColors.current
     val isDark = colors.bg == DarkAppColors.bg
+    val snackbarHostState = remember { SnackbarHostState() }
     val notificationsVm: NotificationsViewModel = viewModel()
     val unreadCount by notificationsVm.unreadCount.collectAsState()
 
@@ -86,63 +89,72 @@ fun MainScreen(
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize().background(colors.bg)
-    ) {
-        // Content area — takes full space, padded at bottom for nav bar
+    CompositionLocalProvider(LocalSnackbarHost provides snackbarHostState) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .padding(bottom = if (chatRoute?.startsWith("chat/") == true) 0.dp else 74.dp)
+            modifier = Modifier.fillMaxSize().background(colors.bg)
         ) {
-            when {
-                chatRoute == "list" -> ChatListScreen(
-                    user = user,
-                    onOpenChat = { conversationId, otherUserName ->
-                        chatRoute = "chat/$conversationId/$otherUserName"
-                    }
-                )
-                chatRoute?.startsWith("chat/") == true -> {
-                    val parts = chatRoute!!.removePrefix("chat/").split("/", limit = 2)
-                    ChatScreen(
+            // Content area — takes full space, padded at bottom for nav bar
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+                    .padding(bottom = if (chatRoute?.startsWith("chat/") == true) 0.dp else 74.dp)
+            ) {
+                when {
+                    chatRoute == "list" -> ChatListScreen(
                         user = user,
-                        conversationId = parts[0],
-                        otherUserName = parts.getOrElse(1) { "Чат" },
-                        onBack = { chatRoute = "list" }
-                    )
-                }
-                else -> {
-                    val currentRoute = bottomNavItems.getOrNull(selectedIndex)?.route ?: ""
-                    RoleScreenRouter(
-                        route = currentRoute,
-                        user = user,
-                        onSignOut = onSignOut,
-                        onNavigate = { route ->
-                            if (route == "chat") {
-                                chatRoute = "list"
-                            } else {
-                                val index = bottomNavItems.indexOfFirst { it.route == route }
-                                if (index >= 0) selectedIndex = index
-                            }
+                        onOpenChat = { conversationId, otherUserName ->
+                            chatRoute = "chat/$conversationId/$otherUserName"
                         }
                     )
+                    chatRoute?.startsWith("chat/") == true -> {
+                        val parts = chatRoute!!.removePrefix("chat/").split("/", limit = 2)
+                        ChatScreen(
+                            user = user,
+                            conversationId = parts[0],
+                            otherUserName = parts.getOrElse(1) { "Чат" },
+                            onBack = { chatRoute = "list" }
+                        )
+                    }
+                    else -> {
+                        val currentRoute = bottomNavItems.getOrNull(selectedIndex)?.route ?: ""
+                        RoleScreenRouter(
+                            route = currentRoute,
+                            user = user,
+                            onSignOut = onSignOut,
+                            onNavigate = { route ->
+                                if (route == "chat") {
+                                    chatRoute = "list"
+                                } else {
+                                    val index = bottomNavItems.indexOfFirst { it.route == route }
+                                    if (index >= 0) selectedIndex = index
+                                }
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        // Floating bottom bar (скрыть в чате)
-        if (chatRoute?.startsWith("chat/") != true) {
-            ILeaderBottomBar(
-                items = bottomNavItems,
-                selectedIndex = selectedIndex,
-                onItemSelected = {
-                    chatRoute = null
-                    selectedIndex = it
-                },
-                isDark = isDark,
-                modifier = Modifier.align(Alignment.BottomCenter)
+            // Snackbar
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp),
+                snackbar = { Snackbar(it, containerColor = DarkTheme.CardBg, contentColor = DarkTheme.TextPrimary) }
             )
+
+            // Floating bottom bar (скрыть в чате)
+            if (chatRoute?.startsWith("chat/") != true) {
+                ILeaderBottomBar(
+                    items = bottomNavItems,
+                    selectedIndex = selectedIndex,
+                    onItemSelected = {
+                        chatRoute = null
+                        selectedIndex = it
+                    },
+                    isDark = isDark,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
     }
 }

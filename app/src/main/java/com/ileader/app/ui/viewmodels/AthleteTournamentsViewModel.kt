@@ -39,6 +39,11 @@ class AthleteTournamentsViewModel : ViewModel() {
 
     fun clearMutationError() { _mutationError.value = null }
 
+    private val _snackbarEvent = MutableStateFlow<String?>(null)
+    val snackbarEvent: StateFlow<String?> = _snackbarEvent.asStateFlow()
+
+    fun clearSnackbar() { _snackbarEvent.value = null }
+
     fun load(userId: String) {
         viewModelScope.launch {
             _state.value = UiState.Loading
@@ -110,9 +115,11 @@ class AthleteTournamentsViewModel : ViewModel() {
                 if (previousValue) {
                     _isRegistered.value = false
                     repo.cancelRegistration(tournamentId, userId)
+                    _snackbarEvent.value = "Регистрация отменена"
                 } else {
                     _isRegistered.value = true
                     repo.registerForTournament(tournamentId, userId)
+                    _snackbarEvent.value = "Вы зарегистрированы на турнир"
                 }
             } catch (e: Exception) {
                 _isRegistered.value = previousValue

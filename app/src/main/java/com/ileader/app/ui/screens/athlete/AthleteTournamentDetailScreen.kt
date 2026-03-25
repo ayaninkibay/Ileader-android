@@ -16,17 +16,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.ileader.app.data.bracket.BracketUtils
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.bracket.BracketView
 import com.ileader.app.ui.components.bracket.MatchDetailDialog
+import com.ileader.app.ui.components.tournamentImageUrl
+import com.ileader.app.ui.components.LocalSnackbarHost
 import com.ileader.app.ui.viewmodels.AthleteTournamentsViewModel
 @Composable
 fun AthleteTournamentDetailScreen(
@@ -39,12 +44,21 @@ fun AthleteTournamentDetailScreen(
     val detailState by viewModel.detailState.collectAsState()
     val isRegistered by viewModel.isRegistered.collectAsState()
 
+    val snackbarHost = LocalSnackbarHost.current
+    val snackbarEvent by viewModel.snackbarEvent.collectAsState()
+    LaunchedEffect(snackbarEvent) {
+        snackbarEvent?.let { msg ->
+            snackbarHost.showSnackbar(msg)
+            viewModel.clearSnackbar()
+        }
+    }
+
     LaunchedEffect(tournamentId) { viewModel.loadDetail(tournamentId, user.id) }
 
     val bracketData by viewModel.bracketData.collectAsState()
 
     when (val s = detailState) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DETAIL)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.loadDetail(tournamentId, user.id) }
         is UiState.Success -> DetailContent(
             tournament = s.data,
@@ -68,37 +82,92 @@ private fun DetailContent(
     userId: String = "",
     onShowQrTicket: (String, Boolean) -> Unit = { _, _ -> }
 ) {
+    val bgColor = DarkTheme.Bg
+
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
         ) {
-            Spacer(Modifier.height(16.dp))
-
-            // ── BACK + TITLE ──
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // ── PHOTO HEADER ──
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+            ) {
+                val headerImageUrl = tournamentImageUrl(tournament.sportName, tournament.imageUrl)
+                if (headerImageUrl != null) {
+                    AsyncImage(
+                        model = headerImageUrl,
+                        contentDescription = tournament.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize().background(DarkTheme.CardBg))
+                }
+                // Dark gradient overlay
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, bgColor.copy(alpha = 0.85f)),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
+                )
+                // Back button (top-left)
                 Surface(
-                    onClick = onBack, shape = CircleShape, color = DarkTheme.CardBg,
-                    modifier = Modifier.size(40.dp).border(0.5.dp, DarkTheme.CardBorder, CircleShape)
+                    onClick = onBack,
+                    shape = CircleShape,
+                    color = DarkTheme.CardBg.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(start = 16.dp, top = 8.dp)
+                        .size(40.dp)
+                        .align(Alignment.TopStart)
+                        .border(0.5.dp, DarkTheme.CardBorder, CircleShape)
                 ) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", Modifier.size(20.dp), DarkTheme.TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", Modifier.size(20.dp), Color.White)
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(tournament.name, fontSize = 22.sp, fontWeight = FontWeight.Bold,
-                        color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
+                // Title + sport name (bottom-left)
+                Column(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 20.dp, bottom = 16.dp, end = 80.dp)
+                ) {
+                    Text(
+                        tournament.name,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        letterSpacing = (-0.5).sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(Modifier.height(2.dp))
-                    Text(tournament.sportName, fontSize = 13.sp, color = DarkTheme.TextSecondary)
+                    Text(tournament.sportName, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
                 }
-                TournamentStatusBadge(tournament.status)
+                // Status badge (bottom-right)
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 16.dp)
+                ) {
+                    TournamentStatusBadge(tournament.status)
+                }
             }
 
-            Spacer(Modifier.height(20.dp))
+            // ── Content with horizontal padding ──
+            Column(Modifier.padding(horizontal = 20.dp)) {
+
+            Spacer(Modifier.height(16.dp))
 
             // ── INFO CHIPS ──
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), Arrangement.spacedBy(10.dp)) {
@@ -145,6 +214,40 @@ private fun DetailContent(
                                 }
                             )
                         }
+                    }
+                }
+            }
+
+            // ── УЧАСТНИКИ ──
+            if (bracketData.participants.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                SectionCard("Участники (${bracketData.participants.size})", Icons.Default.Groups) {
+                    bracketData.participants.take(10).forEach { p ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            UserAvatar(
+                                avatarUrl = p.profiles?.avatarUrl,
+                                displayName = p.profiles?.name ?: "Участник",
+                                size = 32.dp
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                p.profiles?.name ?: "Участник",
+                                fontSize = 14.sp,
+                                color = DarkTheme.TextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    if (bracketData.participants.size > 10) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "и ещё ${bracketData.participants.size - 10} участников",
+                            fontSize = 13.sp,
+                            color = DarkTheme.TextMuted
+                        )
                     }
                 }
             }
@@ -291,7 +394,7 @@ private fun DetailContent(
                         Spacer(Modifier.width(8.dp))
                         Text("Показать QR-билет", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
-                } else if (tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
+                } else {
                     Surface(Modifier.fillMaxWidth(), RoundedCornerShape(12.dp), DarkTheme.CardBg) {
                         Box(
                             Modifier.fillMaxWidth().padding(16.dp),
@@ -299,6 +402,8 @@ private fun DetailContent(
                         ) {
                             Text(
                                 when {
+                                    tournament.status == TournamentStatus.COMPLETED -> "Турнир завершён"
+                                    tournament.status == TournamentStatus.CANCELLED -> "Турнир отменён"
                                     tournament.status == TournamentStatus.IN_PROGRESS -> "Турнир уже начался"
                                     daysUntilStart in 0..6 -> "Регистрация закрыта (менее 7 дней до начала)"
                                     else -> "Регистрация закрыта"
@@ -310,6 +415,7 @@ private fun DetailContent(
             }
 
             Spacer(Modifier.height(32.dp))
+            } // end inner Column (horizontal padding)
         }
     }
 }
