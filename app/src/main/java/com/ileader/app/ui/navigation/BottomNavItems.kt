@@ -29,8 +29,8 @@ fun getBottomNavItems(role: UserRole, teamId: String? = null, unreadNotification
         }
         UserRole.TRAINER -> listOf(
             BottomNavItem("trainer/dashboard", "Главная", Icons.Default.Home),
-            BottomNavItem("trainer/team", "Команда", Icons.Default.Groups),
             BottomNavItem("trainer/tournaments", "Турниры", Icons.Default.EmojiEvents),
+            BottomNavItem("trainer/team", "Команда", Icons.Default.Groups),
             BottomNavItem("trainer/statistics", "Статистика", Icons.Default.BarChart),
             BottomNavItem("trainer/profile", "Профиль", Icons.Default.Person)
         )

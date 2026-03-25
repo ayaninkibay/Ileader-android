@@ -403,6 +403,7 @@ private fun HeroTournamentCard(tournament: Tournament, onClick: () -> Unit = {},
         modifier = modifier
             .height(200.dp)
             .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF1a0a0a))
             .clickable(onClick = onClick)
     ) {
         // Фото турнира (своё или по виду спорта) или тёмный фолбэк
@@ -489,6 +490,7 @@ private fun TournamentScrollCard(tournament: Tournament, seed: Int = 0, onClick:
             .width(180.dp)
             .height(140.dp)
             .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF1a0808))
             .clickable(onClick = onClick)
     ) {
         val scrollImage = tournamentImageUrl(tournament, seed)
@@ -522,16 +524,23 @@ private fun TournamentScrollCard(tournament: Tournament, seed: Int = 0, onClick:
                 .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            val scrollStatusColor = when (tournament.status) {
+                TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
+                TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
+                TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
+                TournamentStatus.COMPLETED -> Color(0xFFE53535)
+                else -> Color.White
+            }
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color.White.copy(alpha = 0.2f)
+                color = scrollStatusColor.copy(alpha = 0.2f)
             ) {
                 Text(
                     tournament.status.displayName,
                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = scrollStatusColor
                 )
             }
             Column {
@@ -717,8 +726,9 @@ private fun QuickActionCard(modifier: Modifier, icon: ImageVector, label: String
 fun TournamentStatusBadge(status: TournamentStatus) {
     val color = when (status) {
         TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-        TournamentStatus.IN_PROGRESS -> Color(0xFFF59E0B)
+        TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
         TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
+        TournamentStatus.COMPLETED -> Color(0xFFE53535)
         else -> DarkTheme.TextMuted
     }
     StatusBadge(status.displayName, color)

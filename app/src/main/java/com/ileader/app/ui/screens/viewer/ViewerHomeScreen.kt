@@ -1,8 +1,8 @@
 package com.ileader.app.ui.screens.viewer
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -16,22 +16,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.ileader.app.data.mock.ViewerMockData
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
-import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.screens.athlete.AthleteTournamentDetailScreen
+import com.ileader.app.ui.viewmodels.AthleteTournamentsViewModel
 import com.ileader.app.ui.viewmodels.ViewerHomeViewModel
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -52,8 +54,24 @@ fun ViewerHomeScreen(
     onNavigateToNews: () -> Unit = {}
 ) {
     val viewModel: ViewerHomeViewModel = viewModel()
+    val detailViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    var selectedTournamentId by remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) { viewModel.load() }
+    LaunchedEffect(user.id) { detailViewModel.load(user.id) }
+
+    // Tournament detail screen (view-only, no registration for viewer)
+    selectedTournamentId?.let { id ->
+        AthleteTournamentDetailScreen(
+            tournamentId = id,
+            user = user,
+            viewModel = detailViewModel,
+            onBack = { selectedTournamentId = null },
+            onShowQrTicket = { _, _ -> }
+        )
+        return
+    }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
@@ -67,29 +85,19 @@ fun ViewerHomeScreen(
             val filteredTournaments = remember(selectedSport, data.upcomingTournaments) {
                 data.upcomingTournaments
                     .filter { selectedSport.isBlank() || it.sportId == selectedSport }
-                    .take(4)
+                    .take(6)
             }
 
-            val accentColor = Accent
-            Box(Modifier.fillMaxSize()) {
-                Canvas(Modifier.fillMaxSize()) {
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            listOf(accentColor.copy(alpha = 0.06f), Color.Transparent),
-                            center = Offset(size.width * 0.85f, size.height * 0.03f),
-                            radius = 280.dp.toPx()
-                        ),
-                        radius = 280.dp.toPx(),
-                        center = Offset(size.width * 0.85f, size.height * 0.03f)
-                    )
-                }
+            val heroTournament = filteredTournaments.firstOrNull()
+            val scrollTournaments = if (filteredTournaments.size > 1) filteredTournaments.drop(1) else emptyList()
 
+            Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Hero Banner
+                    // ── HERO BANNER ──
                     FadeIn(visible, 0) {
                         Box(
                             modifier = Modifier
@@ -142,7 +150,22 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Sports Selection
+                    // ── HERO TOURNAMENT CARD ──
+                    FadeIn(visible, 100) {
+                        if (heroTournament != null) {
+                            ViewerHeroTournamentCard(
+                                tournament = heroTournament,
+                                onClick = { selectedTournamentId = heroTournament.id },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(28.dp))
+
+                    // ── SPORTS SELECTION ──
                     FadeIn(visible, 200) {
                         Text(
                             "Выбери вид спорта",
@@ -172,27 +195,44 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Upcoming Tournaments
-                    FadeIn(visible, 400) {
-                        Box(Modifier.padding(horizontal = 20.dp)) {
-                            SectionHeader("Ближайшие турниры", "Все", onNavigateToTournaments)
+                    // ── UPCOMING TOURNAMENTS — HORIZONTAL SCROLL ──
+                    FadeIn(visible, 350) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Ближайшие турниры",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            TextButton(onClick = onNavigateToTournaments, contentPadding = PaddingValues(0.dp)) {
+                                Text("Все", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
+                                Icon(Icons.Default.ChevronRight, null, Modifier.size(16.dp), tint = TextSecondary)
+                            }
                         }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    FadeIn(visible, 400) {
-                        if (filteredTournaments.isEmpty()) {
-                            Box(Modifier.padding(horizontal = 20.dp)) {
+                        Spacer(Modifier.height(12.dp))
+                        if (scrollTournaments.isEmpty()) {
+                            Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                                 EmptyState("Нет турниров", "По выбранному виду спорта пока нет турниров")
                             }
                         } else {
-                            Column(
-                                modifier = Modifier.padding(horizontal = 20.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            Row(
+                                Modifier
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 20.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                filteredTournaments.forEach { tournament ->
-                                    HomeTournamentCard(tournament) { onNavigateToTournamentDetail(tournament.id) }
+                                scrollTournaments.forEachIndexed { i, t ->
+                                    ViewerTournamentScrollCard(
+                                        tournament = t,
+                                        seed = i + 1,
+                                        onClick = { selectedTournamentId = t.id }
+                                    )
                                 }
                             }
                         }
@@ -200,8 +240,8 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Features (stays on MockData — static content)
-                    FadeIn(visible, 600) {
+                    // ── FEATURES ──
+                    FadeIn(visible, 500) {
                         Text(
                             "Возможности платформы",
                             fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary,
@@ -217,7 +257,7 @@ fun ViewerHomeScreen(
                         Icons.Default.School, Icons.Default.BarChart
                     )
 
-                    FadeIn(visible, 600) {
+                    FadeIn(visible, 500) {
                         Column(
                             modifier = Modifier.padding(horizontal = 20.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -230,8 +270,8 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Platform stats card
-                    FadeIn(visible, 800) {
+                    // ── PLATFORM STATS CARD ──
+                    FadeIn(visible, 650) {
                         DarkCardPadded(
                             modifier = Modifier.padding(horizontal = 20.dp),
                             padding = 20.dp
@@ -249,8 +289,8 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(28.dp))
 
-                    // Latest News (stays on MockData — no articles table)
-                    FadeIn(visible, 1000) {
+                    // ── LATEST NEWS (mock) ──
+                    FadeIn(visible, 800) {
                         Box(Modifier.padding(horizontal = 20.dp)) {
                             SectionHeader("Последние новости", "Все", onNavigateToNews)
                         }
@@ -258,7 +298,7 @@ fun ViewerHomeScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    FadeIn(visible, 1000) {
+                    FadeIn(visible, 800) {
                         Column(
                             modifier = Modifier.padding(horizontal = 20.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -317,36 +357,177 @@ private fun SportChip(name: String, isSelected: Boolean, isAvailable: Boolean, o
 }
 
 @Composable
-private fun HomeTournamentCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
-    val status = tournament.status ?: ""
-    val isActive = status == "registration_open" || status == "in_progress"
-    val chipColor = if (isActive) Accent else TextMuted
+private fun ViewerHeroTournamentCard(
+    tournament: TournamentWithCountsDto,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val heroImage = tournamentImageUrl(tournament.sportName ?: "", tournament.imageUrl)
 
-    DarkCard(Modifier.clickable { onClick() }) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                    .background(Brush.linearGradient(listOf(Accent, AccentDark))),
-                contentAlignment = Alignment.Center
+    Box(
+        modifier = modifier
+            .height(200.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFF1a0a0a))
+            .clickable(onClick = onClick)
+    ) {
+        if (heroImage != null) {
+            AsyncImage(
+                model = heroImage,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(Modifier.fillMaxSize().background(Color(0xFF1a0a0a)))
+        }
+
+        // Dark gradient overlay
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.25f),
+                            Color.Black.copy(alpha = 0.75f)
+                        )
+                    )
+                )
+        )
+
+        // Content
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Badge
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White.copy(alpha = 0.2f)
             ) {
                 Text(
-                    formatShortDate(tournament.startDate),
-                    fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White,
-                    textAlign = TextAlign.Center
+                    "Ближайший турнир",
+                    Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
                 )
             }
 
-            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    tournament.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    letterSpacing = (-0.3).sp
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), Color.White.copy(alpha = 0.8f))
+                        Spacer(Modifier.width(4.dp))
+                        Text(formatShortDate(tournament.startDate), fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+                    }
+                    if (!tournament.sportName.isNullOrEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(sportIcon(tournament.sportName), null, Modifier.size(14.dp), Color.White.copy(alpha = 0.8f))
+                            Text(tournament.sportName, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
-            Column(Modifier.weight(1f)) {
-                StatusBadge(getStatusLabel(status), chipColor)
-                Spacer(Modifier.height(4.dp))
-                Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(3.dp))
-                Text("${tournament.region ?: ""} · ${tournament.participantCount}/${tournament.maxParticipants ?: 0}", fontSize = 12.sp, color = TextSecondary)
+@Composable
+private fun ViewerTournamentScrollCard(
+    tournament: TournamentWithCountsDto,
+    seed: Int = 0,
+    onClick: () -> Unit = {}
+) {
+    val scrollImage = tournamentImageUrl(tournament.sportName ?: "", tournament.imageUrl, seed)
+    val status = tournament.status ?: ""
+    val statusColor = getStatusColor(status)
+    val statusLabel = getStatusLabel(status)
+
+    Box(
+        Modifier
+            .width(180.dp)
+            .height(140.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF1a0808))
+            .clickable(onClick = onClick)
+    ) {
+        if (scrollImage != null) {
+            AsyncImage(
+                model = scrollImage,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(Modifier.fillMaxSize().background(Color(0xFF1a0808)))
+        }
+
+        // Dark overlay
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.2f),
+                            Color.Black.copy(alpha = 0.72f)
+                        )
+                    )
+                )
+        )
+
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = statusColor.copy(alpha = 0.2f)
+            ) {
+                Text(
+                    statusLabel,
+                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = statusColor
+                )
             }
 
-            Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+            Column {
+                Text(
+                    tournament.name,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    formatShortDate(tournament.startDate),
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.75f)
+                )
+            }
         }
     }
 }
@@ -416,6 +597,7 @@ internal fun getStatusLabel(status: String): String = when (status) {
     "in_progress" -> "Идёт сейчас"
     "registration_open" -> "Регистрация"
     "registration_closed" -> "Рег. закрыта"
+    "check_in" -> "Чек-ин"
     "completed" -> "Завершён"
     "cancelled" -> "Отменён"
     else -> status
@@ -423,6 +605,9 @@ internal fun getStatusLabel(status: String): String = when (status) {
 
 @Composable
 internal fun getStatusColor(status: String): Color = when (status) {
-    "in_progress", "registration_open" -> Accent
+    "registration_open" -> Color(0xFF22C55E)
+    "in_progress" -> Color(0xFFF97316)
+    "check_in" -> Color(0xFF3B82F6)
+    "completed" -> Color(0xFFE53535)
     else -> TextMuted
 }

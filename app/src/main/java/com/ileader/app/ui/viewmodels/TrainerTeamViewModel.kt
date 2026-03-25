@@ -10,6 +10,7 @@ import com.ileader.app.data.repository.TrainerTeamData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import android.util.Log
 import kotlinx.coroutines.launch
 
 data class TrainerTeamScreenData(
@@ -45,6 +46,7 @@ class TrainerTeamViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                Log.e("TrainerTeam", "Load error", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }

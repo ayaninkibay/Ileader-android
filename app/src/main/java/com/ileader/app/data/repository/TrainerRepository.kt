@@ -301,7 +301,6 @@ class TrainerRepository {
             "team_id" to teamId,
             "user_id" to profile.id,
             "status" to "pending",
-            "direction" to "outgoing",
             "message" to "Приглашение от тренера"
         ))
     }
@@ -323,7 +322,6 @@ class TrainerRepository {
                     filter {
                         eq("team_id", team.id)
                         eq("status", "pending")
-                        eq("direction", "outgoing")
                     }
                     order("created_at", Order.DESCENDING)
                 }

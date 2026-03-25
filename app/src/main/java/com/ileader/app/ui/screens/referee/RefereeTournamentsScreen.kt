@@ -2,18 +2,22 @@ package com.ileader.app.ui.screens.referee
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -77,6 +81,7 @@ fun RefereeTournamentsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TournamentsListContent(
     allTournaments: List<RefereeTournament>,
@@ -85,6 +90,9 @@ private fun TournamentsListContent(
     var selectedFilter by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     val filters = listOf("Все", "Активные", "Предстоящие", "Завершённые")
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val filtered = allTournaments.filter { t ->
         val matchesFilter = when (selectedFilter) {
@@ -132,27 +140,91 @@ private fun TournamentsListContent(
 
             Spacer(Modifier.height(28.dp))
 
-            // ── SEARCH ──
+            // ── SEARCH + FILTER ──
             FadeIn(visible, 200) {
-                DarkSearchField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = "Поиск турниров..."
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // ── FILTER CHIPS ──
-            FadeIn(visible, 300) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filters.forEachIndexed { index, filter ->
-                        DarkFilterChip(filter, selectedFilter == index, { selectedFilter = index })
+                val activeFilters = if (selectedFilter != 0) 1 else 0
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        DarkSearchField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = "Поиск турниров..."
+                        )
+                    }
+                    Surface(
+                        onClick = { showFilterSheet = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = DarkTheme.CardBg
+                    ) {
+                        Box(
+                            Modifier
+                                .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Icon(Icons.Default.Tune, "Фильтры", Modifier.size(20.dp), Accent)
+                            if (activeFilters > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Accent,
+                                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp).size(16.dp)
+                                ) {
+                                    Box(Modifier.fillMaxSize(), Alignment.Center) {
+                                        Text("$activeFilters", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
-                Text("Найдено: ${filtered.size}", fontSize = 12.sp, color = TextMuted)
             }
+
+            if (showFilterSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showFilterSheet = false },
+                    sheetState = sheetState,
+                    containerColor = DarkTheme.CardBg,
+                    dragHandle = {
+                        Box(Modifier.padding(top = 12.dp, bottom = 8.dp)) {
+                            Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DarkTheme.CardBorder))
+                        }
+                    }
+                ) {
+                    Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                        Text("Фильтры", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(Modifier.height(20.dp))
+
+                        Text("Статус", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
+                        DarkSegmentedControl(filters, selectedFilter, { selectedFilter = it })
+
+                        Spacer(Modifier.height(24.dp))
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = { selectedFilter = 0 },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(DarkTheme.CardBorder)
+                                )
+                            ) { Text("Сбросить", color = TextSecondary) }
+                            Button(
+                                onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { showFilterSheet = false } },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Accent)
+                            ) { Text("Применить") }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Text("Найдено: ${filtered.size}", fontSize = 12.sp, color = TextMuted)
 
             Spacer(Modifier.height(16.dp))
 

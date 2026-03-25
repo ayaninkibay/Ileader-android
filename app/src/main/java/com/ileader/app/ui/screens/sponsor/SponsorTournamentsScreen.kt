@@ -1,8 +1,9 @@
 package com.ileader.app.ui.screens.sponsor
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -13,9 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
@@ -24,6 +28,7 @@ import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.viewmodels.SponsorTournamentsViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SponsorTournamentsScreen(user: User) {
     val viewModel: SponsorTournamentsViewModel = viewModel()
@@ -35,6 +40,10 @@ fun SponsorTournamentsScreen(user: User) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
+    val tabFilters = listOf("Открытые", "Мои")
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
 
     selectedTournamentId?.let { tournamentId ->
         SponsorTournamentDetailScreen(
@@ -77,10 +86,41 @@ fun SponsorTournamentsScreen(user: User) {
 
                     Spacer(Modifier.height(20.dp))
 
+                    // ── SEARCH + FILTER ──
                     FadeIn(visible, 100) {
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            DarkFilterChip("Открытые (${openTournaments.size})", selectedTab == 0, onClick = { selectedTab = 0 })
-                            DarkFilterChip("Мои (${mySponsorships.size})", selectedTab == 1, onClick = { selectedTab = 1 })
+                        val activeFilters = if (selectedTab != 0) 1 else 0
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(Modifier.weight(1f)) {
+                                DarkSearchField(value = searchQuery, onValueChange = { searchQuery = it }, placeholder = "Поиск турниров...")
+                            }
+                            Surface(
+                                onClick = { showFilterSheet = true },
+                                shape = RoundedCornerShape(12.dp),
+                                color = DarkTheme.CardBg
+                            ) {
+                                Box(
+                                    Modifier
+                                        .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                        .padding(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Tune, "Фильтры", Modifier.size(20.dp), DarkTheme.Accent)
+                                    if (activeFilters > 0) {
+                                        Surface(
+                                            shape = RoundedCornerShape(20.dp),
+                                            color = DarkTheme.Accent,
+                                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp).size(16.dp)
+                                        ) {
+                                            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                                                Text("$activeFilters", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -97,8 +137,45 @@ fun SponsorTournamentsScreen(user: User) {
                         Spacer(Modifier.height(12.dp))
                     }
 
-                    FadeIn(visible, 200) {
-                        DarkSearchField(value = searchQuery, onValueChange = { searchQuery = it }, placeholder = "Поиск турнира...")
+                    if (showFilterSheet) {
+                        ModalBottomSheet(
+                            onDismissRequest = { showFilterSheet = false },
+                            sheetState = sheetState,
+                            containerColor = DarkTheme.CardBg,
+                            dragHandle = {
+                                Box(Modifier.padding(top = 12.dp, bottom = 8.dp)) {
+                                    Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DarkTheme.CardBorder))
+                                }
+                            }
+                        ) {
+                            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                                Text("Фильтры", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DarkTheme.TextPrimary)
+                                Spacer(Modifier.height(20.dp))
+
+                                Text("Категория", fontSize = 13.sp, color = DarkTheme.TextMuted, fontWeight = FontWeight.Medium)
+                                Spacer(Modifier.height(8.dp))
+                                DarkSegmentedControl(tabFilters, selectedTab, onSelect = { selectedTab = it })
+
+                                Spacer(Modifier.height(24.dp))
+
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    OutlinedButton(
+                                        onClick = { selectedTab = 0 },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                                            brush = SolidColor(DarkTheme.CardBorder)
+                                        )
+                                    ) { Text("Сбросить", color = DarkTheme.TextSecondary) }
+                                    Button(
+                                        onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { showFilterSheet = false } },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
+                                    ) { Text("Применить") }
+                                }
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(16.dp))

@@ -96,6 +96,7 @@ private fun DetailContent(
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .background(DarkTheme.CardBg)
             ) {
                 val headerImageUrl = tournamentImageUrl(tournament.sportName, tournament.imageUrl)
                 if (headerImageUrl != null) {
@@ -114,7 +115,7 @@ private fun DetailContent(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, bgColor.copy(alpha = 0.85f)),
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
                                 startY = 0f,
                                 endY = Float.POSITIVE_INFINITY
                             )
@@ -344,18 +345,9 @@ private fun DetailContent(
 
             // ── REGISTER BUTTON ──
             run {
-                val daysUntilStart = try {
-                    val clean = tournament.startDate.substringBefore("+").substringBefore("Z")
-                    val startDate = if (clean.contains("T"))
-                        java.time.LocalDateTime.parse(clean).toLocalDate()
-                    else
-                        java.time.LocalDate.parse(clean)
-                    java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), startDate)
-                } catch (_: Exception) { -1L }
+                val canRegister = tournament.status == TournamentStatus.REGISTRATION_OPEN
 
-                val canRegister = daysUntilStart >= 7
-
-                if (canRegister && tournament.status != TournamentStatus.COMPLETED && tournament.status != TournamentStatus.CANCELLED) {
+                if (canRegister) {
                     Button(
                         onClick = onToggleRegistration,
                         Modifier.fillMaxWidth().height(52.dp),
@@ -401,11 +393,10 @@ private fun DetailContent(
                             Alignment.Center
                         ) {
                             Text(
-                                when {
-                                    tournament.status == TournamentStatus.COMPLETED -> "Турнир завершён"
-                                    tournament.status == TournamentStatus.CANCELLED -> "Турнир отменён"
-                                    tournament.status == TournamentStatus.IN_PROGRESS -> "Турнир уже начался"
-                                    daysUntilStart in 0..6 -> "Регистрация закрыта (менее 7 дней до начала)"
+                                when (tournament.status) {
+                                    TournamentStatus.COMPLETED -> "Турнир завершён"
+                                    TournamentStatus.CANCELLED -> "Турнир отменён"
+                                    TournamentStatus.IN_PROGRESS -> "Турнир уже начался"
                                     else -> "Регистрация закрыта"
                                 },
                                 fontSize = 15.sp, color = DarkTheme.TextSecondary, fontWeight = FontWeight.Medium)

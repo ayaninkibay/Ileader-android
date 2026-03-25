@@ -1,11 +1,13 @@
 package com.ileader.app.ui.screens.trainer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -18,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,167 +82,183 @@ fun TrainerProfileScreen(
                         .fillMaxSize()
                         .statusBarsPadding()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
                 ) {
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── HEADER ──
+                    // ── HERO BANNER ──
                     FadeIn(visible = started, delayMs = 0) {
-                    Column {
-                        Text("Профиль", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(profile.displayName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
-                    }
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    // ── AVATAR ──
-                    FadeIn(visible = started, delayMs = 150) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        EditableAvatar(
-                            avatarUrl = profile.avatarUrl,
-                            displayName = profile.displayName,
-                            size = 80.dp,
-                            isUploading = isUploading,
-                            onImageSelected = { bytes -> avatarVM.uploadAvatar(user.id, bytes) }
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Text(profile.displayName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DarkTheme.TextPrimary)
-                        RoleBadge(profile.role)
-                    }
-                    }
-
-                    Spacer(Modifier.height(20.dp))
-
-                    // ── QUICK LINKS ──
-                    FadeIn(visible = started, delayMs = 300) {
-                    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
-                        PQuickLink(Modifier.weight(1f), Icons.Default.Notifications, "Уведомления", pendingCount) { showNotifications = true }
-                        PQuickLink(Modifier.weight(1f), Icons.Default.Verified, "Верификация") { }
-                    }
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                        ) {
+                            Column(
+                                Modifier.fillMaxSize().padding(bottom = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom
+                            ) {
+                                EditableAvatar(
+                                    avatarUrl = profile.avatarUrl,
+                                    displayName = profile.displayName,
+                                    size = 88.dp,
+                                    isUploading = isUploading,
+                                    onImageSelected = { bytes -> avatarVM.uploadAvatar(user.id, bytes) }
+                                )
+                                Spacer(Modifier.height(10.dp))
+                                Text(
+                                    profile.displayName,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkTheme.TextPrimary
+                                )
+                                Text(
+                                    "Тренер",
+                                    fontSize = 13.sp,
+                                    color = DarkTheme.TextSecondary
+                                )
+                            }
+                        }
                     }
 
-                    Spacer(Modifier.height(20.dp))
+                    Column(Modifier.padding(horizontal = 20.dp)) {
+                        Spacer(Modifier.height(20.dp))
 
-                    // ── PROFILE INFO ──
-                    FadeIn(visible = started, delayMs = 450) {
-                    DarkCard {
-                        Column(Modifier.padding(16.dp)) {
-                            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                                Text("Личная информация", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                                Button(
-                                    onClick = {
-                                        if (isEditing) {
-                                            viewModel.updateProfile(user.id, editName, editPhone, editCity, editBio)
+                        // ── QUICK LINKS ──
+                        FadeIn(visible = started, delayMs = 200) {
+                            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
+                                QuickLink(Modifier.weight(1f), Icons.Default.Notifications, "Уведомления", pendingCount) { showNotifications = true }
+                                QuickLink(Modifier.weight(1f), Icons.Default.Verified, "Верификация") { }
+                            }
+                        }
+
+                        Spacer(Modifier.height(20.dp))
+
+                        // ── PROFILE INFO ──
+                        FadeIn(visible = started, delayMs = 350) {
+                            DarkCard {
+                                Column(Modifier.padding(16.dp)) {
+                                    Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                                        Text("Личная информация", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary, modifier = Modifier.weight(1f).padding(end = 12.dp))
+                                        Button(
+                                            onClick = {
+                                                if (isEditing) {
+                                                    viewModel.updateProfile(user.id, editName, editPhone, editCity, editBio)
+                                                }
+                                                isEditing = !isEditing
+                                            },
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(if (isEditing) Icons.Default.Check else Icons.Default.Edit, null, Modifier.size(16.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(if (isEditing) "Сохранить" else "Редактировать", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                         }
-                                        isEditing = !isEditing
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Icon(if (isEditing) Icons.Default.Check else Icons.Default.Edit, null, Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(if (isEditing) "Сохранить" else "Редактировать", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    Spacer(Modifier.height(12.dp))
+
+                                    if (isEditing) {
+                                        ProfileEditField("Имя", editName) { editName = it }
+                                        Spacer(Modifier.height(8.dp))
+                                        ProfileEditField("О себе", editBio) { editBio = it }
+                                        Spacer(Modifier.height(8.dp))
+                                        ProfileEditField("Телефон", editPhone) { editPhone = it }
+                                        Spacer(Modifier.height(8.dp))
+                                        ProfileEditField("Город", editCity) { editCity = it }
+                                        Spacer(Modifier.height(12.dp))
+                                        OutlinedButton(
+                                            onClick = { isEditing = false; editName = profile.name; editPhone = profile.phone ?: ""; editCity = profile.city ?: ""; editBio = profile.bio ?: "" },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
+                                            border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                                                brush = Brush.linearGradient(listOf(DarkTheme.CardBorder, DarkTheme.CardBorder))
+                                            )
+                                        ) { Text("Отмена") }
+                                    } else {
+                                        ProfileRow(Icons.Default.Email, "Email", profile.email)
+                                        ProfileRow(Icons.Default.Phone, "Телефон", profile.phone ?: "Не указан")
+                                        ProfileRow(Icons.Default.LocationCity, "Город", "${profile.city ?: "—"}, ${profile.country ?: "—"}")
+                                        ProfileRow(Icons.Default.Cake, "Дата рождения", profile.birthDate ?: "Не указана")
+                                        ProfileRow(Icons.Default.CalendarMonth, "Регистрация", profile.createdAt ?: "—")
+                                        ProfileRow(Icons.Default.School, "Роль", profile.role.displayName)
+                                    }
                                 }
                             }
+                        }
 
-                            Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                            if (isEditing) {
-                                DarkFormField("Имя", editName, { editName = it })
-                                Spacer(Modifier.height(8.dp))
-                                DarkFormField("О себе", editBio, { editBio = it })
-                                Spacer(Modifier.height(8.dp))
-                                DarkFormField("Телефон", editPhone, { editPhone = it })
-                                Spacer(Modifier.height(8.dp))
-                                DarkFormField("Город", editCity, { editCity = it })
+                        // ── SPORTS ──
+                        FadeIn(visible = started, delayMs = 500) {
+                            Column {
+                                DarkCard {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
+                                        Spacer(Modifier.height(10.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            data.sports.forEach { (name, _) ->
+                                                Surface(shape = RoundedCornerShape(10.dp), color = DarkTheme.AccentSoft) {
+                                                    Text(name, Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.Accent)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 Spacer(Modifier.height(12.dp))
+
+                                // ── EXPERIENCE ──
+                                DarkCard {
+                                    Column(Modifier.padding(16.dp)) {
+                                        Text("Опыт и квалификация", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
+                                        Spacer(Modifier.height(10.dp))
+                                        Text(profile.bio ?: "Не указано", fontSize = 14.sp, color = DarkTheme.TextSecondary, lineHeight = 20.sp)
+                                    }
+                                }
+
+                                Spacer(Modifier.height(12.dp))
+
+                                // ── THEME SWITCHER ──
+                                ThemeSwitcherCard()
+
+                                Spacer(Modifier.height(12.dp))
+
+                                // ── CHANGE PASSWORD ──
+                                DarkCard {
+                                    Row(
+                                        Modifier.clickable { }.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        SoftIconBox(Icons.Default.Lock)
+                                        Spacer(Modifier.width(12.dp))
+                                        Text("Сменить пароль", Modifier.weight(1f), fontSize = 15.sp,
+                                            fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
+                                        Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), DarkTheme.TextMuted)
+                                    }
+                                }
+
+                                Spacer(Modifier.height(24.dp))
+
+                                // ── SIGN OUT ──
                                 OutlinedButton(
-                                    onClick = { isEditing = false; editName = profile.name; editPhone = profile.phone ?: ""; editCity = profile.city ?: ""; editBio = profile.bio ?: "" },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
-                                    border = DarkTheme.cardBorderStroke
-                                ) { Text("Отмена") }
-                            } else {
-                                PProfileRow(Icons.Default.Email, "Email", profile.email)
-                                PProfileRow(Icons.Default.Phone, "Телефон", profile.phone ?: "Не указан")
-                                PProfileRow(Icons.Default.LocationCity, "Город", "${profile.city ?: "—"}, ${profile.country ?: "—"}")
-                                PProfileRow(Icons.Default.Cake, "Дата рождения", profile.birthDate ?: "Не указана")
-                                PProfileRow(Icons.Default.CalendarMonth, "Регистрация", profile.createdAt ?: "—")
-                                PProfileRow(Icons.Default.School, "Роль", profile.role.displayName)
+                                    onClick = onSignOut,
+                                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.Accent),
+                                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                        brush = Brush.linearGradient(listOf(DarkTheme.Accent.copy(alpha = 0.3f), DarkTheme.Accent.copy(alpha = 0.3f)))
+                                    )
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Выйти из аккаунта", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
+
+                        Spacer(Modifier.height(32.dp))
                     }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── SPORTS ──
-                    FadeIn(visible = started, delayMs = 600) {
-                    Column {
-                    DarkCardPadded {
-                        Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                        Spacer(Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            data.sports.forEach { (name, _) ->
-                                StatusBadge(name, DarkTheme.Accent)
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── EXPERIENCE ──
-                    DarkCardPadded {
-                        Text("Опыт и квалификация", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                        Spacer(Modifier.height(10.dp))
-                        Text(profile.bio ?: "Не указано", fontSize = 14.sp, color = DarkTheme.TextSecondary, lineHeight = 20.sp)
-                    }
-                    }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── CHANGE PASSWORD ──
-                    DarkCard {
-                        Row(
-                            Modifier.clickable { }.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(DarkTheme.CardBorder.copy(alpha = 0.5f)), Alignment.Center) {
-                                Icon(Icons.Default.Lock, null, Modifier.size(20.dp), DarkTheme.TextMuted)
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Text("Сменить пароль", Modifier.weight(1f), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
-                            Icon(Icons.Default.ChevronRight, null, Modifier.size(20.dp), DarkTheme.TextMuted)
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    ThemeSwitcherCard()
-
-                    Spacer(Modifier.height(12.dp))
-
-                    // ── SIGN OUT ──
-                    OutlinedButton(
-                        onClick = onSignOut,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.Accent),
-                        border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                            brush = Brush.linearGradient(listOf(DarkTheme.Accent.copy(alpha = 0.3f), DarkTheme.Accent.copy(alpha = 0.3f)))
-                        )
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Выйти из аккаунта", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    Spacer(Modifier.height(32.dp))
                 }
             }
         }
@@ -247,31 +266,66 @@ fun TrainerProfileScreen(
 }
 
 @Composable
-private fun PQuickLink(modifier: Modifier, icon: ImageVector, label: String, badge: Int = 0, onClick: () -> Unit) {
-    Surface(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(14.dp), color = DarkTheme.CardBg, border = DarkTheme.cardBorderStroke) {
+private fun QuickLink(modifier: Modifier, icon: ImageVector, label: String, badge: Int = 0, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick, modifier = modifier,
+        shape = RoundedCornerShape(16.dp), color = DarkTheme.CardBg
+    ) {
         Column(
-            Modifier.padding(14.dp),
+            Modifier
+                .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .padding(vertical = 14.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             BadgedBox(badge = { if (badge > 0) Badge(containerColor = DarkTheme.Accent) { Text(badge.toString()) } }) {
-                SoftIconBox(icon, size = 36.dp)
+                Box(
+                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(DarkTheme.AccentSoft),
+                    Alignment.Center
+                ) {
+                    Icon(icon, null, Modifier.size(22.dp), DarkTheme.Accent)
+                }
             }
-            Spacer(Modifier.height(6.dp))
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
         }
     }
 }
 
 @Composable
-private fun PProfileRow(icon: ImageVector, label: String, value: String) {
+private fun ProfileRow(icon: ImageVector, label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(32.dp).clip(CircleShape).background(DarkTheme.CardBorder.copy(alpha = 0.5f)), Alignment.Center) {
+        Box(
+            Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(DarkTheme.CardBorder.copy(alpha = 0.5f)),
+            Alignment.Center
+        ) {
             Icon(icon, null, Modifier.size(16.dp), DarkTheme.TextMuted)
         }
         Spacer(Modifier.width(12.dp))
         Column {
             Text(label, fontSize = 12.sp, color = DarkTheme.TextMuted)
             Text(value, fontSize = 14.sp, color = DarkTheme.TextPrimary)
+        }
+    }
+}
+
+@Composable
+private fun ProfileEditField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Column {
+        Text(label, fontSize = 12.sp, color = DarkTheme.TextSecondary)
+        Spacer(Modifier.height(4.dp))
+        Surface(Modifier.fillMaxWidth(), RoundedCornerShape(10.dp), DarkTheme.CardBg) {
+            Row(
+                Modifier.border(0.5.dp, DarkTheme.CardBorder, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.weight(1f)) {
+                    if (value.isEmpty()) Text(label, fontSize = 14.sp, color = DarkTheme.TextMuted)
+                    BasicTextField(value, onValueChange,
+                        textStyle = TextStyle(fontSize = 14.sp, color = DarkTheme.TextPrimary),
+                        singleLine = true, modifier = Modifier.fillMaxWidth())
+                }
+            }
         }
     }
 }

@@ -1,13 +1,14 @@
 package com.ileader.app.ui.screens.trainer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,69 +44,104 @@ fun TrainerNotificationsScreen(
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> {
             val notifications = s.data.notifications
-            var selectedFilter by remember { mutableIntStateOf(0) }
-            val filters = listOf("Все", "Ожидают", "Отвечено")
 
-            val filteredNotifications = when (selectedFilter) {
-                1 -> notifications.filter { it.status == InviteStatus.PENDING }
-                2 -> notifications.filter { it.status != InviteStatus.PENDING }
-                else -> notifications
-            }
+            val joinRequests = notifications.filter { it.type == "join_request" }
+            val sponsorOffers = notifications.filter { it.type == "sponsor_offer" }
+            val otherNotifications = notifications.filter { it.type != "join_request" && it.type != "sponsor_offer" }
 
-            val pendingCount = notifications.count { it.status == InviteStatus.PENDING }
-            val acceptedCount = notifications.count { it.status == InviteStatus.ACCEPTED }
+            val pendingJoin = joinRequests.count { it.status == InviteStatus.PENDING }
+            val pendingSponsor = sponsorOffers.count { it.status == InviteStatus.PENDING }
+
+            var selectedTab by remember { mutableIntStateOf(0) }
 
             Box(Modifier.fillMaxSize()) {
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp)
-                ) {
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── BACK + TITLE ──
-                    BackHeader("Уведомления", onBack) {
-                        if (pendingCount > 0) {
-                            Badge(containerColor = DarkTheme.Accent) {
-                                Text("$pendingCount")
+                Column(Modifier.fillMaxSize().statusBarsPadding()) {
+                    // ── HEADER ──
+                    Row(
+                        Modifier.fillMaxWidth().padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            onClick = onBack, shape = CircleShape, color = DarkTheme.CardBg,
+                            modifier = Modifier.size(40.dp).border(0.5.dp, DarkTheme.CardBorder, CircleShape)
+                        ) {
+                            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", Modifier.size(20.dp), DarkTheme.TextPrimary)
                             }
                         }
+                        Spacer(Modifier.width(12.dp))
+                        Text("Уведомления", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                            color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
                     }
 
-                    Spacer(Modifier.height(20.dp))
-
-                    // ── STATS ──
-                    Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
-                        MiniStat("Ожидают", pendingCount.toString(), Modifier.weight(1f))
-                        MiniStat("Принято", acceptedCount.toString(), Modifier.weight(1f))
-                        MiniStat("Всего", notifications.size.toString(), Modifier.weight(1f))
+                    // ── TABS ──
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = Color.Transparent,
+                        contentColor = DarkTheme.Accent,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        divider = {}
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Заявки", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    if (pendingJoin > 0) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Badge(containerColor = DarkTheme.Accent) { Text(pendingJoin.toString()) }
+                                    }
+                                }
+                            },
+                            selectedContentColor = DarkTheme.Accent,
+                            unselectedContentColor = DarkTheme.TextSecondary
+                        )
+                        Tab(
+                            selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Спонсоры", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                    if (pendingSponsor > 0) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Badge(containerColor = DarkTheme.Accent) { Text(pendingSponsor.toString()) }
+                                    }
+                                }
+                            },
+                            selectedContentColor = DarkTheme.Accent,
+                            unselectedContentColor = DarkTheme.TextSecondary
+                        )
                     }
 
                     Spacer(Modifier.height(16.dp))
 
-                    // ── FILTERS ──
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        filters.forEachIndexed { index, filter ->
-                            DarkFilterChip(filter, selectedFilter == index, { selectedFilter = index })
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ── NOTIFICATION LIST ──
-                    if (filteredNotifications.isEmpty()) {
-                        EmptyState("Нет уведомлений")
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            filteredNotifications.forEach { notification ->
-                                NCard(notification, viewModel, user.id)
+                    // ── CONTENT ──
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
+                    ) {
+                        when (selectedTab) {
+                            0 -> {
+                                if (joinRequests.isEmpty()) {
+                                    EmptyState("Нет заявок", "Здесь будут заявки на вступление в команду")
+                                } else {
+                                    joinRequests.forEach { notification ->
+                                        NCard(notification, viewModel, user.id)
+                                        Spacer(Modifier.height(10.dp))
+                                    }
+                                }
+                            }
+                            1 -> {
+                                if (sponsorOffers.isEmpty()) {
+                                    EmptyState("Нет предложений", "Здесь будут предложения от спонсоров")
+                                } else {
+                                    sponsorOffers.forEach { notification ->
+                                        NCard(notification, viewModel, user.id)
+                                        Spacer(Modifier.height(10.dp))
+                                    }
+                                }
                             }
                         }
+                        Spacer(Modifier.height(32.dp))
                     }
-
-                    Spacer(Modifier.height(32.dp))
                 }
             }
         }
@@ -121,24 +157,25 @@ private fun NCard(notification: TrainerNotificationData, viewModel: TrainerNotif
         else -> Icons.Default.Notifications
     }
 
+    val isActive = notification.status == InviteStatus.PENDING
+    val chipColor = if (isActive) DarkTheme.Accent else DarkTheme.TextMuted
+
     DarkCard {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(DarkTheme.AccentSoft),
-                    Alignment.Center
-                ) {
-                    Icon(iconRes, null, Modifier.size(22.dp), DarkTheme.Accent)
+        Column(Modifier.padding(14.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    AccentIconBox(iconRes)
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(notification.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
+                        Text("от ${notification.fromName}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                    }
                 }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(notification.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                    Text("от ${notification.fromName}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
-                }
+                Spacer(Modifier.width(8.dp))
                 val (statusColor, statusText) = when (notification.status) {
                     InviteStatus.PENDING -> DarkTheme.Accent to "Ожидает"
                     InviteStatus.ACCEPTED -> ILeaderColors.Success to "Принято"
-                    InviteStatus.DECLINED -> DarkTheme.Accent to "Отклонено"
+                    InviteStatus.DECLINED -> DarkTheme.TextMuted to "Отклонено"
                 }
                 StatusBadge(statusText, statusColor)
             }
@@ -148,8 +185,10 @@ private fun NCard(notification: TrainerNotificationData, viewModel: TrainerNotif
                 Text("Команда: ${notification.teamName}", fontSize = 12.sp, color = DarkTheme.TextMuted)
             }
 
-            Spacer(Modifier.height(8.dp))
-            Text(notification.message, fontSize = 14.sp, color = DarkTheme.TextSecondary, lineHeight = 20.sp)
+            if (notification.message.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text(notification.message, fontSize = 13.sp, color = DarkTheme.TextSecondary, lineHeight = 18.sp)
+            }
 
             Spacer(Modifier.height(8.dp))
             Text(notification.createdAt, fontSize = 12.sp, color = DarkTheme.TextMuted)
@@ -157,43 +196,37 @@ private fun NCard(notification: TrainerNotificationData, viewModel: TrainerNotif
             // Action buttons for pending join requests
             if (notification.status == InviteStatus.PENDING && notification.type == "join_request") {
                 Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
                         onClick = { viewModel.respondToRequest(notification.id, false, userId) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.Accent),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
                         border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                            brush = Brush.linearGradient(listOf(DarkTheme.Accent.copy(alpha = 0.3f), DarkTheme.Accent.copy(alpha = 0.3f)))
+                            brush = Brush.linearGradient(listOf(DarkTheme.CardBorder, DarkTheme.CardBorder))
                         )
-                    ) {
-                        Icon(Icons.Default.Close, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Отклонить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
+                    ) { Text("Отклонить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                     Button(
                         onClick = { viewModel.respondToRequest(notification.id, true, userId) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
-                    ) {
-                        Icon(Icons.Default.Check, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Принять", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
+                    ) { Text("Принять", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                 }
             }
 
             // Action buttons for pending sponsor offers
             if (notification.status == InviteStatus.PENDING && notification.type == "sponsor_offer") {
                 Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
                         onClick = { },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
-                        border = DarkTheme.cardBorderStroke
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                            brush = Brush.linearGradient(listOf(DarkTheme.CardBorder, DarkTheme.CardBorder))
+                        )
                     ) { Text("Отклонить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
                     Button(
                         onClick = { },

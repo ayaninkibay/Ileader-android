@@ -86,9 +86,6 @@ fun AnimatedBackground(modifier: Modifier = Modifier) {
     val isDark = colors.bg == DarkAppColors.bg
 
     val gridColor = if (isDark) Color.White.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.04f)
-    val glowColor = Color(0xFFEF4444)
-    val glow1Alpha = if (isDark) 0.20f else 0.15f
-    val glow2Alpha = if (isDark) 0.15f else 0.12f
     val iconColor = Color(0xFFEF4444)
 
     val infiniteTransition = rememberInfiniteTransition(label = "bg")
@@ -134,28 +131,7 @@ fun AnimatedBackground(modifier: Modifier = Modifier) {
             y += gridSize
         }
 
-        // 2. Gradient glow blobs
-        val glow1Radius = with(density) { 350.dp.toPx() }
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(glowColor.copy(alpha = glow1Alpha), Color.Transparent),
-                center = Offset(w, 0f),
-                radius = glow1Radius
-            ),
-            radius = glow1Radius,
-            center = Offset(w, 0f)
-        )
-
-        val glow2Radius = with(density) { 300.dp.toPx() }
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(glowColor.copy(alpha = glow2Alpha), Color.Transparent),
-                center = Offset(0f, h),
-                radius = glow2Radius
-            ),
-            radius = glow2Radius,
-            center = Offset(0f, h)
-        )
+        // 2. Gradient glow blobs — removed (caused visible blick on cards)
 
         // 3. Floating icons
         iconPainters.forEach { (item, painter) ->

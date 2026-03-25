@@ -1,11 +1,14 @@
 package com.ileader.app.ui.screens.organizer
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -116,6 +119,7 @@ private fun TournamentsListContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TournamentsLoadedContent(
     allTournaments: List<TournamentWithCountsDto>,
@@ -126,6 +130,9 @@ private fun TournamentsLoadedContent(
     var searchQuery by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf("all") }
     var selectedSport by remember { mutableStateOf("all") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val filteredTournaments = allTournaments.filter { t ->
         val matchesSearch = searchQuery.isEmpty() ||
@@ -183,37 +190,103 @@ private fun TournamentsLoadedContent(
 
             Spacer(Modifier.height(16.dp))
 
-            // Search
+            // Search + Filter
             FadeIn(visible = started, delayMs = 300) {
-                Column {
-                    DarkSearchField(searchQuery, { searchQuery = it }, "Поиск турнира...")
-
-                    Spacer(Modifier.height(12.dp))
-
-                    // Status filters
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                val statusFilters = listOf(
+                    "all" to "Все", "draft" to "Черновик", "open" to "Регистрация",
+                    "progress" to "В процессе", "completed" to "Завершён", "cancelled" to "Отменён"
+                )
+                val activeFilters = (if (selectedStatus != "all") 1 else 0) + (if (selectedSport != "all") 1 else 0)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        DarkSearchField(searchQuery, { searchQuery = it }, "Поиск турнира...")
+                    }
+                    Surface(
+                        onClick = { showFilterSheet = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = DarkTheme.CardBg
                     ) {
+                        Box(
+                            Modifier
+                                .border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Icon(Icons.Default.Tune, "Фильтры", Modifier.size(20.dp), Accent)
+                            if (activeFilters > 0) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Accent,
+                                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp).size(16.dp)
+                                ) {
+                                    Box(Modifier.fillMaxSize(), Alignment.Center) {
+                                        Text("$activeFilters", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showFilterSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showFilterSheet = false },
+                    sheetState = sheetState,
+                    containerColor = DarkTheme.CardBg,
+                    dragHandle = {
+                        Box(Modifier.padding(top = 12.dp, bottom = 8.dp)) {
+                            Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(DarkTheme.CardBorder))
+                        }
+                    }
+                ) {
+                    Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+                        Text("Фильтры", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(Modifier.height(20.dp))
+
+                        Text("Статус", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
                         val statusFilters = listOf(
                             "all" to "Все", "draft" to "Черновик", "open" to "Регистрация",
                             "progress" to "В процессе", "completed" to "Завершён", "cancelled" to "Отменён"
                         )
-                        statusFilters.forEach { (value, label) ->
-                            DarkFilterChip(label, selectedStatus == value, { selectedStatus = value })
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), Arrangement.spacedBy(8.dp)) {
+                            statusFilters.forEach { (value, label) ->
+                                DarkFilterChip(label, selectedStatus == value, { selectedStatus = value })
+                            }
                         }
-                    }
 
-                    Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(16.dp))
 
-                    // Sport filters
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        DarkFilterChip("Все спорты", selectedSport == "all", { selectedSport = "all" })
-                        sports.take(6).forEach { sport ->
-                            DarkFilterChip(sport.name, selectedSport == sport.id, { selectedSport = sport.id })
+                        Text("Вид спорта", fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.height(8.dp))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), Arrangement.spacedBy(8.dp)) {
+                            DarkFilterChip("Все спорты", selectedSport == "all", { selectedSport = "all" })
+                            sports.take(6).forEach { sport ->
+                                DarkFilterChip(sport.name, selectedSport == sport.id, { selectedSport = sport.id })
+                            }
+                        }
+
+                        Spacer(Modifier.height(24.dp))
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = { selectedStatus = "all"; selectedSport = "all" },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(DarkTheme.CardBorder)
+                                )
+                            ) { Text("Сбросить", color = TextSecondary) }
+                            Button(
+                                onClick = { scope.launch { sheetState.hide() }.invokeOnCompletion { showFilterSheet = false } },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Accent)
+                            ) { Text("Применить") }
                         }
                     }
                 }

@@ -375,11 +375,19 @@ private fun TournamentListCard(tournament: Tournament, seed: Int = 0, onClick: (
     val textPrimary = if (hasImage) Color.White else DarkTheme.TextPrimary
     val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else DarkTheme.TextSecondary
     val accent = DarkTheme.Accent
+    val statusColor = when (tournament.status) {
+        TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
+        TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
+        TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
+        TournamentStatus.COMPLETED -> Color(0xFFE53535)
+        else -> DarkTheme.TextMuted
+    }
 
     Box(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
             .clickable(onClick = onClick)
     ) {
         // Фото турнира (своё или по виду спорта) или тёмный фолбэк
@@ -420,14 +428,14 @@ private fun TournamentListCard(tournament: Tournament, seed: Int = 0, onClick: (
                 Spacer(Modifier.width(10.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color.White.copy(alpha = 0.15f)
+                    color = statusColor.copy(alpha = 0.15f)
                 ) {
                     Text(
                         tournament.status.displayName,
                         Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = textPrimary
+                        color = statusColor
                     )
                 }
             }
