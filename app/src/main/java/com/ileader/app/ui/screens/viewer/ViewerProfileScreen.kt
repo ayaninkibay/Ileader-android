@@ -136,7 +136,11 @@ fun ViewerProfileScreen(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
+
+            ThemeSwitcherCard()
+
+            Spacer(Modifier.height(12.dp))
 
             FadeIn(visible, 600) {
                 Button(

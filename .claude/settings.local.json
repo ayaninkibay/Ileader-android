@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Admin/AppData/Local/**)",
+      "Bash(java -version)",
+      "Bash(ls '/c/Program Files \\(x86\\)/')",
+      "Bash(where adb:*)",
+      "Bash(where studio:*)",
+      "Bash(cmd /c \"where adb\")",
+      "Bash(cmd /c \"where adb 2>&1 & where javaw 2>&1\")",
+      "Bash(cmd /c \"dir \"\"C:\\\\Users\\\\Admin\\\\AppData\\\\Local\"\" /b 2>&1\")",
+      "Read(//c/Users//**)",
+      "Bash(echo \"JAVA_HOME=$JAVA_HOME\")",
+      "Bash(echo \"ANDROID_HOME=$ANDROID_HOME\")",
+      "Bash(ls '/c/Program Files \\(x86\\)/Android/')",
+      "Read(//c//**)",
+      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/java.exe\" -version)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew tasks)",
+      "Bash(ls /c/Users/Admin/AppData/Local/Google/AndroidStudio*)",
+      "Bash(find /c/Users/Admin/AppData/Roaming/Google/AndroidStudio2025.3.2/ -name *.xml)",
+      "Bash(xargs grep:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" devices:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" kill-server:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" start-server:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" uninstall:*)",
+      "Bash(cat \"C:/Users/Admin/Documents/ileader/src/app/\\(public\\)/layout.tsx\")",
+      "Bash(SCREENS=\"c:/Users/Admin/Documents/Ileader-android/app/src/main/java/com/ileader/app/ui/screens\" __NEW_LINE_e7ca4f1e68a240c1__ echo \"=== Remaining background\\(Bg\\) ===\" grep -rn '\\\\.background\\(Bg\\)' \"$SCREENS\")",
+      "Read(//c/Users/Admin/Documents/Ileader-android/**)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew assembleDebug)",
+      "Bash(adb install:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb\" install:*)",
+      "Bash(xxd)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew clean installDebug)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb\" logcat:*)",
+      "Bash(\"/c/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb\" shell:*)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew clean assembleDebug)",
+      "Read(//c/Program Files/Android/Android Studio/platform-tools/**)",
+      "Bash(where adb.exe)",
+      "Bash(\"C:/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" install:*)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew --stop)"
+    ]
+  }
+}

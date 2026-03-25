@@ -2,6 +2,7 @@ package com.ileader.app.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -17,9 +18,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ileader.app.data.DeepLinkTarget
+import com.ileader.app.ui.components.AnimatedBackground
 import com.ileader.app.ui.screens.auth.*
 import com.ileader.app.ui.screens.main.MainScreen
 import com.ileader.app.ui.theme.ILeaderColors
+import com.ileader.app.ui.theme.LocalAppColors
 
 sealed class Screen(val route: String) {
     data object Welcome : Screen("welcome")
@@ -37,6 +40,10 @@ fun NavGraph(
     onDeepLinkConsumed: () -> Unit = {}
 ) {
     val authState by authViewModel.state.collectAsState()
+    val colors = LocalAppColors.current
+
+    Box(Modifier.fillMaxSize().background(colors.bg)) {
+        AnimatedBackground()
 
     NavHost(
         navController = navController,
@@ -158,6 +165,7 @@ fun NavGraph(
             }
         }
     }
+    } // Box
 
     // Navigate when auth state changes
     LaunchedEffect(authState.isAuthenticated) {

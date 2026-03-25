@@ -41,6 +41,7 @@ import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.floatingShadow
+import com.ileader.app.ui.components.AnimatedBackground
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.LocalSnackbarHost
 import com.ileader.app.ui.viewmodels.NotificationsViewModel

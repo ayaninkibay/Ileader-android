@@ -29,12 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ProfileDto
-import com.ileader.app.ui.components.DarkCardPadded
-import com.ileader.app.ui.components.DarkTheme
-import com.ileader.app.ui.components.EditableAvatar
-import com.ileader.app.ui.components.ErrorScreen
-import com.ileader.app.ui.components.FadeIn
-import com.ileader.app.ui.components.LoadingScreen
+import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.viewmodels.AvatarViewModel
 import com.ileader.app.ui.viewmodels.SponsorProfileViewModel
@@ -191,6 +186,10 @@ private fun ProfileContent(profile: ProfileDto, user: User, viewModel: SponsorPr
             }
 
             Spacer(Modifier.height(16.dp))
+
+            ThemeSwitcherCard()
+
+            Spacer(Modifier.height(12.dp))
 
             FadeIn(visible, 400) {
                 DarkCardPadded {

@@ -279,6 +279,10 @@ private fun ProfileContent(
 
             Spacer(Modifier.height(28.dp))
 
+            ThemeSwitcherCard()
+
+            Spacer(Modifier.height(12.dp))
+
             // Sign out
             FadeIn(visible, 700) {
                 OutlinedButton(

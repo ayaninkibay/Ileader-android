@@ -41,7 +41,11 @@ import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.cardShadow
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalContext
+import com.ileader.app.data.preferences.ThemePreference
+import com.ileader.app.ui.theme.ThemeMode
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 val LocalSnackbarHost = staticCompositionLocalOf<SnackbarHostState> { error("No SnackbarHostState") }
 
@@ -1302,6 +1306,62 @@ fun DynamicListField(
             ) {
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
             }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// THEME SWITCHER
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun ThemeSwitcherCard() {
+    val colors = LocalAppColors.current
+    val context = LocalContext.current
+    val themePref = remember { ThemePreference(context) }
+    val currentTheme by themePref.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+    val scope = rememberCoroutineScope()
+
+    DarkCard {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SoftIconBox(Icons.Default.Palette)
+                Spacer(Modifier.width(12.dp))
+                Text("Тема оформления", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary)
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                ThemeSwitcherOption(Modifier.weight(1f), "Светлая", Icons.Default.LightMode, currentTheme == ThemeMode.LIGHT) {
+                    scope.launch { themePref.setThemeMode(ThemeMode.LIGHT) }
+                }
+                ThemeSwitcherOption(Modifier.weight(1f), "Тёмная", Icons.Default.DarkMode, currentTheme == ThemeMode.DARK) {
+                    scope.launch { themePref.setThemeMode(ThemeMode.DARK) }
+                }
+                ThemeSwitcherOption(Modifier.weight(1f), "Система", Icons.Default.SettingsBrightness, currentTheme == ThemeMode.SYSTEM) {
+                    scope.launch { themePref.setThemeMode(ThemeMode.SYSTEM) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeSwitcherOption(modifier: Modifier, label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+    val colors = LocalAppColors.current
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) colors.accentSoft else colors.border.copy(alpha = 0.3f),
+        border = if (selected) BorderStroke(1.5.dp, colors.accent) else null
+    ) {
+        Column(
+            Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, Modifier.size(20.dp), if (selected) colors.accent else colors.textMuted)
+            Spacer(Modifier.height(4.dp))
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (selected) colors.accent else colors.textSecondary)
         }
     }
 }

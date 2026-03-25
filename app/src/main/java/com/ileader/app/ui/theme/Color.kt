@@ -76,12 +76,12 @@ data class AppColorScheme(
 // ── DARK palette (synced with website: --background: #0a0a0a) ──
 
 val DarkAppColors = AppColorScheme(
-    bg = Color(0xFF18181b),
-    bgSecondary = Color(0xFF1f1f23),
-    cardBg = Color(0xFF27272a),
-    cardHover = Color(0xFF323236),
-    border = Color(0xFF434349),
-    borderLight = Color(0xFF56565E),
+    bg = Color(0xFF0A0A0A),
+    bgSecondary = Color(0xFF141414),
+    cardBg = Color(0xFF18181B),
+    cardHover = Color(0xFF27272A),
+    border = Color(0xFF27272A),
+    borderLight = Color(0xFF3F3F46),
     textPrimary = Color(0xFFF0F0F0),
     textSecondary = Color(0xFFA8A8B2),
     textMuted = Color(0xFF78788A),
@@ -97,12 +97,12 @@ val DarkAppColors = AppColorScheme(
 // ── LIGHT palette (synced with website: --background: #f5f5f7) ──
 
 val LightAppColors = AppColorScheme(
-    bg = Color(0xFFEDEDF0),
-    bgSecondary = Color(0xFFE5E5E9),
-    cardBg = Color(0xFFF5F5F7),
-    cardHover = Color(0xFFEFEFF2),
-    border = Color(0xFFD4D4D9),
-    borderLight = Color(0xFFE0E0E5),
+    bg = Color(0xFFF5F5F7),
+    bgSecondary = Color(0xFFEFEFF2),
+    cardBg = Color(0xFFFFFFFF),
+    cardHover = Color(0xFFF0F0F3),
+    border = Color(0xFFE5E5E5),
+    borderLight = Color(0xFFEEEEEE),
     textPrimary = Color(0xFF1A1A1A),
     textSecondary = Color(0xFF6B7280),
     textMuted = Color(0xFF9CA3AF),

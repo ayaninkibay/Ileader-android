@@ -110,6 +110,18 @@ dependencies {
     // implementation(libs.firebase.messaging)
     // implementation(libs.firebase.analytics)
 
+    // QR code generation (ZXing)
+    implementation(libs.zxing.core)
+
+    // CameraX (для сканирования QR)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+
+    // ML Kit barcode scanning
+    implementation(libs.mlkit.barcode.scanning)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

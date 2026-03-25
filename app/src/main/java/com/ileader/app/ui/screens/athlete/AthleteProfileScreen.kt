@@ -229,32 +229,7 @@ private fun ProfileContent(
                 Spacer(Modifier.height(12.dp))
 
                 // ── THEME SWITCHER ──
-                val context = LocalContext.current
-                val themePref = remember { ThemePreference(context) }
-                val currentTheme by themePref.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
-                val themeScope = rememberCoroutineScope()
-
-                DarkCard {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            SoftIconBox(Icons.Default.Palette)
-                            Spacer(Modifier.width(12.dp))
-                            Text("Тема оформления", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = DarkTheme.TextPrimary)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
-                            ThemeOption(Modifier.weight(1f), "Светлая", Icons.Default.LightMode, currentTheme == ThemeMode.LIGHT) {
-                                themeScope.launch { themePref.setThemeMode(ThemeMode.LIGHT) }
-                            }
-                            ThemeOption(Modifier.weight(1f), "Тёмная", Icons.Default.DarkMode, currentTheme == ThemeMode.DARK) {
-                                themeScope.launch { themePref.setThemeMode(ThemeMode.DARK) }
-                            }
-                            ThemeOption(Modifier.weight(1f), "Система", Icons.Default.SettingsBrightness, currentTheme == ThemeMode.SYSTEM) {
-                                themeScope.launch { themePref.setThemeMode(ThemeMode.SYSTEM) }
-                            }
-                        }
-                    }
-                }
+                ThemeSwitcherCard()
 
                 Spacer(Modifier.height(12.dp))
 
@@ -338,26 +313,6 @@ private fun ProfileRow(icon: ImageVector, label: String, value: String) {
         Column {
             Text(label, fontSize = 12.sp, color = DarkTheme.TextMuted)
             Text(value, fontSize = 14.sp, color = DarkTheme.TextPrimary)
-        }
-    }
-}
-
-@Composable
-private fun ThemeOption(modifier: Modifier, label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) DarkTheme.AccentSoft else DarkTheme.CardBorder.copy(alpha = 0.3f),
-        border = if (selected) androidx.compose.foundation.BorderStroke(1.5.dp, DarkTheme.Accent) else null
-    ) {
-        Column(
-            Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, null, Modifier.size(20.dp), if (selected) DarkTheme.Accent else DarkTheme.TextMuted)
-            Spacer(Modifier.height(4.dp))
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (selected) DarkTheme.Accent else DarkTheme.TextSecondary)
         }
     }
 }
