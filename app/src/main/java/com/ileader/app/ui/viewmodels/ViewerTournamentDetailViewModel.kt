@@ -17,11 +17,22 @@ data class ViewerTournamentDetailData(
     val groups: List<TournamentGroupDto> = emptyList()
 )
 
+sealed class SpectatorRegState {
+    object Idle : SpectatorRegState()
+    object Loading : SpectatorRegState()
+    object Registered : SpectatorRegState()
+    object NotRegistered : SpectatorRegState()
+    data class Error(val message: String) : SpectatorRegState()
+}
+
 class ViewerTournamentDetailViewModel : ViewModel() {
     private val repo = ViewerRepository()
 
     private val _state = MutableStateFlow<UiState<ViewerTournamentDetailData>>(UiState.Loading)
     val state: StateFlow<UiState<ViewerTournamentDetailData>> = _state
+
+    private val _spectatorState = MutableStateFlow<SpectatorRegState>(SpectatorRegState.Idle)
+    val spectatorState: StateFlow<SpectatorRegState> = _spectatorState
 
     fun load(tournamentId: String) {
         viewModelScope.launch {
@@ -44,6 +55,29 @@ class ViewerTournamentDetailViewModel : ViewModel() {
                 )
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
+            }
+        }
+    }
+
+    fun checkSpectatorStatus(tournamentId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                val reg = repo.getMySpectatorRegistration(tournamentId, userId)
+                _spectatorState.value = if (reg != null) SpectatorRegState.Registered else SpectatorRegState.NotRegistered
+            } catch (_: Exception) {
+                _spectatorState.value = SpectatorRegState.NotRegistered
+            }
+        }
+    }
+
+    fun registerAsSpectator(tournamentId: String, userId: String) {
+        viewModelScope.launch {
+            _spectatorState.value = SpectatorRegState.Loading
+            try {
+                repo.registerAsSpectator(tournamentId, userId)
+                _spectatorState.value = SpectatorRegState.Registered
+            } catch (e: Exception) {
+                _spectatorState.value = SpectatorRegState.Error(e.message ?: "Ошибка регистрации")
             }
         }
     }

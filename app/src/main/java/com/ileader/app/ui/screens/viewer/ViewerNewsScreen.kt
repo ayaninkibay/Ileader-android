@@ -20,8 +20,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ileader.app.data.mock.ViewerMockData
 import com.ileader.app.data.models.User
+import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.viewmodels.ViewerNewsViewModel
@@ -39,12 +40,23 @@ fun ViewerNewsScreen(
     onNavigateToDetail: (String) -> Unit = {}
 ) {
     val viewModel: ViewerNewsViewModel = viewModel()
-    val articles by viewModel.articles.collectAsState()
-    val categories = viewModel.categories
+    val state by viewModel.state.collectAsState()
 
-    var selectedFilter by remember { mutableIntStateOf(0) }
     var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
+    LaunchedEffect(Unit) {
+        viewModel.load()
+        visible = true
+    }
+
+    val articles = when (val s = state) {
+        is UiState.Success -> s.data
+        else -> emptyList()
+    }
+
+    val categories = remember(articles) {
+        listOf("Все") + articles.mapNotNull { it.category }.distinct()
+    }
+    var selectedFilter by remember { mutableIntStateOf(0) }
 
     val filteredArticles = remember(selectedFilter, articles) {
         val category = categories.getOrNull(selectedFilter) ?: "Все"
@@ -108,13 +120,13 @@ fun ViewerNewsScreen(
 }
 
 @Composable
-private fun NewsCard(article: ViewerMockData.NewsArticle, onClick: () -> Unit) {
+private fun NewsCard(article: ArticleDto, onClick: () -> Unit) {
     DarkCard(Modifier.clickable { onClick() }) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusBadge(article.category)
+                StatusBadge(article.category ?: "Новость")
                 Spacer(Modifier.width(8.dp))
-                Text(formatShortDate(article.date), fontSize = 12.sp, color = TextMuted)
+                Text(formatShortDate(article.publishedAt ?: article.createdAt ?: ""), fontSize = 12.sp, color = TextMuted)
             }
 
             Spacer(Modifier.height(10.dp))
@@ -123,12 +135,12 @@ private fun NewsCard(article: ViewerMockData.NewsArticle, onClick: () -> Unit) {
 
             Spacer(Modifier.height(6.dp))
 
-            Text(article.summary, fontSize = 12.sp, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
+            Text(article.excerpt ?: "", fontSize = 12.sp, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
 
             Spacer(Modifier.height(10.dp))
 
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Text(article.authorName, fontSize = 12.sp, color = TextMuted)
+                Text(article.profiles?.name ?: "", fontSize = 12.sp, color = TextMuted)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Читать", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Accent)
                     Icon(Icons.Default.ChevronRight, null, tint = Accent, modifier = Modifier.size(16.dp))

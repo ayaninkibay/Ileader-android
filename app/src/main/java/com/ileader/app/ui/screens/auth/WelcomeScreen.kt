@@ -23,8 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.ileader.app.R
 import com.ileader.app.ui.components.ILeaderButton
 import com.ileader.app.ui.components.ILeaderOutlinedButton
+import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import kotlin.math.cos
@@ -193,7 +197,10 @@ fun WelcomeScreen(
                     )
                 }
 
-                // Main trophy icon with glow
+                // Main logo with glow
+                val isDark = colors.bg == DarkAppColors.bg
+                val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -207,12 +214,11 @@ fun WelcomeScreen(
                                     CircleShape
                                 )
                         )
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
+                        Image(
+                            painter = painterResource(id = logoRes),
                             contentDescription = "iLeader",
-                            tint = ILeaderColors.PrimaryRed,
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(80.dp)
                                 .scale(pulseScale)
                         )
                     }

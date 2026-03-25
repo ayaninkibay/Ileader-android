@@ -287,9 +287,7 @@ fun LoginScreen(
                     Triple(com.ileader.app.data.models.UserRole.TRAINER, "Тренер", ILeaderColors.TrainerColor),
                     Triple(com.ileader.app.data.models.UserRole.ORGANIZER, "Организатор", ILeaderColors.OrganizerColor),
                     Triple(com.ileader.app.data.models.UserRole.REFEREE, "Судья", ILeaderColors.RefereeColor),
-                    Triple(com.ileader.app.data.models.UserRole.SPONSOR, "Спонсор", ILeaderColors.SponsorColor),
                     Triple(com.ileader.app.data.models.UserRole.MEDIA, "СМИ", ILeaderColors.MediaColor),
-                    Triple(com.ileader.app.data.models.UserRole.ADMIN, "Админ", ILeaderColors.AdminColor),
                     Triple(com.ileader.app.data.models.UserRole.USER, "Зритель", ILeaderColors.ViewerColor),
                 )
 

@@ -32,3 +32,30 @@ data class ArticleStatsDto(
     val drafts: Int = 0,
     @SerialName("total_views") val totalViews: Int = 0
 )
+
+@Serializable
+data class ArticleInsertDto(
+    @SerialName("author_id") val authorId: String,
+    val title: String,
+    val content: String? = null,
+    val excerpt: String? = null,
+    @SerialName("cover_image_url") val coverImageUrl: String? = null,
+    @SerialName("sport_id") val sportId: String? = null,
+    @SerialName("tournament_id") val tournamentId: String? = null,
+    val status: String = "draft",
+    val category: String? = null,
+    val tags: List<String>? = null
+)
+
+@Serializable
+data class ArticleUpdateDto(
+    val title: String? = null,
+    val content: String? = null,
+    val excerpt: String? = null,
+    @SerialName("cover_image_url") val coverImageUrl: String? = null,
+    @SerialName("sport_id") val sportId: String? = null,
+    @SerialName("tournament_id") val tournamentId: String? = null,
+    val status: String? = null,
+    val category: String? = null,
+    val tags: List<String>? = null
+)

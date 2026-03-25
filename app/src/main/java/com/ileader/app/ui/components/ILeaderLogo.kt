@@ -1,6 +1,7 @@
 package com.ileader.app.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +26,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ileader.app.R
 import com.ileader.app.data.models.UserRole
+import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 
@@ -38,41 +42,18 @@ fun ILeaderLogo(
     showIconBackground: Boolean = false
 ) {
     val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
+    val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (showIconBackground) {
-            Box(
-                modifier = Modifier
-                    .size(iconSize + 24.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        brush = Brush.linearGradient(
-                            listOf(
-                                ILeaderColors.PrimaryRed.copy(alpha = 0.2f),
-                                ILeaderColors.DarkRed.copy(alpha = 0.1f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.EmojiEvents,
-                    contentDescription = "iLeader",
-                    tint = ILeaderColors.PrimaryRed,
-                    modifier = Modifier.size(iconSize)
-                )
-            }
-        } else {
-            Icon(
-                imageVector = Icons.Default.EmojiEvents,
-                contentDescription = "iLeader",
-                tint = ILeaderColors.PrimaryRed,
-                modifier = Modifier.size(iconSize)
-            )
-        }
+        Image(
+            painter = painterResource(id = logoRes),
+            contentDescription = "iLeader",
+            modifier = Modifier.size(iconSize)
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -185,6 +166,7 @@ private fun getRoleIcon(role: UserRole): ImageVector = when (role) {
     UserRole.REFEREE -> Icons.Default.Shield
     UserRole.SPONSOR -> Icons.Default.AttachMoney
     UserRole.MEDIA -> Icons.Default.Newspaper
+    UserRole.CONTENT_MANAGER -> Icons.Default.Edit
     UserRole.ADMIN -> Icons.Default.AdminPanelSettings
     UserRole.USER -> Icons.Default.Person
 }

@@ -2,8 +2,8 @@ package com.ileader.app.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ileader.app.data.mock.ViewerMockData
 import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.ViewerRepository
@@ -17,7 +17,7 @@ data class ViewerHomeData(
     val totalSports: Int,
     val sports: List<SportDto>,
     val upcomingTournaments: List<TournamentWithCountsDto>,
-    val news: List<ViewerMockData.NewsArticle>
+    val news: List<ArticleDto>
 )
 
 class ViewerHomeViewModel : ViewModel() {
@@ -33,7 +33,7 @@ class ViewerHomeViewModel : ViewModel() {
                 val (users, tournaments, sports) = repo.getPlatformStats()
                 val sportsList = repo.getSports()
                 val upcoming = repo.getUpcomingTournaments(10)
-                val news = ViewerMockData.newsArticles // stays mock — no articles table
+                val news = repo.getRecentArticles(5)
 
                 _state.value = UiState.Success(
                     ViewerHomeData(

@@ -169,7 +169,7 @@ private fun DashboardContent(
             Spacer(Modifier.height(28.dp))
 
             FadeIn(visible, 800) {
-                SectionHeader("Статистика контента")
+                SectionHeader("Статистика контента", "Аналитика") { onNavigate("media/analytics") }
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MiniStat("Просмотров", "${data.articleStats.totalViews}", Modifier.weight(1f))

@@ -2,7 +2,6 @@ package com.ileader.app.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ileader.app.data.mock.MediaMockData
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ProfileUpdateDto
@@ -12,11 +11,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+// TODO: подключить к реальным данным
+data class MediaProfile(
+    val phone: String = "",
+    val mediaName: String = "",
+    val mediaType: String = "",
+    val website: String = "",
+    val description: String = ""
+)
+
 data class MediaProfileData(
     val profile: User,
     val accreditationStats: AccreditationStats,
-    // No DB table for these yet — mock as fallback
-    val mediaProfile: MediaMockData.MediaProfile,
+    // TODO: подключить к реальным данным (profiles.role_data JSONB)
+    val mediaProfile: MediaProfile,
     val coverageAreas: List<String>,
     val achievements: List<String>,
     val publishedArticles: Int,
@@ -42,15 +50,18 @@ class MediaProfileViewModel : ViewModel() {
                 val profile = repo.getProfile(userId)
                 val accreditationStats = repo.getAccreditationStats(userId)
 
+                val articleStats = repo.getArticleStats(userId)
+
+                // TODO: coverageAreas and achievements from profiles.role_data JSONB
                 _state.value = UiState.Success(
                     MediaProfileData(
                         profile = profile,
                         accreditationStats = accreditationStats,
-                        mediaProfile = MediaMockData.profile,
-                        coverageAreas = MediaMockData.coverageAreas,
-                        achievements = MediaMockData.achievements,
-                        publishedArticles = MediaMockData.publishedArticles,
-                        totalViews = MediaMockData.totalViews
+                        mediaProfile = MediaProfile(),
+                        coverageAreas = emptyList(),
+                        achievements = emptyList(),
+                        publishedArticles = articleStats.published,
+                        totalViews = articleStats.totalViews
                     )
                 )
             } catch (e: Exception) {

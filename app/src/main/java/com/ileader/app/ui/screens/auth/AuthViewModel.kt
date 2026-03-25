@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.BuildConfig
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
+import com.ileader.app.data.util.AppLogger
 import com.ileader.app.data.remote.dto.ProfileDto
 import com.ileader.app.data.remote.dto.RoleDto
 import io.github.jan.supabase.auth.auth
@@ -47,8 +48,8 @@ class AuthViewModel : ViewModel() {
                         )
                     }
                 }
-            } catch (_: Exception) {
-                // No valid session — stay on welcome screen
+            } catch (e: Exception) {
+                AppLogger.w("Session restore failed", e)
             }
         }
     }
@@ -75,6 +76,7 @@ class AuthViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
+                AppLogger.e("Sign-in failed for $email", e)
                 _state.value = _state.value.copy(
                     isLoading = false,
                     errorMessage = parseAuthError(e)
@@ -151,6 +153,7 @@ class AuthViewModel : ViewModel() {
                     currentUser = user
                 )
             } catch (e: Exception) {
+                AppLogger.e("Sign-up failed for ${data.email}", e)
                 _state.value = _state.value.copy(
                     isLoading = false,
                     errorMessage = parseAuthError(e)
@@ -178,6 +181,7 @@ class AuthViewModel : ViewModel() {
                     passwordResetSent = true
                 )
             } catch (e: Exception) {
+                AppLogger.e("Password reset failed for $email", e)
                 _state.value = _state.value.copy(
                     isLoading = false,
                     errorMessage = parseAuthError(e)
@@ -207,8 +211,8 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 client.auth.signOut()
-            } catch (_: Exception) {
-                // Ignore sign-out errors
+            } catch (e: Exception) {
+                AppLogger.w("Sign-out error (non-critical)", e)
             }
             _state.value = AuthState()
         }
@@ -264,7 +268,7 @@ class AuthViewModel : ViewModel() {
                 sportIds = sportIds.ifEmpty { null }
             )
         } catch (e: Exception) {
-            android.util.Log.e("AuthViewModel", "loadCurrentUser failed", e)
+            AppLogger.e("loadCurrentUser failed", e)
             null
         }
     }

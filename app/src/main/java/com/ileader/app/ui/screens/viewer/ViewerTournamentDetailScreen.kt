@@ -31,6 +31,7 @@ import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.bracket.BracketView
 import com.ileader.app.ui.components.bracket.MatchDetailDialog
+import com.ileader.app.ui.viewmodels.SpectatorRegState
 import com.ileader.app.ui.viewmodels.ViewerTournamentDetailViewModel
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -53,7 +54,11 @@ fun ViewerTournamentDetailScreen(
 ) {
     val viewModel: ViewerTournamentDetailViewModel = viewModel()
     val state by viewModel.state.collectAsState()
-    LaunchedEffect(tournamentId) { viewModel.load(tournamentId) }
+    val spectatorState by viewModel.spectatorState.collectAsState()
+    LaunchedEffect(tournamentId) {
+        viewModel.load(tournamentId)
+        viewModel.checkSpectatorStatus(tournamentId, user.id)
+    }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
@@ -242,6 +247,18 @@ fun ViewerTournamentDetailScreen(
                 }
                 }
 
+                // ── Spectator registration ──
+                val canRegister = status in listOf("registration_open", "in_progress", "check_in")
+                if (canRegister) {
+                    Spacer(Modifier.height(12.dp))
+                    FadeIn(visible = started, delayMs = 550) {
+                        SpectatorRegistrationCard(
+                            spectatorState = spectatorState,
+                            onRegister = { viewModel.registerAsSpectator(tournamentId, user.id) }
+                        )
+                    }
+                }
+
                 // ── BRACKET ──
                 if (data.bracket.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
@@ -311,6 +328,67 @@ private fun QuickInfoCard(icon: ImageVector, label: String, value: String, modif
             Spacer(Modifier.height(6.dp))
             Text(label, fontSize = 10.sp, color = TextMuted)
             Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+private fun SpectatorRegistrationCard(
+    spectatorState: SpectatorRegState,
+    onRegister: () -> Unit
+) {
+    DarkCard(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AccentIconBox(icon = Icons.Default.Visibility)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Хотите посмотреть?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("Зарегистрируйтесь как зритель", fontSize = 13.sp, color = TextSecondary)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+
+            when (spectatorState) {
+                is SpectatorRegState.Registered -> {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, tint = Color(0xFF22C55E), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Вы зарегистрированы как зритель", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                    }
+                }
+                is SpectatorRegState.Loading -> {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Accent, strokeWidth = 2.dp)
+                    }
+                }
+                is SpectatorRegState.Error -> {
+                    Text(spectatorState.message, fontSize = 13.sp, color = Color(0xFFEF4444))
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = onRegister,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("Попробовать снова") }
+                }
+                else -> {
+                    Button(
+                        onClick = onRegister,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.HowToReg, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Зарегистрироваться как зритель", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
     }
 }

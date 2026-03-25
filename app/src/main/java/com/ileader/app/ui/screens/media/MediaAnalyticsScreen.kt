@@ -1,8 +1,5 @@
-// TODO: Подключить к БД когда будет создана таблица articles
-// Сейчас используются данные из MediaMockData. Аналитика привязана к контенту, которого нет в БД.
 package com.ileader.app.ui.screens.media
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,34 +11,51 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ileader.app.data.mock.MediaMockData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
+import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.ArticleDto
+import com.ileader.app.data.remote.dto.ArticleStatsDto
+import com.ileader.app.data.repository.MediaRepository
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.DarkTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+
+data class CategoryStat(val category: String, val count: Int, val percentage: Int)
 
 @Composable
 fun MediaAnalyticsScreen(
     user: User,
     onNavigate: (String) -> Unit = {}
 ) {
-    var selectedPeriod by remember { mutableIntStateOf(0) }
+    val vm: MediaAnalyticsViewModel = viewModel()
+    val state by vm.state.collectAsState()
 
-    val viewsData = when (selectedPeriod) {
-        1 -> MediaMockData.viewsDataMonth
-        else -> MediaMockData.viewsDataWeek
+    LaunchedEffect(user.id) { vm.load(user.id) }
+
+    when (val s = state) {
+        is UiState.Loading -> LoadingScreen()
+        is UiState.Error -> ErrorScreen(s.message) { vm.load(user.id) }
+        is UiState.Success -> AnalyticsContent(user, s.data)
     }
-    val totalPeriodViews = viewsData.sumOf { it.views }
-    val maxViews = viewsData.maxOfOrNull { it.views } ?: 1
+}
 
+@Composable
+private fun AnalyticsContent(user: User, data: MediaAnalyticsData) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { visible = true }
+
+    val totalArticles = data.stats.total
+    val totalViews = data.stats.totalViews
+    val publishedArticles = data.stats.published
 
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -50,7 +64,7 @@ fun MediaAnalyticsScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            // ── HEADER ──
+            // Header
             FadeIn(visible, 0) {
                 Column {
                     Text("Аналитика", fontSize = 24.sp, fontWeight = FontWeight.Bold,
@@ -62,80 +76,41 @@ fun MediaAnalyticsScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── OVERVIEW STATS 2x2 ──
+            // Overview stats 2x2
             FadeIn(visible, 150) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatItem(Modifier.weight(1f), Icons.Default.Visibility,
-                        "${MediaMockData.totalViews}", "Просмотров")
-                    StatItem(Modifier.weight(1f), Icons.Default.Description,
-                        "${MediaMockData.publishedArticles}", "Статей")
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatItem(Modifier.weight(1f), Icons.Default.People,
-                        "~${MediaMockData.totalViews / 3}", "Читателей")
-                    StatItem(Modifier.weight(1f), Icons.Default.North,
-                        "+18%", "Рост")
+                Column {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatItem(Modifier.weight(1f), Icons.Default.Visibility,
+                            "$totalViews", "Просмотров")
+                        StatItem(Modifier.weight(1f), Icons.Default.Description,
+                            "$publishedArticles", "Опубликовано")
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatItem(Modifier.weight(1f), Icons.Default.Drafts,
+                            "${data.stats.drafts}", "Черновиков")
+                        StatItem(Modifier.weight(1f), Icons.Default.Article,
+                            "$totalArticles", "Всего статей")
+                    }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // ── VIEWS CHART ──
-            FadeIn(visible, 300) {
-                Text("Просмотры", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            // Top articles by views
+            FadeIn(visible, 350) {
+                Text("Топ статьи по просмотрам", fontSize = 18.sp, fontWeight = FontWeight.Bold,
                     color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
 
                 Spacer(Modifier.height(12.dp))
 
                 DarkCardPadded {
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween,
-                        Alignment.CenterVertically) {
-                        Text("Всего за период: $totalPeriodViews",
-                            fontSize = 13.sp, color = DarkTheme.TextSecondary)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Неделя", "Месяц").forEachIndexed { index, label ->
-                                DarkFilterChip(label, selectedPeriod == index, { selectedPeriod = index })
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // Simple bar chart
-                    Row(
-                        Modifier.fillMaxWidth().height(140.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        viewsData.forEach { dataPoint ->
-                            val fraction = dataPoint.views.toFloat() / maxViews.toFloat()
-                            Column(
-                                Modifier.weight(1f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("${dataPoint.views / 1000}k", fontSize = 9.sp,
-                                    color = DarkTheme.TextSecondary, fontWeight = FontWeight.SemiBold)
-                                Spacer(Modifier.height(4.dp))
-                                Box(
-                                    Modifier.fillMaxWidth(0.7f).fillMaxHeight(fraction)
-                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                        .background(DarkTheme.Accent.copy(alpha = 0.5f + fraction * 0.5f))
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(4.dp))
-
-                    // Labels
-                    Row(Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        viewsData.forEach { dataPoint ->
-                            Text(dataPoint.label, Modifier.weight(1f), fontSize = 10.sp,
-                                color = DarkTheme.TextMuted, fontWeight = FontWeight.SemiBold,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center)
+                    if (data.topArticles.isEmpty()) {
+                        EmptyState("Нет данных", "Статьи пока не опубликованы")
+                    } else {
+                        data.topArticles.forEachIndexed { index, article ->
+                            if (index > 0) Spacer(Modifier.height(10.dp))
+                            TopArticleItem(rank = index + 1, article = article)
                         }
                     }
                 }
@@ -143,52 +118,36 @@ fun MediaAnalyticsScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ── TOP ARTICLES ──
-            FadeIn(visible, 450) {
-                Text("Топ статьи", fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                    color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
-
-                Spacer(Modifier.height(12.dp))
-
-                DarkCardPadded {
-                    MediaMockData.topArticles.forEachIndexed { index, article ->
-                        if (index > 0) Spacer(Modifier.height(10.dp))
-                        TopArticleItem(rank = index + 1, article = article)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── CATEGORIES DISTRIBUTION ──
-            FadeIn(visible, 600) {
+            // Categories distribution
+            FadeIn(visible, 500) {
                 Text("По категориям", fontSize = 18.sp, fontWeight = FontWeight.Bold,
                     color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
 
                 Spacer(Modifier.height(12.dp))
 
                 DarkCardPadded {
-                    MediaMockData.categoryStats.forEach { stat ->
-                        CategoryStatItem(stat = stat)
-                        Spacer(Modifier.height(8.dp))
+                    if (data.categoryStats.isEmpty()) {
+                        EmptyState("Нет данных", "Нет статистики по категориям")
+                    } else {
+                        data.categoryStats.forEach { stat ->
+                            CategoryStatItem(stat = stat)
+                            Spacer(Modifier.height(8.dp))
+                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // ── AUDIENCE STATS ──
-            FadeIn(visible, 750) {
-                Text("Аудитория по возрасту", fontSize = 18.sp, fontWeight = FontWeight.Bold,
+            // TODO: Audience stats require analytics service not yet available in DB
+            FadeIn(visible, 650) {
+                Text("Аудитория", fontSize = 18.sp, fontWeight = FontWeight.Bold,
                     color = DarkTheme.TextPrimary, letterSpacing = (-0.3).sp)
 
                 Spacer(Modifier.height(12.dp))
 
                 DarkCardPadded {
-                    MediaMockData.audienceStats.forEach { stat ->
-                        AudienceStatItem(stat = stat)
-                        Spacer(Modifier.height(8.dp))
-                    }
+                    EmptyState("Скоро", "Данные об аудитории пока недоступны")
                 }
             }
 
@@ -198,7 +157,7 @@ fun MediaAnalyticsScreen(
 }
 
 @Composable
-private fun TopArticleItem(rank: Int, article: MediaMockData.TopArticle) {
+private fun TopArticleItem(rank: Int, article: ArticleDto) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), color = DarkTheme.CardBg) {
         Row(
             Modifier.border(0.5.dp, DarkTheme.CardBorder.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
@@ -218,21 +177,17 @@ private fun TopArticleItem(rank: Int, article: MediaMockData.TopArticle) {
             Text(article.title, fontSize = 13.sp, color = DarkTheme.TextPrimary,
                 modifier = Modifier.weight(1f), maxLines = 1,
                 overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${article.views}", fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
-                Text(article.change, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (article.trendUp) DarkTheme.Accent else DarkTheme.TextMuted)
-            }
+            Text("${article.views}", fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
         }
     }
 }
 
 @Composable
-private fun CategoryStatItem(stat: MediaMockData.CategoryStat) {
+private fun CategoryStatItem(stat: CategoryStat) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stat.category.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        Text(stat.category, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
             color = DarkTheme.TextPrimary, modifier = Modifier.width(80.dp))
         DarkProgressBar(stat.percentage / 100f, Modifier.weight(1f))
         Text("${stat.count} (${stat.percentage}%)", fontSize = 12.sp,
@@ -240,14 +195,62 @@ private fun CategoryStatItem(stat: MediaMockData.CategoryStat) {
     }
 }
 
-@Composable
-private fun AudienceStatItem(stat: MediaMockData.AudienceStat) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stat.age, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            color = DarkTheme.TextPrimary, modifier = Modifier.width(50.dp))
-        DarkProgressBar(stat.percentage / 100f, Modifier.weight(1f))
-        Text("${stat.percentage}%", fontSize = 12.sp,
-            color = DarkTheme.TextSecondary, fontWeight = FontWeight.SemiBold)
+// ViewModel for analytics - fetches real data from repository
+class MediaAnalyticsViewModel : ViewModel() {
+    private val repo = MediaRepository()
+
+    private val _state = MutableStateFlow<UiState<MediaAnalyticsData>>(UiState.Loading)
+    val state: StateFlow<UiState<MediaAnalyticsData>> = _state
+
+    fun load(userId: String) {
+        viewModelScope.launch {
+            _state.value = UiState.Loading
+            try {
+                val stats = repo.getArticleStats(userId)
+                val topArticles = repo.getTopArticlesByViews(userId, 5)
+                val categoryMap = repo.getArticlesByCategory(userId)
+
+                val totalArticles = stats.total.coerceAtLeast(1)
+                val categoryStats = categoryMap.map { (cat, count) ->
+                    CategoryStat(
+                        category = categoryLabel(cat),
+                        count = count,
+                        percentage = (count * 100) / totalArticles
+                    )
+                }.sortedByDescending { it.count }
+
+                _state.value = UiState.Success(
+                    MediaAnalyticsData(
+                        stats = stats,
+                        topArticles = topArticles,
+                        categoryStats = categoryStats
+                    )
+                )
+            } catch (e: Exception) {
+                _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
+            }
+        }
     }
+}
+
+data class MediaAnalyticsData(
+    val stats: ArticleStatsDto,
+    val topArticles: List<ArticleDto>,
+    val categoryStats: List<CategoryStat>
+)
+
+private fun categoryLabel(category: String): String = when (category) {
+    "news" -> "Новости"
+    "interview" -> "Интервью"
+    "review" -> "Обзор"
+    "analysis" -> "Аналитика"
+    "announcement" -> "Анонс"
+    "report" -> "Репортаж"
+    "opinion" -> "Мнение"
+    "training" -> "Тренировки"
+    "equipment" -> "Оборудование"
+    "health" -> "Здоровье"
+    "event" -> "Событие"
+    "other" -> "Другое"
+    else -> category
 }

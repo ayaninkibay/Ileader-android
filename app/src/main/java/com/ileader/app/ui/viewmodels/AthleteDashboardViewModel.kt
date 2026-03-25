@@ -2,7 +2,6 @@ package com.ileader.app.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ileader.app.data.mock.AthleteMockData
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.repository.AthleteRepository
@@ -40,9 +39,9 @@ class AthleteDashboardViewModel : ViewModel() {
                 }.take(3)
                 val recentResults = repo.getMyResults(userId).take(4)
 
-                // Leaderboard and rating history — no DB table yet, use mock as fallback
-                val leaderboard = AthleteMockData.leaderboard
-                val ratingHistory = AthleteMockData.ratingHistory
+                // TODO: подключить к реальным данным (rating_history, rankings)
+                val leaderboard = emptyList<Triple<String, Int, Int>>()
+                val ratingHistory = emptyList<Pair<String, Int>>()
 
                 _state.value = UiState.Success(
                     AthleteDashboardData(

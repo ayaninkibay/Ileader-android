@@ -587,6 +587,7 @@ fun RoleBadge(role: com.ileader.app.data.models.UserRole) {
         com.ileader.app.data.models.UserRole.REFEREE -> ILeaderColors.RefereeColor
         com.ileader.app.data.models.UserRole.SPONSOR -> ILeaderColors.SponsorColor
         com.ileader.app.data.models.UserRole.MEDIA -> ILeaderColors.MediaColor
+        com.ileader.app.data.models.UserRole.CONTENT_MANAGER -> ILeaderColors.AdminColor
         com.ileader.app.data.models.UserRole.ADMIN -> ILeaderColors.AdminColor
         com.ileader.app.data.models.UserRole.USER -> ILeaderColors.ViewerColor
     }

@@ -2,6 +2,8 @@ package com.ileader.app.ui.screens.viewer
 
 import androidx.compose.runtime.*
 import com.ileader.app.data.models.User
+import com.ileader.app.ui.screens.common.CoursesListScreen
+import com.ileader.app.ui.screens.common.CourseDetailScreen
 
 /**
  * Tab wrappers that manage internal sub-navigation within bottom nav tabs.
@@ -105,6 +107,30 @@ fun ViewerCommunityTab(user: User) {
             teamId = state.teamId,
             user = user,
             onBack = { navState = CommunityNavState.List }
+        )
+    }
+}
+
+// --- Courses/Academy Tab ---
+
+private sealed class CoursesNavState {
+    data object List : CoursesNavState()
+    data class Detail(val courseId: String) : CoursesNavState()
+}
+
+@Composable
+fun ViewerCoursesTab(user: User) {
+    var navState by remember { mutableStateOf<CoursesNavState>(CoursesNavState.List) }
+
+    when (val state = navState) {
+        is CoursesNavState.List -> CoursesListScreen(
+            user = user,
+            onNavigateToDetail = { id -> navState = CoursesNavState.Detail(id) }
+        )
+        is CoursesNavState.Detail -> CourseDetailScreen(
+            courseId = state.courseId,
+            user = user,
+            onBack = { navState = CoursesNavState.List }
         )
     }
 }

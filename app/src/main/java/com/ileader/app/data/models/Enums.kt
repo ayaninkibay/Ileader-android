@@ -11,6 +11,7 @@ enum class UserRole(val displayName: String) {
     @SerialName("referee") REFEREE("Судья"),
     @SerialName("sponsor") SPONSOR("Спонсор"),
     @SerialName("media") MEDIA("СМИ"),
+    @SerialName("content_manager") CONTENT_MANAGER("Контент-менеджер"),
     @SerialName("admin") ADMIN("Администратор"),
     @SerialName("user") USER("Зритель");
 

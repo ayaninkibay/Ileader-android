@@ -174,43 +174,7 @@ class TrainerRepository {
         }
     }
 
-    // ── SPONSOR OFFERS (tournament_invites with role=sponsor directed to trainer) ──
-
-    suspend fun getSponsorOffers(userId: String): List<TrainerNotificationData> {
-        val teamIds = client.from("teams")
-            .select(Columns.raw("id, name")) {
-                filter { eq("owner_id", userId) }
-            }
-            .decodeList<TeamDto>()
-
-        val offers = mutableListOf<TrainerNotificationData>()
-
-        for (team in teamIds) {
-            val sponsorships = client.from("sponsorships")
-                .select(Columns.raw("*, profiles!sponsor_id(id, name)")) {
-                    filter {
-                        eq("team_id", team.id)
-                        eq("status", "pending")
-                    }
-                }
-                .decodeList<SponsorshipDto>()
-
-            offers.addAll(sponsorships.map { s ->
-                TrainerNotificationData(
-                    id = s.id ?: "",
-                    type = "sponsor_offer",
-                    title = "Предложение спонсорства",
-                    message = "Спонсорское предложение для ${team.name}",
-                    fromName = s.profiles?.name ?: "",
-                    teamName = team.name,
-                    status = InviteStatus.PENDING,
-                    createdAt = s.createdAt ?: ""
-                )
-            })
-        }
-
-        return offers
-    }
+    // Sponsor offers removed — sponsorship management is web-only
 
     // ── TOURNAMENTS ──
 

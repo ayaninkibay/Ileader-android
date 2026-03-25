@@ -2,6 +2,7 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -26,7 +27,7 @@ class ViewerRepository {
     // HOME
     // ══════════════════════════════════════════════════════════
 
-    suspend fun getPlatformStats(): Triple<Int, Int, Int> {
+    suspend fun getPlatformStats(): Triple<Int, Int, Int> = safeApiCall("ViewerRepo.getPlatformStats") {
         val usersCount = client.from("profiles")
             .select(Columns.raw("id")) { filter { eq("status", "active") } }
             .decodeList<IdOnlyDto>().size
@@ -39,7 +40,7 @@ class ViewerRepository {
             .select(Columns.raw("id")) { filter { eq("is_active", true) } }
             .decodeList<IdOnlyDto>().size
 
-        return Triple(usersCount, tournamentsCount, sportsCount)
+        Triple(usersCount, tournamentsCount, sportsCount)
     }
 
     suspend fun getSports(): List<SportDto> {
@@ -48,8 +49,8 @@ class ViewerRepository {
             .decodeList<SportDto>()
     }
 
-    suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> {
-        return client.from("v_tournament_with_counts")
+    suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getUpcomingTournaments") {
+        client.from("v_tournament_with_counts")
             .select {
                 filter {
                     eq("visibility", "public")
@@ -68,8 +69,8 @@ class ViewerRepository {
     // TOURNAMENTS
     // ══════════════════════════════════════════════════════════
 
-    suspend fun getPublicTournaments(): List<TournamentWithCountsDto> {
-        return client.from("v_tournament_with_counts")
+    suspend fun getPublicTournaments(): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getPublicTournaments") {
+        client.from("v_tournament_with_counts")
             .select {
                 filter { eq("visibility", "public") }
                 order("start_date", Order.DESCENDING)
@@ -78,8 +79,8 @@ class ViewerRepository {
             .decodeList<TournamentWithCountsDto>()
     }
 
-    suspend fun getTournamentDetail(tournamentId: String): TournamentDto {
-        return client.from("tournaments")
+    suspend fun getTournamentDetail(tournamentId: String): TournamentDto = safeApiCall("ViewerRepo.getTournamentDetail") {
+        client.from("tournaments")
             .select(Columns.raw("*, sports(id, name, slug), locations(*), profiles!organizer_id(name)"))
             { filter { eq("id", tournamentId) } }
             .decodeSingle<TournamentDto>()
@@ -122,6 +123,71 @@ class ViewerRepository {
         return client.from("tournament_groups")
             .select { filter { eq("tournament_id", tournamentId) } }
             .decodeList<TournamentGroupDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SPECTATORS
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getMySpectatorRegistration(tournamentId: String, userId: String): SpectatorDto? {
+        return client.from("tournament_spectators")
+            .select(Columns.raw("id, tournament_id, user_id, ticket_type, payment_status, check_in_status, created_at"))
+            {
+                filter {
+                    eq("tournament_id", tournamentId)
+                    eq("user_id", userId)
+                }
+            }
+            .decodeSingleOrNull<SpectatorDto>()
+    }
+
+    suspend fun registerAsSpectator(tournamentId: String, userId: String) {
+        client.from("tournament_spectators")
+            .insert(buildMap {
+                put("tournament_id", tournamentId)
+                put("user_id", userId)
+                put("ticket_type", "free")
+                put("payment_status", "free")
+                put("check_in_status", "pending")
+            })
+    }
+
+    suspend fun getMySpectatorRegistrations(userId: String): List<SpectatorDto> {
+        return client.from("tournament_spectators")
+            .select(Columns.raw("id, tournament_id, user_id, ticket_type, payment_status, check_in_status, created_at"))
+            { filter { eq("user_id", userId) } }
+            .decodeList<SpectatorDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // NEWS (articles)
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getPublishedArticles(limit: Int = 50): List<ArticleDto> {
+        return client.from("articles")
+            .select(Columns.raw("id, title, excerpt, cover_image_url, category, tags, views, published_at, created_at, profiles!author_id(id, name, avatar_url), sports(id, name)")) {
+                filter { eq("status", "published") }
+                order("published_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<ArticleDto>()
+    }
+
+    suspend fun getRecentArticles(limit: Int = 5): List<ArticleDto> {
+        return client.from("articles")
+            .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, profiles!author_id(id, name)")) {
+                filter { eq("status", "published") }
+                order("published_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<ArticleDto>()
+    }
+
+    suspend fun getArticleDetail(articleId: String): ArticleDto {
+        return client.from("articles")
+            .select(Columns.raw("*, profiles!author_id(id, name, avatar_url), sports(id, name)"))
+            { filter { eq("id", articleId) } }
+            .decodeSingle<ArticleDto>()
     }
 
     // ══════════════════════════════════════════════════════════

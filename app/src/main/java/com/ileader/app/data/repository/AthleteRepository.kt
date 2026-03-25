@@ -3,6 +3,7 @@ package com.ileader.app.data.repository
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -14,15 +15,26 @@ import kotlinx.serialization.json.put
 class AthleteRepository {
     private val client = SupabaseModule.client
 
+    // ── LICENSE ──
+
+    suspend fun getLicense(userId: String): License? {
+        val licenses = client.from("licenses")
+            .select(Columns.raw("id, user_id, number, category, class, federation, status, issue_date, expiry_date, medical_check_date, medical_check_expiry, created_at, updated_at")) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<LicenseDto>()
+        return licenses.firstOrNull()?.toDomain()
+    }
+
     // ── PROFILE ──
 
-    suspend fun getProfile(userId: String): User {
+    suspend fun getProfile(userId: String): User = safeApiCall("AthleteRepo.getProfile") {
         val dto = client.from("profiles")
             .select(Columns.raw("*, roles!primary_role_id(id, name)")) {
                 filter { eq("id", userId) }
             }
             .decodeSingle<ProfileDto>()
-        return dto.toDomain()
+        dto.toDomain()
     }
 
     suspend fun updateProfile(userId: String, data: ProfileUpdateDto) {
@@ -75,7 +87,7 @@ class AthleteRepository {
 
     // ── TOURNAMENTS ──
 
-    suspend fun getMyTournaments(userId: String): List<Tournament> {
+    suspend fun getMyTournaments(userId: String): List<Tournament> = safeApiCall("AthleteRepo.getMyTournaments") {
         val participants = client.from("tournament_participants")
             .select(Columns.raw("*, tournaments(*, sports(id, name), locations(name, city), profiles!organizer_id(name))")) {
                 filter {
@@ -85,7 +97,7 @@ class AthleteRepository {
             }
             .decodeList<ParticipantDto>()
 
-        return participants.mapNotNull { p ->
+        participants.mapNotNull { p ->
             p.tournaments?.toDomain()
         }
     }
@@ -134,7 +146,7 @@ class AthleteRepository {
         return result.isNotEmpty()
     }
 
-    suspend fun registerForTournament(tournamentId: String, userId: String) {
+    suspend fun registerForTournament(tournamentId: String, userId: String) = safeApiCall("AthleteRepo.registerForTournament") {
         client.from("tournament_participants")
             .insert(ParticipantInsertDto(
                 tournamentId = tournamentId,
@@ -162,14 +174,14 @@ class AthleteRepository {
 
     // ── RESULTS ──
 
-    suspend fun getMyResults(userId: String): List<TournamentResult> {
+    suspend fun getMyResults(userId: String): List<TournamentResult> = safeApiCall("AthleteRepo.getMyResults") {
         val results = client.from("tournament_results")
             .select(Columns.raw("*, tournaments(id, name, start_date, sport_id, sports(id, name))")) {
                 filter { eq("athlete_id", userId) }
             }
             .decodeList<ResultDto>()
 
-        return results.map { it.toDomain() }
+        results.map { it.toDomain() }
     }
 
     // ── GOALS ──

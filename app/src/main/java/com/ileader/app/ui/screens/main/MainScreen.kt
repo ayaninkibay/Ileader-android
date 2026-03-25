@@ -24,19 +24,19 @@ import com.ileader.app.ui.components.SportBackground
 import com.ileader.app.ui.navigation.BottomNavItem
 import com.ileader.app.ui.navigation.getBottomNavItems
 import com.ileader.app.ui.screens.athlete.*
-import com.ileader.app.ui.screens.admin.*
 import com.ileader.app.data.DeepLinkTarget
 import com.ileader.app.data.DeepLinkType
-import com.ileader.app.ui.screens.common.ChatListScreen
-import com.ileader.app.ui.screens.common.ChatScreen
 import com.ileader.app.ui.screens.common.NotificationsScreen
 import com.ileader.app.ui.screens.common.PlaceholderScreen
 import com.ileader.app.ui.screens.media.*
 import com.ileader.app.ui.screens.organizer.*
 import com.ileader.app.ui.screens.referee.*
 import com.ileader.app.ui.screens.trainer.*
-import com.ileader.app.ui.screens.sponsor.*
+import com.ileader.app.ui.screens.common.MyTicketsScreen
+import com.ileader.app.ui.screens.helper.HelperDashboardScreen
 import com.ileader.app.ui.screens.viewer.*
+import com.ileader.app.ui.viewmodels.HelperViewModel
+import com.ileader.app.ui.viewmodels.TicketsViewModel
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.DarkAppColors
@@ -60,30 +60,47 @@ fun MainScreen(
     val notificationsVm: NotificationsViewModel = viewModel()
     val unreadCount by notificationsVm.unreadCount.collectAsState()
 
-    LaunchedEffect(user.id) { notificationsVm.loadUnreadCount(user.id) }
+    val helperVm: HelperViewModel = viewModel()
+    val helperState by helperVm.state.collectAsState()
+    val ticketsVm: TicketsViewModel = viewModel()
+    val hasTickets by ticketsVm.hasTickets.collectAsState()
 
-    val bottomNavItems = getBottomNavItems(user.role, user.teamId, unreadNotifications = unreadCount)
-    var selectedIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(user.id) {
+        notificationsVm.loadUnreadCount(user.id)
+        helperVm.loadAssignments(user.id)
+        ticketsVm.checkHasTickets(user.id)
+    }
 
-    // Чат навигация: null = обычный роутинг, "list" = список чатов, "chat/{id}/{name}" = конкретный чат
-    var chatRoute by remember { mutableStateOf<String?>(null) }
+    // Check if user has active helper assignments
+    val hasHelperAssignments = helperState is com.ileader.app.data.remote.UiState.Success &&
+            (helperState as com.ileader.app.data.remote.UiState.Success).data.isNotEmpty()
+
+    val bottomNavItems = getBottomNavItems(
+        role = user.role,
+        teamId = user.teamId,
+        unreadNotifications = unreadCount,
+        isHelper = hasHelperAssignments,
+        hasTickets = hasTickets
+    )
+
+    // Navigate by route instead of index to avoid shifting when helper tab appears
+    var selectedRoute by remember { mutableStateOf(bottomNavItems.firstOrNull()?.route ?: "") }
+
+    // Ensure selectedRoute is valid when items change
+    val selectedIndex = bottomNavItems.indexOfFirst { it.route == selectedRoute }
+        .coerceAtLeast(0)
 
     // Deep link обработка — перенаправляем на нужный экран
-    // TODO: При реализации TournamentDetailScreen / PublicProfileScreen в Чатах 2-3 —
-    // здесь можно направить на конкретный экран. Пока переключаем на вкладку "Турниры" или "Сообщество".
     LaunchedEffect(deepLinkTarget) {
         if (deepLinkTarget != null) {
-            chatRoute = null
             when (deepLinkTarget.type) {
                 DeepLinkType.TOURNAMENT -> {
-                    // Найти индекс вкладки "Турниры"
-                    val idx = bottomNavItems.indexOfFirst { it.route.contains("tournaments") }
-                    if (idx >= 0) selectedIndex = idx
+                    val route = bottomNavItems.firstOrNull { it.route.contains("tournaments") }?.route
+                    if (route != null) selectedRoute = route
                 }
                 DeepLinkType.ATHLETE_PROFILE, DeepLinkType.TEAM_PROFILE -> {
-                    // Найти индекс вкладки "Сообщество" или "Профиль"
-                    val idx = bottomNavItems.indexOfFirst { it.route.contains("community") }
-                    if (idx >= 0) selectedIndex = idx
+                    val route = bottomNavItems.firstOrNull { it.route.contains("community") }?.route
+                    if (route != null) selectedRoute = route
                 }
             }
             onDeepLinkConsumed()
@@ -99,41 +116,17 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
-                    .padding(bottom = if (chatRoute?.startsWith("chat/") == true) 0.dp else 74.dp)
+                    .padding(bottom = 74.dp)
             ) {
-                when {
-                    chatRoute == "list" -> ChatListScreen(
-                        user = user,
-                        onOpenChat = { conversationId, otherUserName ->
-                            chatRoute = "chat/$conversationId/$otherUserName"
-                        }
-                    )
-                    chatRoute?.startsWith("chat/") == true -> {
-                        val parts = chatRoute!!.removePrefix("chat/").split("/", limit = 2)
-                        ChatScreen(
-                            user = user,
-                            conversationId = parts[0],
-                            otherUserName = parts.getOrElse(1) { "Чат" },
-                            onBack = { chatRoute = "list" }
-                        )
+                RoleScreenRouter(
+                    route = selectedRoute,
+                    user = user,
+                    onSignOut = onSignOut,
+                    onNavigate = { route ->
+                        val navItem = bottomNavItems.firstOrNull { it.route == route }
+                        if (navItem != null) selectedRoute = route
                     }
-                    else -> {
-                        val currentRoute = bottomNavItems.getOrNull(selectedIndex)?.route ?: ""
-                        RoleScreenRouter(
-                            route = currentRoute,
-                            user = user,
-                            onSignOut = onSignOut,
-                            onNavigate = { route ->
-                                if (route == "chat") {
-                                    chatRoute = "list"
-                                } else {
-                                    val index = bottomNavItems.indexOfFirst { it.route == route }
-                                    if (index >= 0) selectedIndex = index
-                                }
-                            }
-                        )
-                    }
-                }
+                )
             }
 
             // Snackbar
@@ -143,19 +136,16 @@ fun MainScreen(
                 snackbar = { Snackbar(it, containerColor = DarkTheme.CardBg, contentColor = DarkTheme.TextPrimary) }
             )
 
-            // Floating bottom bar (скрыть в чате)
-            if (chatRoute?.startsWith("chat/") != true) {
-                ILeaderBottomBar(
-                    items = bottomNavItems,
-                    selectedIndex = selectedIndex,
-                    onItemSelected = {
-                        chatRoute = null
-                        selectedIndex = it
-                    },
-                    isDark = isDark,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
-            }
+            // Floating bottom bar
+            ILeaderBottomBar(
+                items = bottomNavItems,
+                selectedIndex = selectedIndex,
+                onItemSelected = { index ->
+                    bottomNavItems.getOrNull(index)?.route?.let { selectedRoute = it }
+                },
+                isDark = isDark,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }
@@ -299,7 +289,6 @@ private fun RoleScreenRouter(
             onNavigateToTournaments = { onNavigate("organizer/tournaments") },
             onNavigateToNotifications = { onNavigate("organizer/notifications") }
         )
-        route == "organizer/tournaments" -> OrganizerTournamentsScreen(user = user)
         route == "organizer/notifications" -> NotificationsScreen(user = user)
         route == "organizer/profile" -> OrganizerProfileScreen(user = user, onSignOut = onSignOut)
 
@@ -310,25 +299,40 @@ private fun RoleScreenRouter(
         route == "referee/history" -> RefereeHistoryScreen(user = user, onNavigate = onNavigate)
         route == "referee/profile" -> RefereeProfileScreen(user = user, onSignOut = onSignOut)
 
-        // Sponsor screens
-        route == "sponsor/dashboard" -> SponsorDashboardScreen(user = user, onNavigate = onNavigate)
-        route == "sponsor/tournaments" -> SponsorTournamentsScreen(user = user)
-        route == "sponsor/notifications" -> SponsorNotificationsScreen(user = user)
-        route == "sponsor/profile" -> SponsorProfileScreen(user = user, onSignOut = onSignOut)
-
         // Media screens
         route == "media/dashboard" -> MediaDashboardScreen(user = user, onNavigate = onNavigate)
         route == "media/tournaments" -> MediaTournamentsScreen(user = user, onNavigate = onNavigate)
-        route == "media/content" -> MediaContentScreen(user = user)
+        route == "media/content" -> MediaContentScreen(user = user, onNavigate = onNavigate)
+        route == "media/analytics" -> MediaAnalyticsScreen(user = user, onNavigate = onNavigate)
+        route == "media/content/new" -> MediaContentEditScreen(
+            user = user, articleId = null,
+            onBack = { onNavigate("media/content") },
+            onSave = { onNavigate("media/content") }
+        )
+        route.startsWith("media/content/edit/") -> {
+            val id = route.removePrefix("media/content/edit/")
+            MediaContentEditScreen(
+                user = user, articleId = id,
+                onBack = { onNavigate("media/content") },
+                onSave = { onNavigate("media/content") }
+            )
+        }
+        route.startsWith("media/content/detail/") -> {
+            val id = route.removePrefix("media/content/detail/")
+            MediaContentDetailScreen(
+                user = user, articleId = id,
+                onBack = { onNavigate("media/content") },
+                onEdit = { articleId -> onNavigate("media/content/edit/$articleId") }
+            )
+        }
         route == "media/notifications" -> NotificationsScreen(user = user)
         route == "media/profile" -> MediaProfileScreen(user = user, onSignOut = onSignOut)
 
-        // Admin screens
-        route == "admin/dashboard" -> AdminDashboardScreen(user = user)
-        route == "admin/users" -> AdminUsersScreen(user = user)
-        route == "admin/tournaments" -> AdminTournamentsScreen(user = user)
-        route == "admin/requests" -> AdminRequestsScreen(user = user)
-        route == "admin/settings" -> AdminSettingsScreen(user = user)
+        // Tickets screen (available for any role with active registrations)
+        route == "my/tickets" -> MyTicketsScreen(user = user)
+
+        // Helper screen (available for any role with active assignments)
+        route == "helper/dashboard" -> HelperDashboardScreen(user = user)
 
         // Viewer screens
         route == "viewer/home" -> ViewerHomeScreen(
@@ -339,13 +343,8 @@ private fun RoleScreenRouter(
         route == "viewer/tournaments" -> ViewerTournamentsTab(user = user)
         route == "viewer/news" -> ViewerNewsTab(user = user)
         route == "viewer/community" -> ViewerCommunityTab(user = user)
+        route == "viewer/courses" -> ViewerCoursesTab(user = user)
         route == "viewer/profile" -> ViewerProfileScreen(user = user, onSignOut = onSignOut)
-
-        // Чат (общий для всех ролей — доступен через onNavigate("chat"))
-        route == "chat" -> ChatListScreen(
-            user = user,
-            onOpenChat = { _, _ -> /* handled by MainScreen chatRoute */ }
-        )
 
         else -> PlaceholderScreen("Страница не найдена", user, onSignOut)
     }

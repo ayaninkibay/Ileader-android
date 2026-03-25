@@ -31,8 +31,7 @@ class TrainerNotificationsViewModel : ViewModel() {
             _state.value = UiState.Loading
             try {
                 val teamRequests = repo.getTeamRequests(userId)
-                val sponsorOffers = repo.getSponsorOffers(userId)
-                val all = (teamRequests + sponsorOffers).sortedByDescending { it.createdAt }
+                val all = teamRequests.sortedByDescending { it.createdAt }
 
                 _state.value = UiState.Success(
                     TrainerNotificationsScreenData(notifications = all)

@@ -95,8 +95,23 @@ fun AthleteDashboardScreen(
     val tournamentsViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
+    var qrTournamentId by remember { mutableStateOf<String?>(null) }
+    var qrTournamentName by remember { mutableStateOf("") }
+    var qrCheckedIn by remember { mutableStateOf(false) }
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
+
+    // QR-билет
+    qrTournamentId?.let { tid ->
+        AthleteQrTicketScreen(
+            user = user,
+            tournamentId = tid,
+            tournamentName = qrTournamentName,
+            isCheckedIn = qrCheckedIn,
+            onBack = { qrTournamentId = null }
+        )
+        return
+    }
 
     // Детальный экран турнира
     selectedTournamentId?.let { id ->
@@ -105,7 +120,11 @@ fun AthleteDashboardScreen(
             user = user,
             viewModel = tournamentsViewModel,
             onBack = { selectedTournamentId = null },
-            onShowQrTicket = { _, _ -> }
+            onShowQrTicket = { name, checkedIn ->
+                qrTournamentId = id
+                qrTournamentName = name
+                qrCheckedIn = checkedIn
+            }
         )
         return
     }

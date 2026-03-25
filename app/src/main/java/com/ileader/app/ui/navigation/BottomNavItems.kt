@@ -14,8 +14,14 @@ data class BottomNavItem(
     val badge: Int = 0
 )
 
-fun getBottomNavItems(role: UserRole, teamId: String? = null, unreadNotifications: Int = 0): List<BottomNavItem> {
-    return when (role) {
+fun getBottomNavItems(
+    role: UserRole,
+    teamId: String? = null,
+    unreadNotifications: Int = 0,
+    isHelper: Boolean = false,
+    hasTickets: Boolean = false
+): List<BottomNavItem> {
+    val items = when (role) {
         UserRole.ATHLETE -> buildList {
             add(BottomNavItem("athlete/dashboard", "Главная", Icons.Default.Home))
             add(BottomNavItem("athlete/tournaments", "Турниры", Icons.Default.EmojiEvents))
@@ -36,7 +42,6 @@ fun getBottomNavItems(role: UserRole, teamId: String? = null, unreadNotification
         )
         UserRole.ORGANIZER -> listOf(
             BottomNavItem("organizer/dashboard", "Главная", Icons.Default.Home),
-            BottomNavItem("organizer/tournaments", "Турниры", Icons.Default.EmojiEvents),
             BottomNavItem("organizer/notifications", "Уведомления", Icons.Default.Notifications, badge = unreadNotifications),
             BottomNavItem("organizer/profile", "Профиль", Icons.Default.Person)
         )
@@ -48,10 +53,11 @@ fun getBottomNavItems(role: UserRole, teamId: String? = null, unreadNotification
             BottomNavItem("referee/profile", "Профиль", Icons.Default.Person)
         )
         UserRole.SPONSOR -> listOf(
-            BottomNavItem("sponsor/dashboard", "Главная", Icons.Default.Home),
-            BottomNavItem("sponsor/tournaments", "Турниры", Icons.Default.EmojiEvents),
-            BottomNavItem("sponsor/notifications", "Уведомления", Icons.Default.Notifications, badge = unreadNotifications),
-            BottomNavItem("sponsor/profile", "Профиль", Icons.Default.Person)
+            BottomNavItem("viewer/home", "Главная", Icons.Default.Home),
+            BottomNavItem("viewer/tournaments", "Турниры", Icons.Default.EmojiEvents),
+            BottomNavItem("viewer/news", "Новости", Icons.Default.Newspaper),
+            BottomNavItem("viewer/community", "Сообщество", Icons.Default.People),
+            BottomNavItem("viewer/profile", "Профиль", Icons.Default.Person)
         )
         UserRole.MEDIA -> listOf(
             BottomNavItem("media/dashboard", "Главная", Icons.Default.Home),
@@ -60,19 +66,35 @@ fun getBottomNavItems(role: UserRole, teamId: String? = null, unreadNotification
             BottomNavItem("media/notifications", "Уведомления", Icons.Default.Notifications, badge = unreadNotifications),
             BottomNavItem("media/profile", "Профиль", Icons.Default.Person)
         )
-        UserRole.ADMIN -> listOf(
-            BottomNavItem("admin/dashboard", "Главная", Icons.Default.Home),
-            BottomNavItem("admin/users", "Юзеры", Icons.Default.People),
-            BottomNavItem("admin/tournaments", "Турниры", Icons.Default.EmojiEvents),
-            BottomNavItem("admin/requests", "Заявки", Icons.Default.Inbox),
-            BottomNavItem("admin/settings", "Настройки", Icons.Default.Settings)
-        )
-        UserRole.USER -> listOf(
+        UserRole.ADMIN, UserRole.CONTENT_MANAGER -> listOf(
             BottomNavItem("viewer/home", "Главная", Icons.Default.Home),
             BottomNavItem("viewer/tournaments", "Турниры", Icons.Default.EmojiEvents),
             BottomNavItem("viewer/news", "Новости", Icons.Default.Newspaper),
             BottomNavItem("viewer/community", "Сообщество", Icons.Default.People),
             BottomNavItem("viewer/profile", "Профиль", Icons.Default.Person)
         )
+        UserRole.USER -> listOf(
+            BottomNavItem("viewer/home", "Главная", Icons.Default.Home),
+            BottomNavItem("viewer/tournaments", "Турниры", Icons.Default.EmojiEvents),
+            BottomNavItem("viewer/courses", "Академия", Icons.Default.School),
+            BottomNavItem("viewer/community", "Сообщество", Icons.Default.People),
+            BottomNavItem("viewer/profile", "Профиль", Icons.Default.Person)
+        )
     }
+
+    // Dynamically add tickets and helper tabs before profile
+    val result = items.toMutableList()
+    val profileIndex = result.indexOfLast { it.route.contains("profile") }
+    val insertAt = if (profileIndex >= 0) profileIndex else result.size
+
+    if (hasTickets) {
+        result.add(insertAt, BottomNavItem("my/tickets", "Билеты", Icons.Default.ConfirmationNumber))
+    }
+    if (isHelper) {
+        val newProfileIdx = result.indexOfLast { it.route.contains("profile") }
+        val helperAt = if (newProfileIdx >= 0) newProfileIdx else result.size
+        result.add(helperAt, BottomNavItem("helper/dashboard", "Помощник", Icons.Default.QrCodeScanner))
+    }
+
+    return result
 }

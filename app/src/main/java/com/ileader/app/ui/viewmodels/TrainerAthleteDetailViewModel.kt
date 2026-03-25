@@ -2,7 +2,6 @@ package com.ileader.app.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ileader.app.data.mock.TrainerMockData
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.GoalDto
@@ -48,8 +47,8 @@ class TrainerAthleteDetailViewModel : ViewModel() {
 
                 val results = repo.getAthleteResults(athleteId)
 
-                // Rating history — no dedicated table, use mock fallback (per TZ)
-                val ratingHistory = TrainerMockData.getAthleteRatingHistory(athleteId)
+                // TODO: подключить к реальным данным (rating_history)
+                val ratingHistory = emptyList<Pair<String, Int>>()
 
                 // Goals from DB
                 val goals = try {

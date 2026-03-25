@@ -37,7 +37,37 @@
       "Read(//c/Program Files/Android/Android Studio/platform-tools/**)",
       "Bash(where adb.exe)",
       "Bash(\"C:/Users/Admin/AppData/Local/Android/Sdk/platform-tools/adb.exe\" install:*)",
-      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew --stop)"
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" ./gradlew --stop)",
+      "Bash(wc -l /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/data/remote/dto/*.kt)",
+      "Bash(grep -h MockData. /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/admin/*.kt /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/athlete/AthleteRacingLicenseScreen.kt /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/media/Media*.kt /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/viewer/Viewer*.kt)",
+      "Bash(find C:/Users/zhami/Documents/ileader -type f -name *migration* -o -name *schema*)",
+      "Bash(JAVA_HOME=\"C:/Program Files/Android/Android Studio/jbr\" \"$ANDROID_HOME/platform-tools/adb\" uninstall com.ileader.app)",
+      "Bash(adb uninstall:*)",
+      "Bash(\"C:/Users/zhami/AppData/Local/Android/Sdk/platform-tools/adb.exe\" uninstall:*)",
+      "Bash(where magick:*)",
+      "Bash(pip install:*)",
+      "Bash(where python:*)",
+      "Bash(ls \"C:/Users/zhami/AppData/Local/Programs/Python/\"*/python.exe)",
+      "Bash(ls \"C:/Python\"*/python.exe)",
+      "Bash(ls \"C:/Users/zhami/AppData/Local/Microsoft/WindowsApps/python\"*.exe)",
+      "Bash(\"C:/Users/zhami/AppData/Local/Microsoft/WindowsApps/python.exe\" -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(npx sharp-cli:*)",
+      "Bash(SRC=\"C:/Users/zhami/Documents/ileader/public/img/logo-light.png\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node -e \":*)",
+      "Bash(find C:/Users/zhami/Documents/ileader/public -type f \\\\\\(-name *logo* -o -name *icon* -o -name *favicon* \\\\\\))",
+      "Bash(find /c/Users/zhami/Documents/ileader-android -type f -name *Manifest* -o -name *[Ss]plash*)",
+      "Bash(grep -r \"logo\\\\|Logo\" C:/Users/zhami/Documents/ileader/src --include=*.tsx --include=*.ts -l)",
+      "Bash(ls -la /c/Users/zhami/Documents/ileader-android/app/src/main/res/mipmap-*/ic_launcher*)",
+      "Bash(grep -r \"logo\\\\|icon\\\\|favicon\" C:/Users/zhami/Documents/ileader/src --include=*.tsx --include=*.ts -B 2 -A 2)",
+      "Bash(find /c/Users/zhami/Documents/ileader-android/app/src/main/res/values* -name *.xml)",
+      "Bash(grep -r \"ILeaderLogo\\\\|logo_dark\\\\|ic_launcher\" /c/Users/zhami/Documents/ileader-android/app/src/main/java --include=*.kt)",
+      "Bash(grep -n \"AnimatedBackground\" /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/components/*.kt)",
+      "Bash(cp \"c:/Users/zhami/Documents/ileader/public/img/logo.png\" \"c:/Users/zhami/Documents/ileader-android/app/src/main/res/drawable/logo_dark.png\")",
+      "Bash(cp \"c:/Users/zhami/Documents/ileader/public/img/logo-light.png\" \"c:/Users/zhami/Documents/ileader-android/app/src/main/res/drawable/logo_light.png\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\zhami\\Documents\\ileader\\supabase\\migrations"
     ]
   }
 }

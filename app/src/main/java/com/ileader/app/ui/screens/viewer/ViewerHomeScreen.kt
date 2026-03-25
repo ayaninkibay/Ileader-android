@@ -26,13 +26,22 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ileader.app.data.mock.ViewerMockData
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.*
+import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.ui.viewmodels.ViewerHomeViewModel
+
+// TODO: подключить к реальным данным
+private data class FeatureItem(val title: String, val description: String)
+private val platformFeatures = listOf(
+    FeatureItem("Турниры", "Участвуйте в соревнованиях по различным видам спорта"),
+    FeatureItem("Календарь", "Следите за расписанием всех предстоящих событий"),
+    FeatureItem("Обучение", "Курсы и тренировки от лучших тренеров"),
+    FeatureItem("Рейтинги", "Прозрачная система рейтингов и достижений")
+)
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -222,7 +231,7 @@ fun ViewerHomeScreen(
                             modifier = Modifier.padding(horizontal = 20.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            ViewerMockData.features.forEachIndexed { index, feature ->
+                            platformFeatures.forEachIndexed { index, feature ->
                                 FeatureCard(featureIcons.getOrElse(index) { Icons.Default.Star }, feature.title, feature.description)
                             }
                         }
@@ -375,7 +384,7 @@ private fun PlatformStatItem(value: String, label: String) {
 }
 
 @Composable
-private fun HomeNewsCard(article: ViewerMockData.NewsArticle) {
+private fun HomeNewsCard(article: ArticleDto) {
     DarkCard {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
             AccentIconBox(Icons.Default.Newspaper)
@@ -384,14 +393,14 @@ private fun HomeNewsCard(article: ViewerMockData.NewsArticle) {
 
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusBadge(article.category)
+                    StatusBadge(article.category ?: "Новость")
                     Spacer(Modifier.width(8.dp))
-                    Text(formatShortDate(article.date), fontSize = 12.sp, color = TextMuted)
+                    Text(formatShortDate(article.publishedAt ?: article.createdAt ?: ""), fontSize = 12.sp, color = TextMuted)
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(article.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(3.dp))
-                Text(article.summary, fontSize = 12.sp, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(article.excerpt ?: "", fontSize = 12.sp, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

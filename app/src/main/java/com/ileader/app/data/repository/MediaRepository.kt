@@ -229,6 +229,56 @@ class MediaRepository {
         )
     }
 
+    suspend fun createArticle(data: ArticleInsertDto): ArticleDto {
+        return client.from("articles")
+            .insert(data) {
+                select(Columns.raw("id, author_id, title, content, excerpt, cover_image_url, sport_id, tournament_id, status, category, tags, views, published_at, created_at, updated_at"))
+            }
+            .decodeSingle<ArticleDto>()
+    }
+
+    suspend fun updateArticle(articleId: String, data: ArticleUpdateDto) {
+        client.from("articles")
+            .update(data) {
+                filter { eq("id", articleId) }
+            }
+    }
+
+    suspend fun deleteArticle(articleId: String) {
+        client.from("articles")
+            .delete {
+                filter { eq("id", articleId) }
+            }
+    }
+
+    /**
+     * Get top articles by views for the given author (for analytics).
+     */
+    suspend fun getTopArticlesByViews(authorId: String, limit: Int = 5): List<ArticleDto> {
+        return client.from("articles")
+            .select(Columns.raw("id, title, views, status, category, published_at, created_at")) {
+                filter {
+                    eq("author_id", authorId)
+                    eq("status", "published")
+                }
+                order("views", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<ArticleDto>()
+    }
+
+    /**
+     * Get article count grouped by category for analytics.
+     */
+    suspend fun getArticlesByCategory(authorId: String): Map<String, Int> {
+        val articles = client.from("articles")
+            .select(Columns.raw("id, category")) {
+                filter { eq("author_id", authorId) }
+            }
+            .decodeList<ArticleDto>()
+        return articles.groupBy { it.category ?: "other" }.mapValues { it.value.size }
+    }
+
     // ══════════════════════════════════════════════════════════
     // NOTIFICATIONS
     // ══════════════════════════════════════════════════════════
