@@ -56,6 +56,7 @@ fun ViewerHomeScreen(
     val viewModel: ViewerHomeViewModel = viewModel()
     val detailViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) { viewModel.load() }
@@ -91,7 +92,10 @@ fun ViewerHomeScreen(
             val heroTournament = filteredTournaments.firstOrNull()
             val scrollTournaments = if (filteredTournaments.size > 1) filteredTournaments.drop(1) else emptyList()
 
-            Box(Modifier.fillMaxSize()) {
+            DarkPullRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh() }
+            ) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -604,10 +608,4 @@ internal fun getStatusLabel(status: String): String = when (status) {
 }
 
 @Composable
-internal fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFFF97316)
-    "check_in" -> Color(0xFF3B82F6)
-    "completed" -> Color(0xFFE53535)
-    else -> TextMuted
-}
+internal fun getStatusColor(status: String): Color = tournamentStatusColor(status)

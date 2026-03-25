@@ -2,6 +2,7 @@ package com.ileader.app.ui.screens.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -15,18 +16,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.screens.athlete.AthleteTournamentDetailScreen
+import com.ileader.app.ui.viewmodels.AthleteTournamentsViewModel
 import com.ileader.app.ui.viewmodels.MediaTournamentItem
 import com.ileader.app.ui.viewmodels.MediaTournamentsData
 import com.ileader.app.ui.viewmodels.MediaTournamentsViewModel
+
+private val BASE_URL_M = "https://ileader.kz/img"
+private val UNSPLASH_M = "https://images.unsplash.com"
+private val SPORT_IMAGES_M = mapOf(
+    "картинг" to listOf("$BASE_URL_M/karting/karting-04-1280x853.jpeg", "$BASE_URL_M/karting/karting-07-1280x853.jpeg", "$BASE_URL_M/karting/karting-13-1280x853.jpeg"),
+    "стрельба" to listOf("$BASE_URL_M/shooting/shooting-02-1280x853.jpeg", "$BASE_URL_M/shooting/shooting-04-1280x853.jpeg"),
+    "теннис" to listOf("$UNSPLASH_M/photo-1554068865-24cecd4e34b8?w=1280&q=80&fit=crop"),
+    "футбол" to listOf("$UNSPLASH_M/photo-1431324155629-1a6deb1dec8d?w=1280&q=80&fit=crop"),
+    "бокс" to listOf("$UNSPLASH_M/photo-1549719386-74dfcbf7dbed?w=1280&q=80&fit=crop"),
+    "плавание" to listOf("$UNSPLASH_M/photo-1519315901367-f34ff9154487?w=1280&q=80&fit=crop"),
+    "лёгкая атлетика" to listOf("$UNSPLASH_M/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+    "легкая атлетика" to listOf("$UNSPLASH_M/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+)
+
+private fun tournamentImageUrlM(sportName: String?, imageUrl: String?, seed: Int = 0): String? {
+    imageUrl?.takeIf { it.isNotEmpty() }?.let { return it }
+    val list = SPORT_IMAGES_M[sportName?.lowercase()?.trim()] ?: return null
+    return list[seed.mod(list.size)]
+}
 
 @Composable
 fun MediaTournamentsScreen(
@@ -35,13 +59,33 @@ fun MediaTournamentsScreen(
 ) {
     val viewModel: MediaTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
+
+    var selectedTournamentId by remember { mutableStateOf<String?>(null) }
+    val detailViewModel: AthleteTournamentsViewModel = viewModel()
+    LaunchedEffect(user.id) { detailViewModel.load(user.id) }
+
+    selectedTournamentId?.let { id ->
+        AthleteTournamentDetailScreen(
+            tournamentId = id,
+            user = user,
+            viewModel = detailViewModel,
+            onBack = { selectedTournamentId = null }
+        )
+        return
+    }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> TournamentsContent(user, s.data, viewModel)
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
+            TournamentsContent(user, s.data, viewModel, onTournamentClick = { selectedTournamentId = it })
+        }
     }
 }
 
@@ -50,7 +94,8 @@ fun MediaTournamentsScreen(
 private fun TournamentsContent(
     user: User,
     data: MediaTournamentsData,
-    viewModel: MediaTournamentsViewModel
+    viewModel: MediaTournamentsViewModel,
+    onTournamentClick: (String) -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableIntStateOf(0) }
@@ -184,9 +229,11 @@ private fun TournamentsContent(
                 if (filteredTournaments.isEmpty()) {
                     EmptyState("Турниры не найдены")
                 } else {
-                    filteredTournaments.forEach { item ->
+                    filteredTournaments.forEachIndexed { index, item ->
                         TournamentCard(
                             item = item,
+                            seed = index,
+                            onClick = { onTournamentClick(item.tournament.id) },
                             onRegister = { viewModel.requestAccreditation(it) },
                             onUnregister = { viewModel.cancelAccreditation(it) }
                         )
@@ -203,6 +250,8 @@ private fun TournamentsContent(
 @Composable
 private fun TournamentCard(
     item: MediaTournamentItem,
+    seed: Int = 0,
+    onClick: () -> Unit = {},
     onRegister: (String) -> Unit,
     onUnregister: (String) -> Unit
 ) {
@@ -210,50 +259,90 @@ private fun TournamentCard(
     val isActive = isTournamentActive(t.status)
     val isAccredited = item.accreditationStatus == "accepted"
     val hasPendingRequest = item.accreditationStatus == "pending"
+    val cardBg = DarkTheme.CardBg
+    val cardImage = tournamentImageUrlM(t.sportName, t.imageUrl, seed)
+    val hasImage = cardImage != null
+    val textPrimary = if (hasImage) Color.White else DarkTheme.TextPrimary
+    val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else DarkTheme.TextSecondary
+    val statusColor = tournamentStatusColor(t.status)
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = DarkTheme.CardBg,
-        border = DarkTheme.cardBorderStroke
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .clickable(onClick = onClick)
     ) {
+        if (cardImage != null) {
+            AsyncImage(
+                model = cardImage,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.55f)))
+        } else {
+            Box(Modifier.matchParentSize().background(cardBg))
+        }
+
         Column(Modifier.padding(16.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(t.name, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
-                        color = DarkTheme.TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        t.name,
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = textPrimary,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis
+                    )
                     Spacer(Modifier.height(4.dp))
-                    Text(t.sportName ?: "", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                    if (!t.sportName.isNullOrEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(sportIcon(t.sportName), null, Modifier.size(13.dp), textSecondary)
+                            Text(t.sportName, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                        }
+                    }
                 }
                 Spacer(Modifier.width(8.dp))
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    StatusBadge(tournamentStatusLabel(t.status),
-                        if (isActive) DarkTheme.Accent else DarkTheme.TextMuted)
+                    Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
+                        Text(
+                            tournamentStatusLabel(t.status),
+                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
+                        )
+                    }
                     if (isAccredited) {
-                        StatusBadge("Аккредитован", DarkTheme.Accent)
+                        Surface(shape = RoundedCornerShape(8.dp), color = DarkTheme.Accent.copy(alpha = 0.15f)) {
+                            Text("Аккредитован", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.Accent)
+                        }
                     } else if (hasPendingRequest) {
-                        StatusBadge("Ожидает", DarkTheme.TextMuted)
+                        Surface(shape = RoundedCornerShape(8.dp), color = DarkTheme.TextMuted.copy(alpha = 0.15f)) {
+                            Text("Ожидает", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (hasImage) Color.White.copy(alpha = 0.7f) else DarkTheme.TextMuted)
+                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.DateRange, null, Modifier.size(14.dp), DarkTheme.TextSecondary)
-                    Text(formatShortDate(t.startDate), fontSize = 12.sp, color = DarkTheme.TextSecondary)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text(formatShortDate(t.startDate), fontSize = 13.sp, color = textSecondary)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.LocationOn, null, Modifier.size(14.dp), DarkTheme.TextSecondary)
-                    Text(t.locationName ?: "", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                if (!t.locationName.isNullOrEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, Modifier.size(15.dp), textSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(t.locationName, fontSize = 13.sp, color = textSecondary)
+                    }
                 }
-            }
-            Spacer(Modifier.height(4.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.People, null, Modifier.size(14.dp), DarkTheme.TextSecondary)
-                    Text("${t.participantCount} участников", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("${t.participantCount} участников", fontSize = 13.sp, color = textSecondary)
                 }
             }
 
@@ -275,7 +364,7 @@ private fun TournamentCard(
                         OutlinedButton(
                             onClick = { onUnregister(t.id) },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = if (hasImage) Color.White.copy(alpha = 0.8f) else DarkTheme.TextSecondary),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Text("Отменить", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)

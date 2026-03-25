@@ -621,38 +621,39 @@ fun EmptyState(
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(32.dp),
+                .padding(horizontal = 32.dp, vertical = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 Modifier
-                    .size(52.dp)
+                    .size(96.dp)
                     .clip(CircleShape)
-                    .background(colors.border.copy(alpha = 0.3f)),
+                    .background(colors.border.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon, null,
-                    tint = colors.textMuted,
-                    modifier = Modifier.size(24.dp)
+                    tint = colors.textMuted.copy(alpha = 0.4f),
+                    modifier = Modifier.size(64.dp)
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 title,
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = colors.textSecondary
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 subtitle,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = colors.textMuted,
                 textAlign = TextAlign.Center
             )
             if (actionLabel != null && onAction != null) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = onAction,
                     shape = RoundedCornerShape(12.dp),
@@ -1364,4 +1365,58 @@ private fun ThemeSwitcherOption(modifier: Modifier, label: String, icon: ImageVe
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (selected) colors.accent else colors.textSecondary)
         }
     }
+}
+
+// ── STATUS COLORS ──
+
+/** Unified status color for TournamentStatus enum */
+@Composable
+fun tournamentStatusColor(status: com.ileader.app.data.models.TournamentStatus): Color {
+    val colors = LocalAppColors.current
+    return when (status) {
+        com.ileader.app.data.models.TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
+        com.ileader.app.data.models.TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
+        com.ileader.app.data.models.TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
+        com.ileader.app.data.models.TournamentStatus.COMPLETED -> Color(0xFFE53535)
+        else -> colors.textMuted
+    }
+}
+
+/** Unified status color for raw String status (viewer/admin/sponsor screens) */
+@Composable
+fun tournamentStatusColor(status: String?): Color {
+    val colors = LocalAppColors.current
+    return when (status) {
+        "registration_open" -> Color(0xFF22C55E)
+        "in_progress" -> Color(0xFFF97316)
+        "check_in" -> Color(0xFF3B82F6)
+        "completed" -> Color(0xFFE53535)
+        else -> colors.textMuted
+    }
+}
+
+// ── PULL TO REFRESH ──
+
+@Composable
+fun DarkPullRefreshBox(
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val colors = LocalAppColors.current
+    com.google.accompanist.swiperefresh.SwipeRefresh(
+        state = com.google.accompanist.swiperefresh.rememberSwipeRefreshState(isRefreshing),
+        onRefresh = onRefresh,
+        modifier = modifier.fillMaxSize(),
+        indicator = { state, trigger ->
+            com.google.accompanist.swiperefresh.SwipeRefreshIndicator(
+                state = state,
+                refreshTriggerDistance = trigger,
+                contentColor = colors.accent,
+                backgroundColor = colors.cardBg
+            )
+        },
+        content = content
+    )
 }

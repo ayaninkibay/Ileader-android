@@ -98,6 +98,9 @@ dependencies {
     // Coil (Image Loading)
     implementation(libs.coil.compose)
 
+    // Pull to refresh
+    implementation(libs.accompanist.swiperefresh)
+
     // Accompanist
     implementation(libs.accompanist.swiperefresh)
     implementation(libs.accompanist.permissions)

@@ -9,6 +9,7 @@ import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class ViewerHomeData(
@@ -25,6 +26,32 @@ class ViewerHomeViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<UiState<ViewerHomeData>>(UiState.Loading)
     val state: StateFlow<UiState<ViewerHomeData>> = _state
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val (users, tournaments, sports) = repo.getPlatformStats()
+                val sportsList = repo.getSports()
+                val upcoming = repo.getUpcomingTournaments(10)
+                val news = ViewerMockData.newsArticles
+                _state.value = UiState.Success(
+                    ViewerHomeData(
+                        totalUsers = users,
+                        totalTournaments = tournaments,
+                        totalSports = sports,
+                        sports = sportsList,
+                        upcomingTournaments = upcoming,
+                        news = news
+                    )
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
 
     fun load() {
         viewModelScope.launch {

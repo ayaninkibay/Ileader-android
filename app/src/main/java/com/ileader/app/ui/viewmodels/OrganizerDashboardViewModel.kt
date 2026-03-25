@@ -23,6 +23,24 @@ class OrganizerDashboardViewModel : ViewModel() {
     private val _state = MutableStateFlow<UiState<DashboardData>>(UiState.Loading)
     val state: StateFlow<UiState<DashboardData>> = _state.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val stats = repo.getStats(userId)
+                val upcoming = repo.getUpcomingTournaments(userId)
+                val registrations = repo.getRecentRegistrations(userId)
+                _state.value = UiState.Success(
+                    DashboardData(stats, upcoming, registrations)
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
+
     private val _mutationError = MutableStateFlow<String?>(null)
     val mutationError: StateFlow<String?> = _mutationError.asStateFlow()
 

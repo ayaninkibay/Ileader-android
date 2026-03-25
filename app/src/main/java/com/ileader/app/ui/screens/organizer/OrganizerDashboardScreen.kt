@@ -57,13 +57,8 @@ internal fun statusLabel(status: String?): String = when (status) {
 internal fun isActiveStatus(status: String?): Boolean =
     status in listOf("registration_open", "check_in", "in_progress")
 
-private fun statusColor(status: String?): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFFF97316)
-    "check_in" -> Color(0xFF3B82F6)
-    "completed" -> Color(0xFFE53535)
-    else -> Color.White
-}
+@Composable
+private fun statusColor(status: String?): Color = tournamentStatusColor(status)
 
 @Composable
 fun OrganizerDashboardScreen(
@@ -73,6 +68,7 @@ fun OrganizerDashboardScreen(
 ) {
     val vm: OrganizerDashboardViewModel = viewModel()
     val state by vm.state.collectAsState()
+    val isRefreshing by vm.isRefreshing.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
     val detailViewModel: AthleteTournamentsViewModel = viewModel()
 
@@ -92,12 +88,17 @@ fun OrganizerDashboardScreen(
     }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { vm.load(user.id) }
-        is UiState.Success -> DashboardContent(
-            user, s.data, vm, onNavigateToTournaments, onNavigateToNotifications,
-            onTournamentClick = { selectedTournamentId = it }
-        )
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { vm.refresh(user.id) }
+        ) {
+            DashboardContent(
+                user, s.data, vm, onNavigateToTournaments, onNavigateToNotifications,
+                onTournamentClick = { selectedTournamentId = it }
+            )
+        }
     }
 }
 

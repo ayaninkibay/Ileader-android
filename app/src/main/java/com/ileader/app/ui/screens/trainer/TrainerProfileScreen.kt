@@ -83,42 +83,28 @@ fun TrainerProfileScreen(
                         .statusBarsPadding()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // ── HERO BANNER ──
-                    FadeIn(visible = started, delayMs = 0) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                        ) {
-                            Column(
-                                Modifier.fillMaxSize().padding(bottom = 20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Bottom
-                            ) {
-                                EditableAvatar(
-                                    avatarUrl = profile.avatarUrl,
-                                    displayName = profile.displayName,
-                                    size = 88.dp,
-                                    isUploading = isUploading,
-                                    onImageSelected = { bytes -> avatarVM.uploadAvatar(user.id, bytes) }
-                                )
-                                Spacer(Modifier.height(10.dp))
+                    Column(Modifier.padding(horizontal = 20.dp)) {
+                        Spacer(Modifier.height(16.dp))
+
+                        // ── HEADER ──
+                        FadeIn(visible = started, delayMs = 0) {
+                            Column {
                                 Text(
                                     profile.displayName,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkTheme.TextPrimary
+                                    fontSize = 14.sp,
+                                    color = DarkTheme.TextMuted
                                 )
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    "Тренер",
-                                    fontSize = 13.sp,
-                                    color = DarkTheme.TextSecondary
+                                    "Профиль",
+                                    fontSize = 26.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = DarkTheme.TextPrimary,
+                                    letterSpacing = (-0.8).sp
                                 )
                             }
                         }
-                    }
 
-                    Column(Modifier.padding(horizontal = 20.dp)) {
                         Spacer(Modifier.height(20.dp))
 
                         // ── QUICK LINKS ──

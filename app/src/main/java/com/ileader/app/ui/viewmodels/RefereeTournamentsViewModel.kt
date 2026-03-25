@@ -7,6 +7,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.repository.RefereeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class RefereeTournamentsData(
@@ -21,6 +22,9 @@ class RefereeTournamentsViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<UiState<RefereeTournamentsData>>(UiState.Loading)
     val state: StateFlow<UiState<RefereeTournamentsData>> = _state
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     fun load(userId: String) {
         viewModelScope.launch {
@@ -38,6 +42,20 @@ class RefereeTournamentsViewModel : ViewModel() {
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
+        }
+    }
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val assigned = repo.getAssignedTournaments(userId)
+                val history = repo.getTournamentHistory(userId)
+                _state.value = UiState.Success(
+                    RefereeTournamentsData(assigned = assigned, history = history)
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
         }
     }
 }

@@ -86,6 +86,7 @@ private fun tournamentCardImage(tournament: Tournament, seed: Int = 0): String? 
 fun AthleteTournamentsScreen(user: User) {
     val viewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
     var qrTournamentId by remember { mutableStateOf<String?>(null) }
     var qrTournamentName by remember { mutableStateOf("") }
@@ -123,13 +124,18 @@ fun AthleteTournamentsScreen(user: User) {
     when (val s = state) {
         is UiState.Loading -> LoadingScreen(LoadingVariant.LIST)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> TournamentsListContent(
-            user = user,
-            allTournaments = s.data.availableTournaments,
-            sports = s.data.sports,
-            myTournaments = s.data.myTournaments,
-            onTournamentClick = { selectedTournamentId = it }
-        )
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
+            TournamentsListContent(
+                user = user,
+                allTournaments = s.data.availableTournaments,
+                sports = s.data.sports,
+                myTournaments = s.data.myTournaments,
+                onTournamentClick = { selectedTournamentId = it }
+            )
+        }
     }
 }
 
@@ -375,13 +381,7 @@ private fun TournamentListCard(tournament: Tournament, seed: Int = 0, onClick: (
     val textPrimary = if (hasImage) Color.White else DarkTheme.TextPrimary
     val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else DarkTheme.TextSecondary
     val accent = DarkTheme.Accent
-    val statusColor = when (tournament.status) {
-        TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-        TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
-        TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
-        TournamentStatus.COMPLETED -> Color(0xFFE53535)
-        else -> DarkTheme.TextMuted
-    }
+    val statusColor = tournamentStatusColor(tournament.status)
 
     Box(
         Modifier

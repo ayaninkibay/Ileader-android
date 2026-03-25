@@ -49,13 +49,8 @@ private fun tournamentImageUrl(tournament: RefereeTournament, seed: Int = 0): St
     return list[seed.mod(list.size)]
 }
 
-private fun statusColor(status: TournamentStatus): Color = when (status) {
-    TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-    TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
-    TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
-    TournamentStatus.COMPLETED -> Color(0xFFE53535)
-    else -> Color.White
-}
+@Composable
+private fun statusColor(status: TournamentStatus): Color = tournamentStatusColor(status)
 
 @Composable
 fun RefereeDashboardScreen(
@@ -65,6 +60,7 @@ fun RefereeDashboardScreen(
     val viewModel: RefereeDashboardViewModel = viewModel()
     val detailViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
 
@@ -88,12 +84,17 @@ fun RefereeDashboardScreen(
     when (val s = state) {
         is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> DashboardContent(
-            user = user,
-            data = s.data,
-            onNavigate = onNavigate,
-            onTournamentClick = { selectedTournamentId = it }
-        )
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
+            DashboardContent(
+                user = user,
+                data = s.data,
+                onNavigate = onNavigate,
+                onTournamentClick = { selectedTournamentId = it }
+            )
+        }
     }
 }
 

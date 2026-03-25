@@ -39,7 +39,8 @@ fun AthleteTournamentDetailScreen(
     user: User,
     viewModel: AthleteTournamentsViewModel,
     onBack: () -> Unit,
-    onShowQrTicket: (tournamentName: String, isCheckedIn: Boolean) -> Unit = { _, _ -> }
+    onShowQrTicket: (tournamentName: String, isCheckedIn: Boolean) -> Unit = { _, _ -> },
+    onRegisterTeam: ((String) -> Unit)? = null
 ) {
     val detailState by viewModel.detailState.collectAsState()
     val isRegistered by viewModel.isRegistered.collectAsState()
@@ -67,7 +68,8 @@ fun AthleteTournamentDetailScreen(
             onBack = onBack,
             bracketData = bracketData,
             userId = user.id,
-            onShowQrTicket = onShowQrTicket
+            onShowQrTicket = onShowQrTicket,
+            onRegisterTeam = onRegisterTeam
         )
     }
 }
@@ -80,7 +82,8 @@ private fun DetailContent(
     onBack: () -> Unit,
     bracketData: com.ileader.app.ui.viewmodels.AthleteTournamentBracketData = com.ileader.app.ui.viewmodels.AthleteTournamentBracketData(),
     userId: String = "",
-    onShowQrTicket: (String, Boolean) -> Unit = { _, _ -> }
+    onShowQrTicket: (String, Boolean) -> Unit = { _, _ -> },
+    onRegisterTeam: ((String) -> Unit)? = null
 ) {
     val bgColor = DarkTheme.Bg
 
@@ -346,20 +349,36 @@ private fun DetailContent(
             // ── REGISTER BUTTON ──
             run {
                 val canRegister = tournament.status == TournamentStatus.REGISTRATION_OPEN
+                val isTrainer = onRegisterTeam != null
 
                 if (canRegister) {
-                    Button(
-                        onClick = onToggleRegistration,
-                        Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isRegistered) DarkTheme.TextMuted else DarkTheme.Accent
-                        )
-                    ) {
-                        Icon(if (isRegistered) Icons.Default.CheckCircle else Icons.Default.PersonAdd, null, Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (isRegistered) "Вы зарегистрированы" else "Зарегистрироваться",
-                            fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    if (isTrainer) {
+                        // Trainer: register team
+                        Button(
+                            onClick = { onRegisterTeam?.invoke(tournament.id) },
+                            Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent)
+                        ) {
+                            Icon(Icons.Default.Groups, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Зарегистрировать команду", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        // Athlete: personal registration
+                        Button(
+                            onClick = onToggleRegistration,
+                            Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isRegistered) DarkTheme.TextMuted else DarkTheme.Accent
+                            )
+                        ) {
+                            Icon(if (isRegistered) Icons.Default.CheckCircle else Icons.Default.PersonAdd, null, Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (isRegistered) "Вы зарегистрированы" else "Зарегистрироваться",
+                                fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                     if (isRegistered) {
                         Spacer(Modifier.height(8.dp))

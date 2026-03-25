@@ -9,6 +9,7 @@ import com.ileader.app.data.repository.TrainerTeamData
 import com.ileader.app.data.repository.TrainerTeamStats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class TrainerDashboardScreenData(
@@ -22,6 +23,32 @@ class TrainerDashboardViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<UiState<TrainerDashboardScreenData>>(UiState.Loading)
     val state: StateFlow<UiState<TrainerDashboardScreenData>> = _state
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val teams = repo.getMyTeams(userId)
+                val sportIds = teams.map { it.sportId }.distinct()
+                val tournaments = repo.getAvailableTournaments(sportIds)
+                val registeredMap = mutableMapOf<String, List<String>>()
+                for (team in teams) {
+                    registeredMap[team.id] = repo.getTeamRegisteredTournamentIds(team.id)
+                }
+                _state.value = UiState.Success(
+                    TrainerDashboardScreenData(
+                        teams = teams,
+                        tournaments = tournaments,
+                        registeredTournamentIds = registeredMap
+                    )
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
 
     fun load(userId: String) {
         viewModelScope.launch {

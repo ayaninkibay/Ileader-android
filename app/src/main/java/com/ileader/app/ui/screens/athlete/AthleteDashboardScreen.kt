@@ -94,6 +94,7 @@ fun AthleteDashboardScreen(
     val viewModel: AthleteDashboardViewModel = viewModel()
     val tournamentsViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
@@ -113,11 +114,16 @@ fun AthleteDashboardScreen(
     when (val s = state) {
         is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> DashboardContent(
-            user, s.data.stats, s.data.upcoming, s.data.recentResults,
-            s.data.leaderboard, onNavigateToTournaments, onNavigateToResults, onNavigateToGoals,
-            onTournamentClick = { selectedTournamentId = it }
-        )
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
+            DashboardContent(
+                user, s.data.stats, s.data.upcoming, s.data.recentResults,
+                s.data.leaderboard, onNavigateToTournaments, onNavigateToResults, onNavigateToGoals,
+                onTournamentClick = { selectedTournamentId = it }
+            )
+        }
     }
 }
 
@@ -524,13 +530,7 @@ private fun TournamentScrollCard(tournament: Tournament, seed: Int = 0, onClick:
                 .padding(12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            val scrollStatusColor = when (tournament.status) {
-                TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-                TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
-                TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
-                TournamentStatus.COMPLETED -> Color(0xFFE53535)
-                else -> Color.White
-            }
+            val scrollStatusColor = tournamentStatusColor(tournament.status)
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = scrollStatusColor.copy(alpha = 0.2f)
@@ -724,12 +724,6 @@ private fun QuickActionCard(modifier: Modifier, icon: ImageVector, label: String
 
 @Composable
 fun TournamentStatusBadge(status: TournamentStatus) {
-    val color = when (status) {
-        TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-        TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
-        TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
-        TournamentStatus.COMPLETED -> Color(0xFFE53535)
-        else -> DarkTheme.TextMuted
-    }
+    val color = tournamentStatusColor(status)
     StatusBadge(status.displayName, color)
 }

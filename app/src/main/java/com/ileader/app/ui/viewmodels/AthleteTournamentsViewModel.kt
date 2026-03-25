@@ -34,6 +34,31 @@ class AthleteTournamentsViewModel : ViewModel() {
     private val _state = MutableStateFlow<UiState<AthleteTournamentsData>>(UiState.Loading)
     val state: StateFlow<UiState<AthleteTournamentsData>> = _state
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val myTournaments = repo.getMyTournaments(userId)
+                val available = repo.getAvailableTournaments()
+                val sports = repo.getAllSports()
+                val myIds = myTournaments.map { it.id }.toSet()
+                val allTournaments = myTournaments + available.filter { it.id !in myIds }
+
+                _state.value = UiState.Success(
+                    AthleteTournamentsData(
+                        myTournaments = myTournaments,
+                        availableTournaments = allTournaments,
+                        sports = sports
+                    )
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
+
     private val _mutationError = MutableStateFlow<String?>(null)
     val mutationError: StateFlow<String?> = _mutationError.asStateFlow()
 

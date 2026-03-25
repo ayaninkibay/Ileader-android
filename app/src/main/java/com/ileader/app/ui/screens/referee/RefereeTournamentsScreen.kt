@@ -21,9 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.UiState
@@ -38,6 +40,24 @@ private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
 private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
+
+private val BASE_URL_R = "https://ileader.kz/img"
+private val UNSPLASH_R = "https://images.unsplash.com"
+private val SPORT_IMAGES_R = mapOf(
+    "картинг" to listOf("$BASE_URL_R/karting/karting-04-1280x853.jpeg", "$BASE_URL_R/karting/karting-07-1280x853.jpeg", "$BASE_URL_R/karting/karting-13-1280x853.jpeg"),
+    "стрельба" to listOf("$BASE_URL_R/shooting/shooting-02-1280x853.jpeg", "$BASE_URL_R/shooting/shooting-04-1280x853.jpeg"),
+    "теннис" to listOf("$UNSPLASH_R/photo-1554068865-24cecd4e34b8?w=1280&q=80&fit=crop"),
+    "футбол" to listOf("$UNSPLASH_R/photo-1431324155629-1a6deb1dec8d?w=1280&q=80&fit=crop"),
+    "бокс" to listOf("$UNSPLASH_R/photo-1549719386-74dfcbf7dbed?w=1280&q=80&fit=crop"),
+    "плавание" to listOf("$UNSPLASH_R/photo-1519315901367-f34ff9154487?w=1280&q=80&fit=crop"),
+    "лёгкая атлетика" to listOf("$UNSPLASH_R/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+    "легкая атлетика" to listOf("$UNSPLASH_R/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+)
+
+private fun refereeTournamentImageUrl(sportName: String?, seed: Int = 0): String? {
+    val list = SPORT_IMAGES_R[sportName?.lowercase()?.trim()] ?: return null
+    return list[seed.mod(list.size)]
+}
 
 @Composable
 fun RefereeTournamentsScreen(
@@ -71,13 +91,19 @@ fun RefereeTournamentsScreen(
 
     val viewModel: RefereeTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> TournamentsListContent(s.data.all) { subScreen = "detail:$it" }
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
+            TournamentsListContent(s.data.all) { subScreen = "detail:$it" }
+        }
     }
 }
 
@@ -233,8 +259,8 @@ private fun TournamentsListContent(
                 if (filtered.isEmpty()) {
                     EmptyState("Турниры не найдены")
                 } else {
-                    filtered.forEach { tournament ->
-                        TournamentListCard(tournament) { onTournamentClick(tournament.id) }
+                    filtered.forEachIndexed { index, tournament ->
+                        TournamentListCard(tournament, seed = index) { onTournamentClick(tournament.id) }
                         Spacer(Modifier.height(10.dp))
                     }
                 }
@@ -246,49 +272,90 @@ private fun TournamentsListContent(
 }
 
 @Composable
-private fun TournamentListCard(tournament: RefereeTournament, onClick: () -> Unit = {}) {
+private fun TournamentListCard(tournament: RefereeTournament, seed: Int = 0, onClick: () -> Unit = {}) {
     var expanded by remember { mutableStateOf(false) }
-    val isActive = tournament.status == TournamentStatus.IN_PROGRESS
-    val chipColor = if (isActive) Accent else TextMuted
+    val cardBg = DarkTheme.CardBg
+    val cardImage = refereeTournamentImageUrl(tournament.sport, seed)
+    val hasImage = cardImage != null
+    val textPrimary = if (hasImage) Color.White else TextPrimary
+    val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else TextSecondary
+    val statusColor = tournamentStatusColor(tournament.status)
 
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        border = DarkTheme.cardBorderStroke
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .clickable(onClick = onClick)
     ) {
-        Column(Modifier.padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AccentIconBox(Icons.Default.EmojiEvents)
-                Spacer(Modifier.width(12.dp))
+        if (cardImage != null) {
+            AsyncImage(
+                model = cardImage,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.55f)))
+        } else {
+            Box(Modifier.matchParentSize().background(cardBg))
+        }
+
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Spacer(Modifier.height(3.dp))
-                    Text("${tournament.sport} · ${tournament.date}", fontSize = 12.sp, color = TextSecondary)
+                    Text(
+                        tournament.name,
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = textPrimary,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(sportIcon(tournament.sport), null, Modifier.size(13.dp), textSecondary)
+                        Text(tournament.sport, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                    }
                 }
-                StatusBadge(tournament.status.displayName, chipColor)
+                Spacer(Modifier.width(10.dp))
+                Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
+                    Text(
+                        tournament.status.displayName,
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
+                    )
+                }
             }
 
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {
+                Surface(shape = RoundedCornerShape(8.dp), color = if (hasImage) Color.White.copy(alpha = 0.15f) else AccentSoft) {
                     Text(tournament.refereeRole.label, Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (hasImage) Color.White else Accent)
                 }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, null, Modifier.size(14.dp), TextMuted)
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), textSecondary)
                     Spacer(Modifier.width(4.dp))
-                    Text(tournament.location.take(20), fontSize = 12.sp, color = TextSecondary)
+                    Text(tournament.date, fontSize = 13.sp, color = textSecondary)
+                }
+                if (tournament.location.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, Modifier.size(15.dp), textSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(tournament.location, fontSize = 13.sp, color = textSecondary)
+                    }
                 }
             }
 
             // Progress
             if (tournament.matchesTotal > 0 && tournament.status != TournamentStatus.REGISTRATION_OPEN) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Матчи: ", fontSize = 12.sp, color = TextMuted)
+                    Text("Матчи: ", fontSize = 12.sp, color = textSecondary)
                     Text("${tournament.matchesCompleted}/${tournament.matchesTotal}", fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                        fontWeight = FontWeight.SemiBold, color = textPrimary)
                 }
                 Spacer(Modifier.height(6.dp))
                 val progress = if (tournament.matchesTotal > 0) tournament.matchesCompleted.toFloat() / tournament.matchesTotal else 0f
@@ -300,14 +367,14 @@ private fun TournamentListCard(tournament: RefereeTournament, onClick: () -> Uni
             Surface(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
                 shape = RoundedCornerShape(8.dp),
-                color = CardBorder.copy(alpha = 0.3f)
+                color = if (hasImage) Color.White.copy(alpha = 0.12f) else CardBorder.copy(alpha = 0.3f)
             ) {
                 Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), Arrangement.Center, Alignment.CenterVertically) {
                     Text(if (expanded) "Свернуть" else "Подробнее",
-                        fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                        fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
                     Spacer(Modifier.width(4.dp))
                     Icon(if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        null, Modifier.size(18.dp), TextSecondary)
+                        null, Modifier.size(18.dp), textSecondary)
                 }
             }
 
@@ -315,14 +382,14 @@ private fun TournamentListCard(tournament: RefereeTournament, onClick: () -> Uni
                 Column(Modifier.padding(top = 12.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.People, null, Modifier.size(14.dp), TextMuted)
+                            Icon(Icons.Default.People, null, Modifier.size(14.dp), textSecondary)
                             Spacer(Modifier.width(4.dp))
-                            Text("${tournament.participants} участников", fontSize = 12.sp, color = TextSecondary)
+                            Text("${tournament.participants} участников", fontSize = 12.sp, color = textSecondary)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.DateRange, null, Modifier.size(14.dp), TextMuted)
+                            Icon(Icons.Default.DateRange, null, Modifier.size(14.dp), textSecondary)
                             Spacer(Modifier.width(4.dp))
-                            Text(tournament.date, fontSize = 12.sp, color = TextSecondary)
+                            Text(tournament.date, fontSize = 12.sp, color = textSecondary)
                         }
                     }
                 }

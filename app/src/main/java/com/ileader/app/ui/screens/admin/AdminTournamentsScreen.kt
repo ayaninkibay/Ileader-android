@@ -12,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.mock.AdminMockData
@@ -23,14 +25,49 @@ import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.screens.athlete.AthleteTournamentDetailScreen
 import com.ileader.app.ui.viewmodels.AdminTournamentsViewModel
+import com.ileader.app.ui.viewmodels.AthleteTournamentsViewModel
+
+private val BASE_URL_A = "https://ileader.kz/img"
+private val UNSPLASH_A = "https://images.unsplash.com"
+private val SPORT_IMAGES_A = mapOf(
+    "картинг" to listOf("$BASE_URL_A/karting/karting-04-1280x853.jpeg", "$BASE_URL_A/karting/karting-07-1280x853.jpeg", "$BASE_URL_A/karting/karting-13-1280x853.jpeg"),
+    "стрельба" to listOf("$BASE_URL_A/shooting/shooting-02-1280x853.jpeg", "$BASE_URL_A/shooting/shooting-04-1280x853.jpeg"),
+    "теннис" to listOf("$UNSPLASH_A/photo-1554068865-24cecd4e34b8?w=1280&q=80&fit=crop"),
+    "футбол" to listOf("$UNSPLASH_A/photo-1431324155629-1a6deb1dec8d?w=1280&q=80&fit=crop"),
+    "бокс" to listOf("$UNSPLASH_A/photo-1549719386-74dfcbf7dbed?w=1280&q=80&fit=crop"),
+    "плавание" to listOf("$UNSPLASH_A/photo-1519315901367-f34ff9154487?w=1280&q=80&fit=crop"),
+    "лёгкая атлетика" to listOf("$UNSPLASH_A/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+    "легкая атлетика" to listOf("$UNSPLASH_A/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+)
+
+private fun tournamentImageUrlA(sportName: String?, imageUrl: String?, seed: Int = 0): String? {
+    imageUrl?.takeIf { it.isNotEmpty() }?.let { return it }
+    val list = SPORT_IMAGES_A[sportName?.lowercase()?.trim()] ?: return null
+    return list[seed.mod(list.size)]
+}
 
 @Composable
 fun AdminTournamentsScreen(user: User) {
     var subScreen by remember { mutableStateOf<String?>(null) }
+    val detailViewModel: AthleteTournamentsViewModel = viewModel()
+    LaunchedEffect(user.id) { detailViewModel.load(user.id) }
 
     when {
-        subScreen == null -> TournamentsListContent(onEditTournament = { subScreen = "edit:$it" })
+        subScreen == null -> TournamentsListContent(
+            onEditTournament = { subScreen = "edit:$it" },
+            onTournamentClick = { subScreen = "detail:$it" }
+        )
+        subScreen?.startsWith("detail:") == true -> {
+            val id = subScreen?.removePrefix("detail:") ?: return
+            AthleteTournamentDetailScreen(
+                tournamentId = id,
+                user = user,
+                viewModel = detailViewModel,
+                onBack = { subScreen = null }
+            )
+        }
         subScreen?.startsWith("edit:") == true -> {
             val id = subScreen?.removePrefix("edit:") ?: return
             AdminTournamentEditScreen(tournamentId = id, onBack = { subScreen = null })
@@ -39,20 +76,27 @@ fun AdminTournamentsScreen(user: User) {
 }
 
 @Composable
-private fun TournamentsListContent(onEditTournament: (String) -> Unit) {
+private fun TournamentsListContent(onEditTournament: (String) -> Unit, onTournamentClick: (String) -> Unit = {}) {
     val viewModel: AdminTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(Unit) { viewModel.load() }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(message = s.message, onRetry = { viewModel.load() })
-        is UiState.Success -> TournamentsSuccessContent(
-            tournaments = s.data,
-            onEditTournament = onEditTournament,
-            onDeleteTournament = { viewModel.deleteTournament(it) }
-        )
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() }
+        ) {
+            TournamentsSuccessContent(
+                tournaments = s.data,
+                onEditTournament = onEditTournament,
+                onDeleteTournament = { viewModel.deleteTournament(it) },
+                onTournamentClick = onTournamentClick
+            )
+        }
     }
 }
 
@@ -61,7 +105,8 @@ private fun TournamentsListContent(onEditTournament: (String) -> Unit) {
 private fun TournamentsSuccessContent(
     tournaments: List<TournamentWithCountsDto>,
     onEditTournament: (String) -> Unit,
-    onDeleteTournament: (String) -> Unit
+    onDeleteTournament: (String) -> Unit,
+    onTournamentClick: (String) -> Unit = {}
 ) {
     var searchTerm by remember { mutableStateOf("") }
     var selectedStatus by remember { mutableStateOf("all") }
@@ -210,8 +255,8 @@ private fun TournamentsSuccessContent(
 
             FadeIn(visible = started, delayMs = 600) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    filteredTournaments.forEach { t ->
-                        TournamentCard(tournament = t, onEdit = { onEditTournament(t.id) }, onDelete = { showDeleteDialog = t.id })
+                    filteredTournaments.forEachIndexed { index, t ->
+                        TournamentCard(tournament = t, seed = index, onClick = { onTournamentClick(t.id) }, onEdit = { onEditTournament(t.id) }, onDelete = { showDeleteDialog = t.id })
                     }
 
                     if (filteredTournaments.isEmpty()) {
@@ -246,49 +291,104 @@ private fun TournamentsSuccessContent(
 @Composable
 private fun TournamentCard(
     tournament: TournamentWithCountsDto,
+    seed: Int = 0,
+    onClick: () -> Unit = {},
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val statusColor = AdminMockData.statusColor(tournament.status ?: "draft")
+    val cardBg = DarkTheme.CardBg
+    val cardImage = tournamentImageUrlA(tournament.sportName, tournament.imageUrl, seed)
+    val hasImage = cardImage != null
+    val textPrimary = if (hasImage) Color.White else TextPrimary
+    val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else TextSecondary
+    val statusColor = tournamentStatusColor(tournament.status)
 
-    DarkCard {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .clickable(onClick = onClick)
+    ) {
+        if (cardImage != null) {
+            AsyncImage(
+                model = cardImage,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.55f)))
+        } else {
+            Box(Modifier.matchParentSize().background(cardBg))
+        }
+
         Column(Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tournament.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        tournament.name,
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = textPrimary,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    if (!tournament.sportName.isNullOrEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(sportIcon(tournament.sportName), null, Modifier.size(13.dp), textSecondary)
+                            Text(tournament.sportName, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                        }
+                    }
                 }
-                StatusBadge(text = AdminMockData.statusLabel(tournament.status ?: "draft"), color = statusColor)
+                Spacer(Modifier.width(10.dp))
+                Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
+                    Text(
+                        AdminMockData.statusLabel(tournament.status ?: "draft"),
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
+                    )
+                }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Text(
-                "${tournament.sportName ?: ""} · ${tournament.locationName ?: ""}",
-                fontSize = 12.sp, color = TextSecondary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            Text(
-                buildString {
-                    append("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}")
-                    append(" · ${tournament.participantCount}/${tournament.maxParticipants ?: "∞"}")
-                    if (tournament.ageCategory != null) {
-                        append(" · ${AdminMockData.ageCategoryLabel(tournament.ageCategory)}")
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}",
+                        fontSize = 13.sp, color = textSecondary
+                    )
+                }
+                if (!tournament.locationName.isNullOrEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, Modifier.size(15.dp), textSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(tournament.locationName, fontSize = 13.sp, color = textSecondary)
                     }
-                },
-                fontSize = 12.sp, color = TextSecondary
-            )
+                }
+            }
 
-            Spacer(Modifier.height(4.dp))
+            val maxP = tournament.maxParticipants ?: 0
+            if (maxP > 0) {
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(6.dp))
+                    Text("${tournament.participantCount}/$maxP", fontSize = 13.sp, color = textSecondary)
+                    Spacer(Modifier.width(8.dp))
+                    DarkProgressBar(
+                        tournament.participantCount.toFloat() / maxP,
+                        Modifier.weight(1f).height(4.dp)
+                    )
+                }
+            }
 
-            Text("Орг: ${tournament.organizerName ?: ""}", fontSize = 11.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (!tournament.organizerName.isNullOrEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text("Орг: ${tournament.organizerName}", fontSize = 11.sp,
+                    color = if (hasImage) Color.White.copy(alpha = 0.6f) else TextMuted,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -305,7 +405,7 @@ private fun TournamentCard(
                     Text("Редактировать", fontSize = 13.sp)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, null, tint = TextMuted)
+                    Icon(Icons.Default.Delete, null, tint = if (hasImage) Color.White.copy(alpha = 0.7f) else TextMuted)
                 }
             }
         }

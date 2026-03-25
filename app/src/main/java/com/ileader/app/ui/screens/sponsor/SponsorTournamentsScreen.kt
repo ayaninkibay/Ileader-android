@@ -16,9 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
@@ -28,12 +30,32 @@ import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.viewmodels.SponsorTournamentsViewModel
 
+private val BASE_URL_S = "https://ileader.kz/img"
+private val UNSPLASH_S = "https://images.unsplash.com"
+private val SPORT_IMAGES_S = mapOf(
+    "картинг" to listOf("$BASE_URL_S/karting/karting-04-1280x853.jpeg", "$BASE_URL_S/karting/karting-07-1280x853.jpeg", "$BASE_URL_S/karting/karting-13-1280x853.jpeg"),
+    "стрельба" to listOf("$BASE_URL_S/shooting/shooting-02-1280x853.jpeg", "$BASE_URL_S/shooting/shooting-04-1280x853.jpeg"),
+    "теннис" to listOf("$UNSPLASH_S/photo-1554068865-24cecd4e34b8?w=1280&q=80&fit=crop"),
+    "футбол" to listOf("$UNSPLASH_S/photo-1431324155629-1a6deb1dec8d?w=1280&q=80&fit=crop"),
+    "бокс" to listOf("$UNSPLASH_S/photo-1549719386-74dfcbf7dbed?w=1280&q=80&fit=crop"),
+    "плавание" to listOf("$UNSPLASH_S/photo-1519315901367-f34ff9154487?w=1280&q=80&fit=crop"),
+    "лёгкая атлетика" to listOf("$UNSPLASH_S/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+    "легкая атлетика" to listOf("$UNSPLASH_S/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+)
+
+private fun tournamentImageUrlS(sportName: String?, imageUrl: String?, seed: Int = 0): String? {
+    imageUrl?.takeIf { it.isNotEmpty() }?.let { return it }
+    val list = SPORT_IMAGES_S[sportName?.lowercase()?.trim()] ?: return null
+    return list[seed.mod(list.size)]
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SponsorTournamentsScreen(user: User) {
     val viewModel: SponsorTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
     val appliedTournaments by viewModel.appliedTournaments.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
@@ -68,6 +90,10 @@ fun SponsorTournamentsScreen(user: User) {
             var visible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { visible = true }
 
+            DarkPullRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(user.id) }
+            ) {
             Box(Modifier.fillMaxSize()) {
                 Column(
                     Modifier.fillMaxSize().statusBarsPadding()
@@ -186,9 +212,10 @@ fun SponsorTournamentsScreen(user: User) {
                                 if (openTournaments.isEmpty()) {
                                     EmptyState("Турниры не найдены", "Попробуйте изменить параметры поиска")
                                 } else {
-                                    openTournaments.forEach { tournament ->
+                                    openTournaments.forEachIndexed { index, tournament ->
                                         OpenTournamentItem(
                                             tournament = tournament,
+                                            seed = index,
                                             applied = tournament.id in appliedTournaments,
                                             onApply = { viewModel.requestTournamentSponsorship(user.id, tournament.id) },
                                             onClick = { selectedTournamentId = tournament.id }
@@ -213,42 +240,85 @@ fun SponsorTournamentsScreen(user: User) {
                     Spacer(Modifier.height(32.dp))
                 }
             }
+            }
         }
     }
 }
 
 @Composable
-private fun OpenTournamentItem(tournament: TournamentWithCountsDto, applied: Boolean, onApply: () -> Unit, onClick: () -> Unit) {
-    val chipColor = SponsorUtils.getStatusColor(tournament.status ?: "")
+private fun OpenTournamentItem(tournament: TournamentWithCountsDto, seed: Int = 0, applied: Boolean, onApply: () -> Unit, onClick: () -> Unit) {
+    val cardBg = DarkTheme.CardBg
+    val cardImage = tournamentImageUrlS(tournament.sportName, tournament.imageUrl, seed)
+    val hasImage = cardImage != null
+    val textPrimary = if (hasImage) Color.White else DarkTheme.TextPrimary
+    val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else DarkTheme.TextSecondary
+    val statusColor = tournamentStatusColor(tournament.status)
 
-    DarkCard(modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable { onClick() }) {
-        Column(Modifier.padding(14.dp)) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .clickable(onClick = onClick)
+    ) {
+        if (cardImage != null) {
+            AsyncImage(
+                model = cardImage,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.55f)))
+        } else {
+            Box(Modifier.matchParentSize().background(cardBg))
+        }
+
+        Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    SoftIconBox(Icons.Default.Star, size = 36.dp, iconSize = 18.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text(tournament.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DarkTheme.TextPrimary)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        tournament.name,
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = textPrimary,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    if (!tournament.sportName.isNullOrEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(sportIcon(tournament.sportName), null, Modifier.size(13.dp), textSecondary)
+                            Text(tournament.sportName, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                        }
+                    }
                 }
-                StatusBadge(SponsorUtils.getStatusLabel(tournament.status ?: ""), chipColor)
+                Spacer(Modifier.width(10.dp))
+                Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
+                    Text(
+                        SponsorUtils.getStatusLabel(tournament.status ?: ""),
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
+                    )
+                }
             }
-            Spacer(Modifier.height(3.dp))
-            Text(tournament.sportName ?: "", fontSize = 12.sp, color = DarkTheme.TextSecondary, modifier = Modifier.padding(start = 46.dp))
 
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.DateRange, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}", fontSize = 12.sp, color = DarkTheme.TextSecondary)
-                Spacer(Modifier.width(16.dp))
-                Icon(Icons.Default.LocationOn, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(tournament.locationName ?: "", fontSize = 12.sp, color = DarkTheme.TextSecondary)
-            }
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.People, null, tint = DarkTheme.TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("${tournament.participantCount} участников", fontSize = 12.sp, color = DarkTheme.TextSecondary)
+            Spacer(Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("${formatShortDate(tournament.startDate)} — ${formatShortDate(tournament.endDate)}", fontSize = 13.sp, color = textSecondary)
+                }
+                if (!tournament.locationName.isNullOrEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, Modifier.size(15.dp), textSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(tournament.locationName, fontSize = 13.sp, color = textSecondary)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text("${tournament.participantCount} участников", fontSize = 13.sp, color = textSecondary)
+                }
             }
 
             Spacer(Modifier.height(14.dp))

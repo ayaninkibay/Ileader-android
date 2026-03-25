@@ -90,14 +90,64 @@ private fun ProfileContent(
 
             // ── HEADER ──
             FadeIn(visible, 0) {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Column {
-                        Text("Профиль СМИ", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                            color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(profile.displayName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
-                    }
-                    if (!isEditing) {
+                Column {
+                    Text(
+                        profile.displayName,
+                        fontSize = 14.sp,
+                        color = DarkTheme.TextMuted
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Профиль",
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DarkTheme.TextPrimary,
+                        letterSpacing = (-0.8).sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Edit / Save buttons
+            FadeIn(visible, 0) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    if (isEditing) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = {
+                                    viewModel.updateProfile(name, phone, city, description)
+                                    isEditing = false
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Save, null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Сохранить", fontWeight = FontWeight.SemiBold)
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    name = profile.name
+                                    email = profile.email
+                                    phone = profile.phone ?: data.mediaProfile.phone
+                                    city = profile.city ?: "Алматы"
+                                    mediaName = data.mediaProfile.mediaName
+                                    mediaType = data.mediaProfile.mediaType
+                                    website = data.mediaProfile.website
+                                    description = data.mediaProfile.description
+                                    isEditing = false
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
+                                border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                                    brush = Brush.linearGradient(listOf(DarkTheme.CardBorder, DarkTheme.CardBorder))
+                                )
+                            ) {
+                                Text("Отменить", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    } else {
                         Button(
                             onClick = { isEditing = true },
                             colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
@@ -107,49 +157,6 @@ private fun ProfileContent(
                             Icon(Icons.Default.Edit, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Редактировать", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-
-            // Edit / Save buttons
-            if (isEditing) {
-                Spacer(Modifier.height(12.dp))
-                FadeIn(visible, 0) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(
-                            onClick = {
-                                viewModel.updateProfile(name, phone, city, description)
-                                isEditing = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Save, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Сохранить", fontWeight = FontWeight.SemiBold)
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                name = profile.name
-                                email = profile.email
-                                phone = profile.phone ?: data.mediaProfile.phone
-                                city = profile.city ?: "Алматы"
-                                mediaName = data.mediaProfile.mediaName
-                                mediaType = data.mediaProfile.mediaType
-                                website = data.mediaProfile.website
-                                description = data.mediaProfile.description
-                                isEditing = false
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTheme.TextSecondary),
-                            border = ButtonDefaults.outlinedButtonBorder(true).copy(
-                                brush = Brush.linearGradient(listOf(DarkTheme.CardBorder, DarkTheme.CardBorder))
-                            )
-                        ) {
-                            Text("Отменить", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

@@ -75,10 +75,12 @@ private fun ttCardImage(tournament: Tournament, seed: Int = 0): String? {
 fun TrainerTournamentsScreen(user: User) {
     val viewModel: TrainerTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
+    var registerTournamentId by remember { mutableStateOf<String?>(null) }
     val detailViewModel: AthleteTournamentsViewModel = viewModel()
 
     LaunchedEffect(user.id) { detailViewModel.load(user.id) }
@@ -89,6 +91,10 @@ fun TrainerTournamentsScreen(user: User) {
             user = user,
             viewModel = detailViewModel,
             onBack = { selectedTournamentId = null },
+            onRegisterTeam = { tournamentId ->
+                registerTournamentId = tournamentId
+                selectedTournamentId = null
+            }
         )
         return
     }
@@ -126,6 +132,16 @@ fun TrainerTournamentsScreen(user: User) {
             val availableCount = data.tournaments.count { it.sportId == selectedTeam.sportId && it.status == TournamentStatus.REGISTRATION_OPEN && it.id !in registeredIds }
 
             var showRegisterDialog by remember { mutableStateOf<Tournament?>(null) }
+
+            // Handle registration from detail screen
+            LaunchedEffect(registerTournamentId) {
+                registerTournamentId?.let { tId ->
+                    val tournament = data.tournaments.find { it.id == tId }
+                    if (tournament != null) showRegisterDialog = tournament
+                    registerTournamentId = null
+                }
+            }
+
             var showFilterSheet by remember { mutableStateOf(false) }
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val scope = rememberCoroutineScope()
@@ -135,7 +151,10 @@ fun TrainerTournamentsScreen(user: User) {
             var started by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { started = true }
 
-            Box(Modifier.fillMaxSize()) {
+            DarkPullRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(user.id) }
+            ) {
                 Column(
                     Modifier
                         .fillMaxSize()
@@ -393,13 +412,7 @@ private fun TournamentListCard(tournament: Tournament, seed: Int = 0, isRegister
     val hasImage = cardImage != null
     val textPrimary = if (hasImage) Color.White else DarkTheme.TextPrimary
     val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else DarkTheme.TextSecondary
-    val statusColor = when (tournament.status) {
-        TournamentStatus.REGISTRATION_OPEN -> Color(0xFF22C55E)
-        TournamentStatus.IN_PROGRESS -> Color(0xFFF97316)
-        TournamentStatus.CHECK_IN -> Color(0xFF3B82F6)
-        TournamentStatus.COMPLETED -> Color(0xFFE53535)
-        else -> DarkTheme.TextMuted
-    }
+    val statusColor = tournamentStatusColor(tournament.status)
 
     Box(
         Modifier

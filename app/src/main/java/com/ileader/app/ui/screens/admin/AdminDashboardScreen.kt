@@ -76,7 +76,7 @@ private fun DashboardContent(user: User, onNavigate: (String) -> Unit) {
     LaunchedEffect(Unit) { viewModel.load(); visible = true }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load() }
         is UiState.Success -> {
             val stats = s.data.stats

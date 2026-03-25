@@ -10,6 +10,7 @@ import com.ileader.app.data.repository.AccreditationStats
 import com.ileader.app.data.repository.MediaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class MediaDashboardData(
@@ -24,6 +25,30 @@ class MediaDashboardViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<UiState<MediaDashboardData>>(UiState.Loading)
     val state: StateFlow<UiState<MediaDashboardData>> = _state
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val tournaments = repo.getUpcomingTournaments(4)
+                val accreditationStats = repo.getAccreditationStats(userId)
+                val articles = repo.getMyArticles(userId).take(3)
+                val articleStats = repo.getArticleStats(userId)
+                _state.value = UiState.Success(
+                    MediaDashboardData(
+                        upcomingTournaments = tournaments,
+                        accreditationStats = accreditationStats,
+                        recentArticles = articles,
+                        articleStats = articleStats
+                    )
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
 
     fun load(userId: String) {
         viewModelScope.launch {

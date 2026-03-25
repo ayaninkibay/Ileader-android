@@ -19,11 +19,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
@@ -43,6 +45,25 @@ private val Accent: Color @Composable get() = DarkTheme.Accent
 private val AccentDark: Color @Composable get() = DarkTheme.AccentDark
 private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
 
+private val BASE_URL_V = "https://ileader.kz/img"
+private val UNSPLASH_V = "https://images.unsplash.com"
+private val SPORT_IMAGES_V = mapOf(
+    "картинг" to listOf("$BASE_URL_V/karting/karting-04-1280x853.jpeg", "$BASE_URL_V/karting/karting-07-1280x853.jpeg", "$BASE_URL_V/karting/karting-13-1280x853.jpeg"),
+    "стрельба" to listOf("$BASE_URL_V/shooting/shooting-02-1280x853.jpeg", "$BASE_URL_V/shooting/shooting-04-1280x853.jpeg"),
+    "теннис" to listOf("$UNSPLASH_V/photo-1554068865-24cecd4e34b8?w=1280&q=80&fit=crop"),
+    "футбол" to listOf("$UNSPLASH_V/photo-1431324155629-1a6deb1dec8d?w=1280&q=80&fit=crop"),
+    "бокс" to listOf("$UNSPLASH_V/photo-1549719386-74dfcbf7dbed?w=1280&q=80&fit=crop"),
+    "плавание" to listOf("$UNSPLASH_V/photo-1519315901367-f34ff9154487?w=1280&q=80&fit=crop"),
+    "лёгкая атлетика" to listOf("$UNSPLASH_V/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+    "легкая атлетика" to listOf("$UNSPLASH_V/photo-1461896836934-ffe607ba8211?w=1280&q=80&fit=crop"),
+)
+
+private fun tournamentImageUrlV(sportName: String?, imageUrl: String?, seed: Int = 0): String? {
+    imageUrl?.takeIf { it.isNotEmpty() }?.let { return it }
+    val list = SPORT_IMAGES_V[sportName?.lowercase()?.trim()] ?: return null
+    return list[seed.mod(list.size)]
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewerTournamentsScreen(
@@ -51,12 +72,16 @@ fun ViewerTournamentsScreen(
 ) {
     val viewModel: ViewerTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     LaunchedEffect(Unit) { viewModel.load() }
 
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load() }
-        is UiState.Success -> {
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() }
+        ) {
             val data = s.data
             var searchQuery by remember { mutableStateOf("") }
             var statusFilter by remember { mutableIntStateOf(0) }
@@ -231,8 +256,8 @@ fun ViewerTournamentsScreen(
                             }
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                filteredTournaments.forEach { tournament ->
-                                    TournamentListCard(tournament) { onNavigateToDetail(tournament.id) }
+                                filteredTournaments.forEachIndexed { index, tournament ->
+                                    TournamentListCard(tournament, seed = index) { onNavigateToDetail(tournament.id) }
                                 }
                             }
                         }
@@ -246,67 +271,111 @@ fun ViewerTournamentsScreen(
 }
 
 @Composable
-private fun TournamentListCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
-    val status = tournament.status ?: ""
-    val chipColor = when (status) {
-        "registration_open" -> Color(0xFF22C55E)
-        "in_progress" -> Color(0xFFF59E0B)
-        else -> TextMuted
-    }
+private fun TournamentListCard(tournament: TournamentWithCountsDto, seed: Int = 0, onClick: () -> Unit) {
+    val cardBg = DarkTheme.CardBg
+    val cardImage = tournamentImageUrlV(tournament.sportName, tournament.imageUrl, seed)
+    val hasImage = cardImage != null
+    val textPrimary = if (hasImage) Color.White else TextPrimary
+    val textSecondary = if (hasImage) Color.White.copy(alpha = 0.75f) else TextSecondary
+    val statusColor = tournamentStatusColor(tournament.status)
 
-    DarkCard(Modifier.clickable { onClick() }) {
-        Column(Modifier.padding(14.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                StatusBadge(getStatusLabel(status), chipColor)
-                Surface(shape = RoundedCornerShape(8.dp), color = CardBorder.copy(alpha = 0.5f)) {
-                    Text(tournament.sportName ?: "", Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardBg)
+            .clickable(onClick = onClick)
+    ) {
+        if (cardImage != null) {
+            AsyncImage(
+                model = cardImage,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.55f)))
+        } else {
+            Box(Modifier.matchParentSize().background(cardBg))
+        }
+
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        tournament.name,
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = textPrimary,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    if (!tournament.sportName.isNullOrEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(sportIcon(tournament.sportName), null, Modifier.size(13.dp), textSecondary)
+                            Text(tournament.sportName, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = textSecondary)
+                        }
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
+                    Text(
+                        getStatusLabel(tournament.status ?: ""),
+                        Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
+                    )
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Text(tournament.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-
-            Spacer(Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(formatShortDate(tournament.startDate), fontSize = 12.sp, color = TextSecondary)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(4.dp))
+                    Text(formatShortDate(tournament.startDate), fontSize = 13.sp, color = textSecondary)
+                }
+                val location = buildString {
+                    if (!tournament.region.isNullOrEmpty()) append(tournament.region)
+                    if (!tournament.locationName.isNullOrEmpty()) {
+                        if (isNotEmpty()) append(" · ")
+                        append(tournament.locationName)
+                    }
+                }
+                if (location.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, Modifier.size(15.dp), textSecondary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(location, fontSize = 13.sp, color = textSecondary)
+                    }
+                }
             }
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("${tournament.region ?: ""} · ${tournament.locationName ?: ""}", fontSize = 12.sp, color = TextSecondary)
-            }
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("${tournament.participantCount} / ${tournament.maxParticipants ?: 0} участников", fontSize = 12.sp, color = TextSecondary)
+
+            val maxP = tournament.maxParticipants ?: 0
+            if (maxP > 0) {
+                Spacer(Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(6.dp))
+                    Text("${tournament.participantCount}/$maxP", fontSize = 13.sp, color = textSecondary)
+                    Spacer(Modifier.width(8.dp))
+                    DarkProgressBar(
+                        tournament.participantCount.toFloat() / maxP,
+                        Modifier.weight(1f).height(4.dp)
+                    )
+                }
             }
 
             if (tournament.prize != null) {
-                Spacer(Modifier.height(12.dp))
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = CardBorder.copy(alpha = 0.3f)) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Призовой фонд: ", fontSize = 12.sp, color = TextSecondary)
-                            Text(tournament.prize, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Подробнее", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
-                            Icon(Icons.Default.ChevronRight, null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                        }
-                    }
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Paid, null, Modifier.size(15.dp), textSecondary)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Призовой фонд: ${tournament.prize}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textPrimary)
                 }
             }
         }

@@ -49,13 +49,8 @@ private fun tournamentImageUrl(tournament: TournamentWithCountsDto, seed: Int = 
     return list[seed.mod(list.size)]
 }
 
-private fun statusColor(status: String?): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFFF97316)
-    "check_in" -> Color(0xFF3B82F6)
-    "completed" -> Color(0xFFE53535)
-    else -> Color(0xFF71717A)
-}
+@Composable
+private fun statusColor(status: String?): Color = tournamentStatusColor(status)
 
 @Composable
 fun SponsorDashboardScreen(
@@ -65,6 +60,7 @@ fun SponsorDashboardScreen(
     val viewModel: SponsorDashboardViewModel = viewModel()
     val detailViewModel: AthleteTournamentsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
     val appliedTournaments by viewModel.appliedTournaments.collectAsState()
     var selectedTournamentId by remember { mutableStateOf<String?>(null) }
 
@@ -87,7 +83,10 @@ fun SponsorDashboardScreen(
     when (val s = state) {
         is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
-        is UiState.Success -> {
+        is UiState.Success -> DarkPullRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh(user.id) }
+        ) {
             DashboardContent(
                 user = user,
                 sponsorships = s.data.sponsorships,

@@ -33,6 +33,9 @@ class SponsorTournamentsViewModel : ViewModel() {
     private val _appliedTournaments = MutableStateFlow<Set<String>>(emptySet())
     val appliedTournaments: StateFlow<Set<String>> = _appliedTournaments
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     fun load(sponsorId: String) {
         viewModelScope.launch {
             _state.value = UiState.Loading
@@ -43,6 +46,18 @@ class SponsorTournamentsViewModel : ViewModel() {
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
+        }
+    }
+
+    fun refresh(sponsorId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val sponsored = repo.getSponsoredTournaments(sponsorId)
+                val all = repo.getAllTournaments()
+                _state.value = UiState.Success(SponsorTournamentsData(sponsored, all))
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
         }
     }
 

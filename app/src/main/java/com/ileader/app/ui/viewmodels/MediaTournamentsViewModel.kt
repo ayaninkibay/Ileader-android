@@ -32,6 +32,9 @@ class MediaTournamentsViewModel : ViewModel() {
 
     private var currentUserId: String = ""
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     fun load(userId: String) {
         currentUserId = userId
         viewModelScope.launch {
@@ -51,6 +54,24 @@ class MediaTournamentsViewModel : ViewModel() {
             } catch (e: Exception) {
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
+        }
+    }
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val tournaments = repo.getAllTournaments()
+                val accreditationMap = repo.getAccreditationMap(userId)
+                val items = tournaments.map { tournament ->
+                    MediaTournamentItem(
+                        tournament = tournament,
+                        accreditationStatus = accreditationMap[tournament.id]
+                    )
+                }
+                _state.value = UiState.Success(MediaTournamentsData(items))
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
         }
     }
 

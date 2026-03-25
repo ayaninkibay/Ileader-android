@@ -80,13 +80,28 @@ private fun ProfileContent(profile: ProfileDto, user: User, viewModel: SponsorPr
             Spacer(Modifier.height(16.dp))
 
             FadeIn(visible, 0) {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Column {
-                        Text("Профиль", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                            color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(profile.name ?: user.displayName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
-                    }
+                Column {
+                    Text(
+                        profile.name ?: user.displayName,
+                        fontSize = 14.sp,
+                        color = DarkTheme.TextMuted
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Профиль",
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DarkTheme.TextPrimary,
+                        letterSpacing = (-0.8).sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Edit / Save buttons
+            FadeIn(visible, 0) {
+                Row(Modifier.fillMaxWidth(), Arrangement.End) {
                     if (isEditing) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = {
@@ -119,7 +134,7 @@ private fun ProfileContent(profile: ProfileDto, user: User, viewModel: SponsorPr
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             FadeIn(visible, 200) {
                 DarkCardPadded(padding = 20.dp) {

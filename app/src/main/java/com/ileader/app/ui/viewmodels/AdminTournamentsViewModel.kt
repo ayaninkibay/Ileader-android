@@ -17,6 +17,9 @@ class AdminTournamentsViewModel : ViewModel() {
     private val _state = MutableStateFlow<UiState<List<TournamentWithCountsDto>>>(UiState.Loading)
     val state: StateFlow<UiState<List<TournamentWithCountsDto>>> = _state
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _detailState = MutableStateFlow<UiState<TournamentDto>>(UiState.Loading)
     val detailState: StateFlow<UiState<TournamentDto>> = _detailState
 
@@ -44,7 +47,7 @@ class AdminTournamentsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repo.deleteTournament(tournamentId)
-                refresh()
+                reloadList()
             } catch (e: Exception) {
                 _mutationError.value = e.message ?: "Ошибка операции"
             }
@@ -55,7 +58,7 @@ class AdminTournamentsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repo.updateTournamentStatus(tournamentId, status)
-                refresh()
+                reloadList()
             } catch (e: Exception) {
                 _mutationError.value = e.message ?: "Ошибка операции"
             }
@@ -90,12 +93,23 @@ class AdminTournamentsViewModel : ViewModel() {
         _saveState.value = AdminUserEditViewModel.SaveState.Idle
     }
 
-    private suspend fun refresh() {
+    private suspend fun reloadList() {
         try {
             val tournaments = repo.getAllTournaments()
             _state.value = UiState.Success(tournaments)
         } catch (e: Exception) {
             _mutationError.value = e.message ?: "Ошибка обновления списка"
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val tournaments = repo.getAllTournaments()
+                _state.value = UiState.Success(tournaments)
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
         }
     }
 }

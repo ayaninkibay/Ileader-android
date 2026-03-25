@@ -25,6 +25,32 @@ class SponsorDashboardViewModel : ViewModel() {
     private val _state = MutableStateFlow<UiState<SponsorDashboardData>>(UiState.Loading)
     val state: StateFlow<UiState<SponsorDashboardData>> = _state
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    fun refresh(userId: String) {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val sponsorships = repo.getSponsorships(userId)
+                val openTournaments = repo.getOpenTournaments()
+                val totalInvested = sponsorships.sumOf { it.amount ?: 0.0 }
+                val teamCount = sponsorships.count { it.teamId != null }
+                val tournamentCount = sponsorships.count { it.tournamentId != null }
+                _state.value = UiState.Success(
+                    SponsorDashboardData(
+                        sponsorships = sponsorships,
+                        openTournaments = openTournaments,
+                        totalInvested = totalInvested,
+                        teamCount = teamCount,
+                        tournamentCount = tournamentCount
+                    )
+                )
+            } catch (_: Exception) { }
+            _isRefreshing.value = false
+        }
+    }
+
     private val _mutationError = MutableStateFlow<String?>(null)
     val mutationError: StateFlow<String?> = _mutationError.asStateFlow()
 

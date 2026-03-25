@@ -76,11 +76,12 @@ fun TrainerDashboardScreen(
 ) {
     val viewModel: TrainerDashboardViewModel = viewModel()
     val state by viewModel.state.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
 
     LaunchedEffect(user.id) { viewModel.load(user.id) }
 
     when (val s = state) {
-        is UiState.Loading -> LoadingScreen()
+        is UiState.Loading -> LoadingScreen(LoadingVariant.DASHBOARD)
         is UiState.Error -> ErrorScreen(s.message) { viewModel.load(user.id) }
         is UiState.Success -> {
             val data = s.data
@@ -99,7 +100,10 @@ fun TrainerDashboardScreen(
             var visible by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { visible = true }
 
-            Box(Modifier.fillMaxSize()) {
+            DarkPullRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh(user.id) }
+            ) {
                 Column(
                     Modifier
                         .fillMaxSize()
