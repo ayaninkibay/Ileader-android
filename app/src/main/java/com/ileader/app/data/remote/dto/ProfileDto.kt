@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonElement
 data class ProfileDto(
     val id: String,
     val name: String? = null,
+    val nickname: String? = null,
     val email: String? = null,
     val phone: String? = null,
     val city: String? = null,
@@ -82,6 +83,7 @@ data class ProfileDto(
 @Serializable
 data class ProfileUpdateDto(
     val name: String? = null,
+    val nickname: String? = null,
     val phone: String? = null,
     val city: String? = null,
     val country: String? = null,

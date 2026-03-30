@@ -36,7 +36,26 @@
       "Bash(grep -v \"http\\\\|//\")",
       "Bash(grep -l \"PlaceholderScreen\\\\|MainPlaceholderScreen\" /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/*/*.kt)",
       "Bash(find \"/c/Users/zhami/Documents/ileader/src/app/\\(public\\)\" -name \"page.tsx\")",
-      "Bash(find \"/c/Users/zhami/Documents/ileader/src/app/\\(ileader\\)\" -name \"page.tsx\" -path \"*/dashboard/*\")"
+      "Bash(find \"/c/Users/zhami/Documents/ileader/src/app/\\(ileader\\)\" -name \"page.tsx\" -path \"*/dashboard/*\")",
+      "Bash(grep -rn '^fun [a-zA-Z]' c:UserszhamiDocumentsileader-androidappsrcmainjavacomileaderappuiscreensathleteAthleteDashboardScreen.kt --include=*.kt)",
+      "Bash(grep -rn '^fun [a-zA-Z].*\\(' \"c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\viewer\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\athlete\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\trainer\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\organizer\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\referee\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\media\\\\|c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\ileader\\\\app\\\\ui\\\\screens\\\\helper\" --include=*.kt)",
+      "Bash(grep -rn \"formatDate\\\\|formatShortDate\\\\|getStatusLabel\\\\|getStatusColor\\\\|tournamentStatusLabel\\\\|isTournamentActive\\\\|inviteStatusLabel\" c:UserszhamiDocumentsileader-androidappsrcmainjavacomileaderapp --include=*.kt)",
+      "Bash(grep -rn \"formatDate\\\\|tournamentStatusLabel\\\\|isTournamentActive\\\\|inviteStatusLabel\" c:UserszhamiDocumentsileader-androidappsrcmainjavacomileaderappuiscreensmedia --include=*.kt)",
+      "Bash(grep -rn '^import ' c:UserszhamiDocumentsileader-androidappsrcmainjavacomileaderappuiscreensmediaMediaDashboardScreen.kt --include=*.kt)",
+      "Bash(\"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe\" uninstall:*)",
+      "Bash(git -C \"c:\\\\Users\\\\zhami\\\\Documents\\\\ileader-android\" log --oneline --all)",
+      "Bash(grep -n \"fun MyTicketsScreen\\\\|fun NotificationsScreen\" \"/c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/screens/common/\"*.kt)",
+      "Bash(find /c/Users/zhami/Documents/ileader-android -type f -path */ui/screens/*.kt)",
+      "Bash(do cp:*)",
+      "Bash(find /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/ui/components -name *.kt)",
+      "Bash(python3 -c \"from PIL import Image; print\\(''ok''\\)\")",
+      "Bash(python3 -m pip install Pillow)",
+      "Bash(\"C:/Program Files/Android/Android Studio/jbr/bin/java\" -version)",
+      "Bash(powershell -Command \"& { Add-Type -AssemblyName System.Drawing; Write-Host ''''System.Drawing available'''' }\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(grep -i \".kt$\")",
+      "Bash(grep -i \"\\\\.kt$\")",
+      "Bash(wc -l /c/Users/zhami/Documents/ileader-android/app/src/main/java/com/ileader/app/data/repository/*.kt)"
     ],
     "additionalDirectories": [
       "C:\\Users\\zhami\\.claude\\projects\\c--Users-zhami-Documents-ileader-android\\memory"

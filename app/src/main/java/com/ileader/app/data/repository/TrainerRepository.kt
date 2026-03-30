@@ -105,41 +105,41 @@ class TrainerRepository {
 
     suspend fun getTeamRequests(userId: String): List<TrainerNotificationData> {
         // Get all teams owned by this trainer
-        val teamIds = client.from("teams")
+        val teams = client.from("teams")
             .select(Columns.raw("id, name")) {
                 filter { eq("owner_id", userId) }
             }
             .decodeList<TeamDto>()
 
-        val allRequests = mutableListOf<TrainerNotificationData>()
+        if (teams.isEmpty()) return emptyList()
 
-        for (team in teamIds) {
-            val requests = client.from("team_requests")
-                .select(Columns.raw("*, profiles(id, name, email)")) {
-                    filter { eq("team_id", team.id) }
-                    order("created_at", Order.DESCENDING)
-                }
-                .decodeList<TeamRequestDto>()
+        val teamIds = teams.map { it.id }
+        val teamNameMap = teams.associate { it.id to it.name }
 
-            allRequests.addAll(requests.map { req ->
-                TrainerNotificationData(
-                    id = req.id,
-                    type = "join_request",
-                    title = "Запрос на вступление",
-                    message = req.message ?: "Запрос на вступление в команду",
-                    fromName = req.profiles?.name ?: "",
-                    teamName = team.name,
-                    status = when (req.status) {
-                        "accepted" -> InviteStatus.ACCEPTED
-                        "declined" -> InviteStatus.DECLINED
-                        else -> InviteStatus.PENDING
-                    },
-                    createdAt = req.createdAt ?: ""
-                )
-            })
-        }
+        // Single query for all team requests instead of N+1
+        val allRequestDtos = client.from("team_requests")
+            .select(Columns.raw("*, profiles(id, name, email)")) {
+                filter { isIn("team_id", teamIds) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<TeamRequestDto>()
 
-        return allRequests.sortedByDescending { it.createdAt }
+        return allRequestDtos.map { req ->
+            TrainerNotificationData(
+                id = req.id,
+                type = "join_request",
+                title = "Запрос на вступление",
+                message = req.message ?: "Запрос на вступление в команду",
+                fromName = req.profiles?.name ?: "",
+                teamName = teamNameMap[req.teamId] ?: "",
+                status = when (req.status) {
+                    "accepted" -> InviteStatus.ACCEPTED
+                    "declined" -> InviteStatus.DECLINED
+                    else -> InviteStatus.PENDING
+                },
+                createdAt = req.createdAt ?: ""
+            )
+        }.sortedByDescending { it.createdAt }
     }
 
     suspend fun respondToTeamRequest(requestId: String, accept: Boolean, responseMessage: String? = null) {
@@ -203,15 +203,16 @@ class TrainerRepository {
     }
 
     suspend fun registerTeamForTournament(tournamentId: String, teamId: String, memberIds: List<String>) {
-        for (memberId in memberIds) {
-            client.from("tournament_participants")
-                .insert(ParticipantInsertDto(
-                    tournamentId = tournamentId,
-                    athleteId = memberId,
-                    teamId = teamId,
-                    status = "pending"
-                ))
+        if (memberIds.isEmpty()) return
+        val inserts = memberIds.map { memberId ->
+            ParticipantInsertDto(
+                tournamentId = tournamentId,
+                athleteId = memberId,
+                teamId = teamId,
+                status = "pending"
+            )
         }
+        client.from("tournament_participants").insert(inserts)
     }
 
     suspend fun unregisterTeamFromTournament(tournamentId: String, teamId: String) {
@@ -279,34 +280,34 @@ class TrainerRepository {
             }
             .decodeList<TeamDto>()
 
-        val allInvites = mutableListOf<PendingInviteData>()
+        if (teams.isEmpty()) return emptyList()
 
-        for (team in teams) {
-            val requests = client.from("team_requests")
-                .select(Columns.raw("*, profiles(id, name, email)")) {
-                    filter {
-                        eq("team_id", team.id)
-                        eq("status", "pending")
-                        eq("direction", "outgoing")
-                    }
-                    order("created_at", Order.DESCENDING)
+        val teamIds = teams.map { it.id }
+        val teamNameMap = teams.associate { it.id to it.name }
+
+        // Single query for all pending invites instead of N+1
+        val allRequestDtos = client.from("team_requests")
+            .select(Columns.raw("*, profiles(id, name, email)")) {
+                filter {
+                    isIn("team_id", teamIds)
+                    eq("status", "pending")
+                    eq("direction", "outgoing")
                 }
-                .decodeList<TeamRequestDto>()
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<TeamRequestDto>()
 
-            allInvites.addAll(requests.map { req ->
-                PendingInviteData(
-                    id = req.id,
-                    athleteName = req.profiles?.name ?: "",
-                    athleteEmail = req.profiles?.email ?: "",
-                    teamId = team.id,
-                    teamName = team.name,
-                    sentAt = req.createdAt ?: "",
-                    status = InviteStatus.PENDING
-                )
-            })
+        return allRequestDtos.map { req ->
+            PendingInviteData(
+                id = req.id,
+                athleteName = req.profiles?.name ?: "",
+                athleteEmail = req.profiles?.email ?: "",
+                teamId = req.teamId,
+                teamName = teamNameMap[req.teamId] ?: "",
+                sentAt = req.createdAt ?: "",
+                status = InviteStatus.PENDING
+            )
         }
-
-        return allInvites
     }
 
     // ── REMOVE ATHLETE FROM TEAM ──

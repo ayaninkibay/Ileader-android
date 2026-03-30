@@ -2,5 +2,11 @@
     <style name="Theme.ILeader" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/splash_bg</item>
+    </style>
+
+    <!-- Splash theme shown while app loads -->
+    <style name="Theme.ILeader.Splash" parent="Theme.ILeader">
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>

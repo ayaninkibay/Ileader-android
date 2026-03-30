@@ -30,17 +30,49 @@ fun Modifier.coloredShadow(
     offsetY: Dp = 4.dp,
     cornerRadius: Dp = 16.dp,
     spread: Dp = 0.dp
-): Modifier = this
+): Modifier = this.drawBehind {
+    val paint = Paint()
+    val frameworkPaint = paint.asFrameworkPaint()
+    frameworkPaint.color = color.toArgb()
+
+    if (blurRadius > 0.dp) {
+        frameworkPaint.maskFilter = BlurMaskFilter(
+            blurRadius.toPx(),
+            BlurMaskFilter.Blur.NORMAL
+        )
+    }
+
+    val spreadPx = spread.toPx()
+    val left = -spreadPx + offsetX.toPx()
+    val top = -spreadPx + offsetY.toPx()
+    val right = size.width + spreadPx + offsetX.toPx()
+    val bottom = size.height + spreadPx + offsetY.toPx()
+
+    drawIntoCanvas { canvas ->
+        val path = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    left = left,
+                    top = top,
+                    right = right,
+                    bottom = bottom,
+                    cornerRadius = CornerRadius(cornerRadius.toPx())
+                )
+            )
+        }
+        canvas.drawPath(path, paint)
+    }
+}
 
 /**
- * Subtle card shadow for light theme — barely visible lift.
+ * Card shadow — disabled (flat design).
  */
 fun Modifier.cardShadow(
     isDark: Boolean = false
 ): Modifier = this
 
 /**
- * Elevated shadow for floating elements (FABs, bottom bars).
+ * Floating element shadow — disabled (flat design).
  */
 fun Modifier.floatingShadow(
     isDark: Boolean = false

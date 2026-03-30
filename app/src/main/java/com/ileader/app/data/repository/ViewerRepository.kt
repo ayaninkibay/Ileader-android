@@ -6,20 +6,25 @@ import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class ViewerRepository {
     private val client = SupabaseModule.client
 
     companion object {
-        private val roleIdCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+        private val roleIdCache = mutableMapOf<String, String>()
+        private val roleIdMutex = Mutex()
     }
 
     private suspend fun getRoleId(roleName: String): String {
-        return roleIdCache.getOrPut(roleName) {
-            client.from("roles")
-                .select { filter { eq("name", roleName) } }
-                .decodeSingle<RoleDto>()
-                .id
+        return roleIdMutex.withLock {
+            roleIdCache.getOrPut(roleName) {
+                client.from("roles")
+                    .select { filter { eq("name", roleName) } }
+                    .decodeSingle<RoleDto>()
+                    .id
+            }
         }
     }
 

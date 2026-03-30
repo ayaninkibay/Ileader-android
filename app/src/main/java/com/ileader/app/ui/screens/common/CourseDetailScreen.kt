@@ -277,7 +277,7 @@ fun CourseDetailScreen(
                     if (enrollState is UiState.Error) {
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            (enrollState as UiState.Error).message,
+                            (enrollState as? UiState.Error)?.message ?: "Ошибка записи",
                             fontSize = 13.sp,
                             color = Accent
                         )

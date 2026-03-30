@@ -29,7 +29,7 @@ private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
 
 @Composable
-fun MyTicketsScreen(user: User) {
+fun MyTicketsScreen(user: User, onBack: (() -> Unit)? = null) {
     val vm: TicketsViewModel = viewModel()
     val state by vm.state.collectAsState()
 
@@ -61,12 +61,18 @@ fun MyTicketsScreen(user: User) {
     ) {
         Spacer(Modifier.height(16.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AccentIconBox(icon = Icons.Default.ConfirmationNumber)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text("Мои билеты", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text("QR-коды для входа на турниры", fontSize = 13.sp, color = TextMuted)
+        if (onBack != null) {
+            BackHeader("Мои билеты", onBack)
+            Spacer(Modifier.height(8.dp))
+            Text("QR-коды для входа на турниры", fontSize = 13.sp, color = TextMuted)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AccentIconBox(icon = Icons.Default.ConfirmationNumber)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Мои билеты", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("QR-коды для входа на турниры", fontSize = 13.sp, color = TextMuted)
+                }
             }
         }
 

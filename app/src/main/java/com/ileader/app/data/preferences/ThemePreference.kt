@@ -10,13 +10,13 @@ import com.ileader.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ileader_settings")
+val Context.ileaderDataStore: DataStore<Preferences> by preferencesDataStore(name = "ileader_settings")
 
 class ThemePreference(private val context: Context) {
 
     private val themeKey = stringPreferencesKey("theme_mode")
 
-    val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
+    val themeMode: Flow<ThemeMode> = context.ileaderDataStore.data.map { prefs ->
         when (prefs[themeKey]) {
             "light" -> ThemeMode.LIGHT
             "dark" -> ThemeMode.DARK
@@ -25,7 +25,7 @@ class ThemePreference(private val context: Context) {
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
-        context.dataStore.edit { prefs ->
+        context.ileaderDataStore.edit { prefs ->
             prefs[themeKey] = when (mode) {
                 ThemeMode.LIGHT -> "light"
                 ThemeMode.DARK -> "dark"

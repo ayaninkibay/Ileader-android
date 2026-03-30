@@ -21,6 +21,7 @@ import com.ileader.app.data.DeepLinkTarget
 import com.ileader.app.ui.components.AnimatedBackground
 import com.ileader.app.ui.screens.auth.*
 import com.ileader.app.ui.screens.main.MainScreen
+import com.ileader.app.ui.screens.onboarding.OnboardingSportScreen
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 
@@ -29,6 +30,7 @@ sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Register : Screen("register")
     data object ForgotPassword : Screen("forgot_password")
+    data object Onboarding : Screen("onboarding")
     data object Main : Screen("main")
 }
 
@@ -143,6 +145,20 @@ fun NavGraph(
             )
         }
 
+        composable(Screen.Onboarding.route) {
+            val user = authState.currentUser
+            if (user != null) {
+                OnboardingSportScreen(
+                    userId = user.id,
+                    onComplete = {
+                        navController.navigate(Screen.Main.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+        }
+
         composable(Screen.Main.route) {
             val user = authState.currentUser
             if (user != null) {
@@ -169,11 +185,27 @@ fun NavGraph(
 
     // Navigate when auth state changes
     LaunchedEffect(authState.isAuthenticated) {
-        if (authState.isAuthenticated && navController.currentDestination?.route != Screen.Main.route) {
-            navController.navigate(Screen.Main.route) {
+        if (authState.isAuthenticated && navController.currentDestination?.route != Screen.Main.route
+            && navController.currentDestination?.route != Screen.Onboarding.route) {
+            val user = authState.currentUser
+            val needsOnboarding = user != null &&
+                user.sportIds.isNullOrEmpty() &&
+                user.role in listOf(
+                    com.ileader.app.data.models.UserRole.USER,
+                    com.ileader.app.data.models.UserRole.ATHLETE,
+                    com.ileader.app.data.models.UserRole.TRAINER
+                )
+            val destination = if (needsOnboarding) {
+                Screen.Onboarding.route
+            } else {
+                Screen.Main.route
+            }
+            navController.navigate(destination) {
                 popUpTo(0) { inclusive = true }
             }
-        } else if (!authState.isAuthenticated && navController.currentDestination?.route == Screen.Main.route) {
+        } else if (!authState.isAuthenticated &&
+            (navController.currentDestination?.route == Screen.Main.route ||
+             navController.currentDestination?.route == Screen.Onboarding.route)) {
             navController.navigate(Screen.Welcome.route) {
                 popUpTo(0) { inclusive = true }
             }

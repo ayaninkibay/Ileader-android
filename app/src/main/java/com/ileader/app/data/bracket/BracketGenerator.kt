@@ -137,8 +137,8 @@ object BracketGenerator {
         val smf = options.stageMatchFormats ?: return options.matchFormat
         val fromEnd = totalRounds - round
         return when {
-            fromEnd == 0 && smf.containsKey("final") -> smf["final"]!!
-            fromEnd == 1 && smf.containsKey("semiFinal") -> smf["semiFinal"]!!
+            fromEnd == 0 && smf.containsKey("final") -> smf.getOrDefault("final", options.matchFormat)
+            fromEnd == 1 && smf.containsKey("semiFinal") -> smf.getOrDefault("semiFinal", options.matchFormat)
             else -> smf["default"] ?: options.matchFormat
         }
     }

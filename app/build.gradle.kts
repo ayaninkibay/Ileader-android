@@ -28,10 +28,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Supabase credentials loaded from local.properties (not tracked by git)
-        buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "https://clkbmjsmfzjuqdwnoejv.supabase.co")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2JtanNtZnpqdXFkd25vZWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMTA1NzYsImV4cCI6MjA4Njg4NjU3Nn0.iMBNbY3w6D3msyQnLVBkanpbnTcjE8L1JcHGFUkT-N0")}\"")
-        buildConfigField("String", "DEMO_PASSWORD", "\"${localProps.getProperty("demo.password", "123456")}\"")
-        buildConfigField("String", "DEMO_ADMIN_PASSWORD", "\"${localProps.getProperty("demo.admin.password", "demo-admin-2026")}\"")
+        // IMPORTANT: No hardcoded fallbacks — local.properties MUST exist with these keys
+        buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url") ?: error("supabase.url not set in local.properties")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anon.key") ?: error("supabase.anon.key not set in local.properties")}\"")
+        buildConfigField("String", "DEMO_PASSWORD", "\"${localProps.getProperty("demo.password") ?: error("demo.password not set in local.properties")}\"")
+        buildConfigField("String", "DEMO_ADMIN_PASSWORD", "\"${localProps.getProperty("demo.admin.password") ?: error("demo.admin.password not set in local.properties")}\"")
     }
 
     buildTypes {

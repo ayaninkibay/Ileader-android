@@ -1,11 +1,14 @@
 package com.ileader.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -22,12 +25,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,11 +43,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.ileader.app.ui.theme.AppColorScheme
 import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.theme.cardShadow
+import com.ileader.app.ui.theme.coloredShadow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.ileader.app.data.preferences.ThemePreference
@@ -165,9 +175,10 @@ fun DarkCardPadded(
 fun FadeIn(visible: Boolean, delayMs: Int, content: @Composable () -> Unit) {
     var show by remember { mutableStateOf(false) }
     LaunchedEffect(visible) { if (visible) { delay(delayMs.toLong()); show = true } }
-    val alpha by animateFloatAsState(if (show) 1f else 0f, tween(350), label = "fi$delayMs")
-    val offset by animateDpAsState(if (show) 0.dp else 20.dp, tween(350), label = "fo$delayMs")
-    Column(Modifier.offset(y = offset).alpha(alpha)) { content() }
+    val alpha by animateFloatAsState(if (show) 1f else 0f, tween(400, easing = FastOutSlowInEasing), label = "fi$delayMs")
+    val offset by animateDpAsState(if (show) 0.dp else 16.dp, tween(400, easing = FastOutSlowInEasing), label = "fo$delayMs")
+    val scale by animateFloatAsState(if (show) 1f else 0.96f, tween(400, easing = FastOutSlowInEasing), label = "fs$delayMs")
+    Column(Modifier.offset(y = offset).alpha(alpha).scale(scale)) { content() }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -492,19 +503,25 @@ fun DarkFilterChip(
     text: String,
     selected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null
 ) {
     val colors = LocalAppColors.current
     FilterChip(
         selected = selected,
         onClick = onClick,
         modifier = modifier,
-        label = { Text(text, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false) },
+        leadingIcon = if (icon != null) {
+            { Icon(icon, null, Modifier.size(16.dp)) }
+        } else null,
+        label = { Text(text, fontSize = 13.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, softWrap = false) },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = colors.accent,
             selectedLabelColor = Color.White,
+            selectedLeadingIconColor = Color.White,
             containerColor = colors.cardBg,
-            labelColor = colors.textSecondary
+            labelColor = colors.textSecondary,
+            iconColor = colors.textMuted
         ),
         border = FilterChipDefaults.filterChipBorder(
             borderColor = colors.border,
@@ -512,7 +529,7 @@ fun DarkFilterChip(
             enabled = true,
             selected = selected
         ),
-        shape = RoundedCornerShape(10.dp)
+        shape = RoundedCornerShape(50)
     )
 }
 
@@ -563,18 +580,26 @@ fun DarkSegmentedControl(
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun StatusBadge(text: String, color: Color = LocalAppColors.current.textSecondary) {
+fun StatusBadge(text: String, color: Color = LocalAppColors.current.textSecondary, icon: ImageVector? = null) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White.copy(alpha = 0.10f)
+        shape = RoundedCornerShape(50),
+        color = color.copy(alpha = 0.12f)
     ) {
-        Text(
-            text,
-            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color
-        )
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            if (icon != null) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(13.dp))
+            }
+            Text(
+                text,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
+        }
     }
 }
 
@@ -592,16 +617,27 @@ fun RoleBadge(role: com.ileader.app.data.models.UserRole) {
         com.ileader.app.data.models.UserRole.USER -> ILeaderColors.ViewerColor
     }
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(50),
         color = color.copy(alpha = 0.10f)
     ) {
-        Text(
-            role.displayName,
-            Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = color
-        )
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(color)
+            )
+            Text(
+                role.displayName,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = color
+            )
+        }
     }
 }
 
@@ -627,40 +663,39 @@ fun EmptyState(
         ) {
             Box(
                 Modifier
-                    .size(52.dp)
-                    .clip(CircleShape)
-                    .background(colors.border.copy(alpha = 0.3f)),
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(colors.accentSoft),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon, null,
-                    tint = colors.textMuted,
-                    modifier = Modifier.size(24.dp)
+                    tint = colors.accent,
+                    modifier = Modifier.size(32.dp)
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 title,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = colors.textSecondary
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                subtitle,
-                fontSize = 12.sp,
-                color = colors.textMuted,
+                color = colors.textPrimary,
                 textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                subtitle,
+                fontSize = 13.sp,
+                color = colors.textMuted,
+                textAlign = TextAlign.Center,
+                lineHeight = 18.sp
+            )
             if (actionLabel != null && onAction != null) {
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = onAction,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
-                ) {
-                    Text(actionLabel, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                }
+                Spacer(Modifier.height(20.dp))
+                GradientButton(
+                    text = actionLabel,
+                    onClick = onAction
+                )
             }
         }
     }
@@ -702,21 +737,36 @@ fun InfoBanner(text: String) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-fun DarkProgressBar(progress: Float, modifier: Modifier = Modifier) {
+fun DarkProgressBar(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    animate: Boolean = true,
+    color: Color? = null
+) {
     val colors = LocalAppColors.current
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = if (animate) tween(800, easing = FastOutSlowInEasing) else snap(),
+        label = "progress"
+    )
+    val fillColor = color ?: colors.accent
     Box(
         modifier
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(colors.border)
+            .background(colors.border.copy(alpha = 0.5f))
     ) {
         Box(
             Modifier
                 .fillMaxHeight()
-                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .fillMaxWidth(animatedProgress)
                 .clip(RoundedCornerShape(3.dp))
-                .background(colors.textMuted)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(fillColor, fillColor.copy(alpha = 0.7f))
+                    )
+                )
         )
     }
 }
@@ -892,12 +942,27 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(32.dp)
         ) {
-            Icon(
-                Icons.Default.ErrorOutline, null,
-                modifier = Modifier.size(48.dp),
-                tint = colors.textMuted
+            Box(
+                Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(ILeaderColors.Error.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.ErrorOutline, null,
+                    modifier = Modifier.size(36.dp),
+                    tint = ILeaderColors.Error
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "Что-то пошло не так",
+                color = colors.textPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 message,
                 color = colors.textSecondary,
@@ -905,14 +970,12 @@ fun ErrorScreen(message: String, onRetry: () -> Unit) {
                 textAlign = TextAlign.Center,
                 lineHeight = 20.sp
             )
-            Spacer(Modifier.height(20.dp))
-            Button(
+            Spacer(Modifier.height(24.dp))
+            GradientButton(
+                text = "Повторить",
                 onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Повторить")
-            }
+                icon = Icons.Default.Refresh
+            )
         }
     }
 }
@@ -1364,5 +1427,838 @@ private fun ThemeSwitcherOption(modifier: Modifier, label: String, icon: ImageVe
             Spacer(Modifier.height(4.dp))
             Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (selected) colors.accent else colors.textSecondary)
         }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// GRADIENT BUTTON (inspired by InzhuApp & HellaGood)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun GradientButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    fillWidth: Boolean = true,
+    loading: Boolean = false
+) {
+    val colors = LocalAppColors.current
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        if (isPressed) 0.97f else 1f,
+        tween(100), label = "btnScale"
+    )
+    val isActive = enabled && !loading
+
+    Box(
+        modifier = modifier
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isActive) Brush.horizontalGradient(
+                    listOf(colors.accent, colors.accentDark)
+                ) else Brush.horizontalGradient(
+                    listOf(colors.border, colors.border)
+                )
+            )
+            .pointerInput(isActive) {
+                if (isActive) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = { onClick() }
+                    )
+                }
+            }
+            .padding(vertical = 14.dp, horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (icon != null) {
+                    Icon(
+                        icon, null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    text,
+                    color = if (isActive) Color.White else colors.textMuted,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// SECONDARY & OUTLINE BUTTONS
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    fillWidth: Boolean = true
+) {
+    val colors = LocalAppColors.current
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        if (isPressed) 0.97f else 1f,
+        tween(100), label = "secBtnScale"
+    )
+
+    Box(
+        modifier = modifier
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.accentSoft)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
+                    onTap = { onClick() }
+                )
+            }
+            .padding(vertical = 14.dp, horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(icon, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, color = colors.accent, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+fun OutlineButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    fillWidth: Boolean = true,
+    color: Color? = null
+) {
+    val colors = LocalAppColors.current
+    val tint = color ?: colors.textPrimary
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        if (isPressed) 0.97f else 1f,
+        tween(100), label = "outBtnScale"
+    )
+
+    Box(
+        modifier = modifier
+            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, colors.border, RoundedCornerShape(16.dp))
+            .background(Color.Transparent)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
+                    onTap = { onClick() }
+                )
+            }
+            .padding(vertical = 14.dp, horizontal = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, color = tint, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// AVATAR (inspired by HellaGood gradient-border avatar)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun UserAvatar(
+    avatarUrl: String?,
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    showGradientBorder: Boolean = false
+) {
+    val colors = LocalAppColors.current
+    val initials = name.split(" ")
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercase() }
+        .joinToString("")
+        .ifEmpty { "?" }
+
+    Box(
+        modifier = modifier.size(size + if (showGradientBorder) 6.dp else 0.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (showGradientBorder) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(colors.accent, colors.accentDark, colors.accent.copy(alpha = 0.6f))
+                        )
+                    )
+            )
+        }
+        Box(
+            Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(if (showGradientBorder) colors.bg else Color.Transparent)
+                .then(
+                    if (!showGradientBorder) Modifier.border(
+                        1.dp, colors.border, CircleShape
+                    ) else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarUrl,
+                    contentDescription = name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                listOf(colors.accent, colors.accentDark)
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        initials,
+                        color = Color.White,
+                        fontSize = (size.value * 0.36f).sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// PULSING STATUS DOT (inspired by HellaGood)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun PulsingDot(
+    color: Color = ILeaderColors.Success,
+    size: Dp = 10.dp,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    Box(modifier.size(size), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .alpha(pulseAlpha * 0.4f)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Box(
+            Modifier
+                .size(size * 0.6f)
+                .clip(CircleShape)
+                .background(color)
+        )
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// QUICK ACTION ROW (common pattern in both reference apps)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun QuickActionRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconTint: Color? = null,
+    subtitle: String? = null,
+    trailing: @Composable (() -> Unit)? = null,
+    destructive: Boolean = false
+) {
+    val colors = LocalAppColors.current
+    val tint = when {
+        destructive -> ILeaderColors.Error
+        iconTint != null -> iconTint
+        else -> colors.accent
+    }
+    val textColor = if (destructive) ILeaderColors.Error else colors.textPrimary
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = colors.cardBg,
+        border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.4f))
+    ) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tint.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor
+                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        fontSize = 12.sp,
+                        color = colors.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (trailing != null) {
+                trailing()
+            } else {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                    tint = colors.textMuted,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// PRESSABLE CARD (interactive card with press feedback)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun PressableCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        if (isPressed) 0.98f else 1f,
+        tween(100), label = "cardPress"
+    )
+    val bgColor by animateColorAsState(
+        if (isPressed) colors.cardHover else colors.cardBg,
+        tween(150), label = "cardBg"
+    )
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .scale(scale)
+            .cardShadow(isDark),
+        shape = RoundedCornerShape(16.dp),
+        color = bgColor,
+        border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
+            0.5.dp, colors.border.copy(alpha = 0.3f)
+        )
+    ) {
+        Box(
+            Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() }
+                )
+            }
+        ) {
+            content()
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// ACCENT HEADER CARD (gradient header like HellaGood profile)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun AccentHeaderCard(
+    modifier: Modifier = Modifier,
+    headerHeight: Dp = 100.dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
+
+    Surface(
+        modifier = modifier.fillMaxWidth().cardShadow(isDark),
+        shape = RoundedCornerShape(20.dp),
+        color = colors.cardBg,
+        border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
+            0.5.dp, colors.border.copy(alpha = 0.3f)
+        )
+    ) {
+        Column {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(headerHeight)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                colors.accent,
+                                colors.accentDark,
+                                colors.accent.copy(alpha = 0.8f)
+                            ),
+                            start = Offset(0f, 0f),
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                        )
+                    )
+            )
+            content()
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICATION BADGE (counter badge for icons)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun CountBadge(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    if (count <= 0) return
+    Box(
+        modifier
+            .size(if (count > 9) 20.dp else 18.dp)
+            .clip(CircleShape)
+            .background(ILeaderColors.PrimaryRed),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            if (count > 99) "99+" else count.toString(),
+            color = Color.White,
+            fontSize = if (count > 9) 9.sp else 10.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// DIVIDER WITH LABEL
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun LabeledDivider(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalAppColors.current
+    Row(
+        modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(Modifier.weight(1f), color = colors.border)
+        Text(
+            label,
+            Modifier.padding(horizontal = 16.dp),
+            fontSize = 12.sp,
+            color = colors.textMuted,
+            fontWeight = FontWeight.Medium
+        )
+        HorizontalDivider(Modifier.weight(1f), color = colors.border)
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// SPORT CIRCLE (story-like, inspired by InzhuApp & HellaGood)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun SportCircle(
+    emoji: String,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalAppColors.current
+    val borderAlpha by animateFloatAsState(
+        if (selected) 1f else 0f,
+        tween(250), label = "sportBorder"
+    )
+    val bgScale by animateFloatAsState(
+        if (selected) 1f else 0.92f,
+        tween(200), label = "sportScale"
+    )
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            Modifier
+                .size(64.dp)
+                .scale(bgScale)
+                .then(
+                    if (selected) Modifier.border(
+                        2.5.dp,
+                        Brush.linearGradient(
+                            listOf(colors.accent, colors.accentDark, colors.accent.copy(alpha = 0.6f))
+                        ),
+                        CircleShape
+                    ) else Modifier.border(1.5.dp, colors.border.copy(alpha = 0.4f), CircleShape)
+                )
+                .padding(3.dp)
+                .clip(CircleShape)
+                .background(if (selected) colors.accentSoft else colors.cardBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(emoji, fontSize = 26.sp)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) colors.accent else colors.textMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun SportCirclesRow(
+    sports: List<Triple<String, String, String>>,  // id, name, emoji
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        item {
+            SportCircle(
+                emoji = "🏆",
+                label = "Все",
+                selected = selectedId == null,
+                onClick = { onSelect(null) }
+            )
+        }
+        items(sports.size) { index ->
+            val (id, name, emoji) = sports[index]
+            SportCircle(
+                emoji = emoji,
+                label = name,
+                selected = selectedId == id,
+                onClick = { onSelect(id) }
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// PROFILE HERO CARD (gradient header + overlapping avatar)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun ProfileHeroCard(
+    name: String,
+    subtitle: String,
+    avatarUrl: String?,
+    modifier: Modifier = Modifier,
+    role: com.ileader.app.data.models.UserRole? = null,
+    stats: List<Pair<String, String>> = emptyList(),
+    onEdit: (() -> Unit)? = null
+) {
+    val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = colors.cardBg,
+        border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
+            0.5.dp, colors.border.copy(alpha = 0.3f)
+        )
+    ) {
+        Column {
+            // Gradient header
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(colors.accent, colors.accentDark, colors.accent.copy(alpha = 0.8f)),
+                            start = Offset(0f, 0f),
+                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                        )
+                    )
+            ) {
+                if (onEdit != null) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(12.dp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .clickable { onEdit() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+
+            // Avatar overlapping the gradient
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-40).dp)
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                UserAvatar(
+                    avatarUrl = avatarUrl,
+                    name = name,
+                    size = 80.dp,
+                    showGradientBorder = true
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary,
+                    letterSpacing = (-0.3).sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    subtitle,
+                    fontSize = 13.sp,
+                    color = colors.textMuted
+                )
+                if (role != null) {
+                    Spacer(Modifier.height(8.dp))
+                    RoleBadge(role)
+                }
+
+                // Stats row
+                if (stats.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.bg.copy(alpha = 0.6f))
+                            .padding(vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        stats.forEachIndexed { index, (value, label) ->
+                            if (index > 0) {
+                                Box(
+                                    Modifier
+                                        .width(1.dp)
+                                        .height(32.dp)
+                                        .background(colors.border)
+                                )
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    value,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary,
+                                    letterSpacing = (-0.3).sp
+                                )
+                                Text(label, fontSize = 11.sp, color = colors.textMuted)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// LIVE INDICATOR (PulsingDot + text)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun LiveIndicator(
+    text: String = "LIVE",
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = ILeaderColors.Success.copy(alpha = 0.12f)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PulsingDot(color = ILeaderColors.Success, size = 8.dp)
+            Text(text, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ILeaderColors.Success)
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// GRADIENT STAT CARD (InzhuApp-inspired)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun GradientStatCard(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    color: Color? = null
+) {
+    val colors = LocalAppColors.current
+    val tint = color ?: colors.accent
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = colors.cardBg,
+        border = BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f))
+    ) {
+        Column(
+            Modifier.padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        Brush.linearGradient(listOf(tint.copy(alpha = 0.15f), tint.copy(alpha = 0.05f)))
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+                letterSpacing = (-0.5).sp
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                label,
+                fontSize = 11.sp,
+                color = colors.textMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// TOURNAMENT INFO ROW (compact info chips)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun InfoChip(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color? = null
+) {
+    val colors = LocalAppColors.current
+    val tint = color ?: colors.textMuted
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(14.dp))
+        Text(text, fontSize = 12.sp, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

@@ -28,7 +28,7 @@ import com.ileader.app.ui.components.*
 import com.ileader.app.ui.viewmodels.NotificationsViewModel
 
 @Composable
-fun NotificationsScreen(user: User) {
+fun NotificationsScreen(user: User, onBack: (() -> Unit)? = null) {
     val vm: NotificationsViewModel = viewModel()
     val state by vm.state.collectAsState()
 
@@ -37,13 +37,13 @@ fun NotificationsScreen(user: User) {
     when (val s = state) {
         is UiState.Loading -> LoadingScreen()
         is UiState.Error -> ErrorScreen(s.message) { vm.load(user.id) }
-        is UiState.Success -> NotificationsContent(user, s.data, vm)
+        is UiState.Success -> NotificationsContent(user, s.data, vm, onBack)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NotificationsContent(user: User, notifications: List<NotificationDto>, vm: NotificationsViewModel) {
+private fun NotificationsContent(user: User, notifications: List<NotificationDto>, vm: NotificationsViewModel, onBack: (() -> Unit)? = null) {
     val showOnlyUnread by vm.showOnlyUnread.collectAsState()
     val unreadCount = notifications.count { !it.read }
     val filtered = if (showOnlyUnread) notifications.filter { !it.read } else notifications
@@ -53,10 +53,15 @@ private fun NotificationsContent(user: User, notifications: List<NotificationDto
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            // Back button if navigated from ProfileTab
+            if (onBack != null) {
+                BackHeader("Уведомления", onBack)
+            }
+
             // Header
             FadeIn(visible, 0) {
                 Column(Modifier.padding(horizontal = 20.dp)) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(if (onBack != null) 8.dp else 16.dp))
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -64,10 +69,12 @@ private fun NotificationsContent(user: User, notifications: List<NotificationDto
                     ) {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "Уведомления", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                                    color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp
-                                )
+                                if (onBack == null) {
+                                    Text(
+                                        "Уведомления", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                                        color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp
+                                    )
+                                }
                                 if (unreadCount > 0) {
                                     Spacer(Modifier.width(8.dp))
                                     Badge(containerColor = DarkTheme.Accent) {

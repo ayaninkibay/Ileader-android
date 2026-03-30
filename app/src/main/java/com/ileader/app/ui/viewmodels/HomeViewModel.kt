@@ -1,0 +1,68 @@
+package com.ileader.app.ui.viewmodels
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.ArticleDto
+import com.ileader.app.data.remote.dto.CommunityProfileDto
+import com.ileader.app.data.remote.dto.TournamentWithCountsDto
+import com.ileader.app.data.repository.ViewerRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+
+data class HomeState(
+    val news: UiState<List<ArticleDto>> = UiState.Loading,
+    val tournaments: UiState<List<TournamentWithCountsDto>> = UiState.Loading,
+    val people: UiState<List<CommunityProfileDto>> = UiState.Loading
+)
+
+class HomeViewModel : ViewModel() {
+    private val repo = ViewerRepository()
+
+    var state by mutableStateOf(HomeState())
+        private set
+
+    fun load(sportIds: List<String> = emptyList()) {
+        viewModelScope.launch {
+            state = HomeState() // reset to loading
+
+            val newsDeferred = async {
+                try {
+                    UiState.Success(repo.getRecentArticles(5))
+                } catch (e: Exception) {
+                    UiState.Error(e.message ?: "Ошибка загрузки новостей")
+                }
+            }
+
+            val tournamentsDeferred = async {
+                try {
+                    val all = repo.getUpcomingTournaments(10)
+                    val filtered = if (sportIds.isNotEmpty()) {
+                        all.filter { it.sportId in sportIds }
+                    } else all
+                    UiState.Success(filtered)
+                } catch (e: Exception) {
+                    UiState.Error(e.message ?: "Ошибка загрузки турниров")
+                }
+            }
+
+            val peopleDeferred = async {
+                try {
+                    val athletes = repo.getAthletes()
+                    UiState.Success(athletes.take(10))
+                } catch (e: Exception) {
+                    UiState.Error(e.message ?: "Ошибка загрузки людей")
+                }
+            }
+
+            state = HomeState(
+                news = newsDeferred.await(),
+                tournaments = tournamentsDeferred.await(),
+                people = peopleDeferred.await()
+            )
+        }
+    }
+}

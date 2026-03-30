@@ -12,7 +12,17 @@ data class TournamentHelperDto(
     val status: String = "active",
     @SerialName("created_at") val createdAt: String = "",
     // JOIN: tournament info
-    val tournaments: HelperTournamentDto? = null
+    val tournaments: HelperTournamentDto? = null,
+    // JOIN: user profile info (used by organizer view)
+    val profiles: HelperProfileDto? = null
+)
+
+@Serializable
+data class HelperProfileDto(
+    val id: String = "",
+    val name: String? = null,
+    @SerialName("avatar_url") val avatarUrl: String? = null,
+    val email: String? = null
 )
 
 @Serializable
@@ -31,4 +41,12 @@ data class HelperTournamentDto(
 data class HelperSportDto(
     val id: String = "",
     val name: String = ""
+)
+
+@Serializable
+data class TournamentHelperInsertDto(
+    @SerialName("tournament_id") val tournamentId: String,
+    @SerialName("user_id") val userId: String,
+    @SerialName("assigned_by") val assignedBy: String,
+    val status: String = "active"
 )
