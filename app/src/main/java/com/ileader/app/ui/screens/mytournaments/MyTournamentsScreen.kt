@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.LocationOn
@@ -58,8 +57,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ileader.app.data.models.AthleteGoal
-import com.ileader.app.data.models.GoalStatus
 import com.ileader.app.data.models.RefereeTournament
 import com.ileader.app.data.models.Tournament
 import com.ileader.app.data.models.TournamentStatus
@@ -105,7 +102,6 @@ fun MyTournamentsScreen(
 ) {
     val vm: MyTournamentsViewModel = viewModel()
     val roleTournaments by vm.roleTournaments.collectAsState()
-    val goals by vm.goals.collectAsState()
     val helperAssignments by vm.helperAssignments.collectAsState()
 
     var started by remember { mutableStateOf(false) }
@@ -202,7 +198,7 @@ fun MyTournamentsScreen(
 @Composable
 private fun GradientHeader(user: User) {
     val subtitle = when (user.role) {
-        UserRole.ATHLETE -> "Ваши турниры и цели"
+        UserRole.ATHLETE -> "Ваши турниры"
         UserRole.TRAINER -> "Турниры вашей команды"
         UserRole.ORGANIZER -> "Управление турнирами"
         UserRole.REFEREE -> "Назначенные турниры"
@@ -956,130 +952,6 @@ private fun MediaSection(invites: List<MediaInviteFullDto>) {
                                 textColor = statusColor
                             )
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// GOALS (Athlete)
-// ══════════════════════════════════════════════════════════
-
-@Composable
-private fun GoalsSection(goalsState: UiState<List<AthleteGoal>>) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionTitle("Мои цели", Icons.Default.Flag)
-
-        when (goalsState) {
-            is UiState.Loading -> {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Загрузка целей...", color = TextMuted, fontSize = 13.sp)
-                }
-            }
-            is UiState.Error -> {
-                Text(goalsState.message, color = Accent, fontSize = 13.sp)
-            }
-            is UiState.Success -> {
-                if (goalsState.data.isEmpty()) {
-                    EmptyState(
-                        title = "Нет целей",
-                        subtitle = "Установите цели для отслеживания прогресса",
-                        icon = Icons.Default.Flag
-                    )
-                } else {
-                    goalsState.data.forEach { goal ->
-                        GoalCard(goal)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun GoalCard(goal: AthleteGoal) {
-    val progress = if (goal.targetValue > 0) {
-        (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f)
-    } else 0f
-
-    val statusColor = when (goal.status) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
-        GoalStatus.ACTIVE -> Accent
-    }
-
-    val progressColor = when (goal.status) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
-        GoalStatus.ACTIVE -> Color(0xFF3B82F6)
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Border)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    goal.title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.width(8.dp))
-                PillBadge(
-                    text = goal.status.displayName,
-                    bgColor = statusColor.copy(alpha = 0.12f),
-                    textColor = statusColor
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Progress bar
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = progressColor,
-                trackColor = progressColor.copy(alpha = 0.12f),
-                strokeCap = StrokeCap.Round
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "${goal.currentValue}/${goal.targetValue} ${goal.type.displayName.lowercase()}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
-                )
-                if (goal.deadline != null) {
-                    Spacer(Modifier.weight(1f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "до ${formatDateRu(goal.deadline)}",
-                            fontSize = 13.sp,
-                            color = TextMuted
-                        )
                     }
                 }
             }
