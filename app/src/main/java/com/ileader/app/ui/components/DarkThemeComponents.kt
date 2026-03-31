@@ -107,6 +107,19 @@ fun sportEmoji(sportName: String) = when (sportName.lowercase().trim()) {
     else                                          -> "🏆"
 }
 
+fun sportColor(sportName: String): Color = when (sportName.lowercase().trim()) {
+    "картинг", "karting"                          -> Color(0xFFE53535) // Red
+    "стрельба", "shooting"                        -> Color(0xFFF97316) // Orange
+    "теннис", "tennis"                            -> Color(0xFF22C55E) // Green
+    "футбол", "football", "soccer"                -> Color(0xFF3B82F6) // Blue
+    "бокс", "boxing"                              -> Color(0xFFDC2626) // Dark red
+    "плавание", "swimming"                        -> Color(0xFF06B6D4) // Cyan
+    "лёгкая атлетика", "легкая атлетика",
+    "athletics", "track and field"                -> Color(0xFF8B5CF6) // Purple
+    "гребля", "rowing"                            -> Color(0xFF1D4ED8) // Dark blue
+    else                                          -> Color(0xFF6B7280) // Gray
+}
+
 fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
     "картинг", "karting"                     -> Icons.Default.DirectionsCar
     "стрельба", "shooting"                   -> Icons.Default.GpsFixed
@@ -1431,6 +1444,87 @@ private fun ThemeSwitcherOption(modifier: Modifier, label: String, icon: ImageVe
 }
 
 // ══════════════════════════════════════════════════════════
+// LANGUAGE SWITCHER CARD
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun LanguageSwitcherCard() {
+    val colors = LocalAppColors.current
+    val context = LocalContext.current
+    val langPref = remember { com.ileader.app.data.preferences.LanguagePreference(context) }
+    val currentLang by langPref.language.collectAsState(
+        initial = com.ileader.app.data.preferences.AppLanguage.RUSSIAN
+    )
+    val scope = rememberCoroutineScope()
+
+    DarkCard {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SoftIconBox(Icons.Default.Language)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    when (currentLang) {
+                        com.ileader.app.data.preferences.AppLanguage.RUSSIAN -> "Язык"
+                        com.ileader.app.data.preferences.AppLanguage.KAZAKH -> "Тіл"
+                        com.ileader.app.data.preferences.AppLanguage.ENGLISH -> "Language"
+                    },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.textPrimary
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                com.ileader.app.data.preferences.AppLanguage.entries.forEach { lang ->
+                    val isSelected = currentLang == lang
+                    LanguageSwitcherOption(
+                        modifier = Modifier.weight(1f),
+                        flag = lang.flag,
+                        label = if (isSelected) lang.label else "",
+                        selected = isSelected
+                    ) {
+                        scope.launch { langPref.setLanguage(lang) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageSwitcherOption(
+    modifier: Modifier,
+    flag: String,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = LocalAppColors.current
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) colors.accentSoft else colors.border.copy(alpha = 0.3f),
+        border = if (selected) BorderStroke(1.5.dp, colors.accent) else null
+    ) {
+        Column(
+            Modifier.padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(flag, fontSize = 20.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (selected) colors.accent else colors.textSecondary,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
 // GRADIENT BUTTON (inspired by InzhuApp & HellaGood)
 // ══════════════════════════════════════════════════════════
 
@@ -1973,26 +2067,29 @@ fun SportCircle(
                 .scale(bgScale)
                 .then(
                     if (selected) Modifier.border(
-                        2.5.dp,
-                        Brush.linearGradient(
-                            listOf(colors.accent, colors.accentDark, colors.accent.copy(alpha = 0.6f))
-                        ),
+                        2.dp,
+                        colors.textSecondary,
                         CircleShape
-                    ) else Modifier.border(1.5.dp, colors.border.copy(alpha = 0.4f), CircleShape)
+                    ) else Modifier.border(1.dp, colors.border.copy(alpha = 0.3f), CircleShape)
                 )
                 .padding(3.dp)
                 .clip(CircleShape)
-                .background(if (selected) colors.accentSoft else colors.cardBg),
+                .background(if (selected) colors.textMuted.copy(alpha = 0.1f) else colors.cardBg),
             contentAlignment = Alignment.Center
         ) {
-            Text(emoji, fontSize = 26.sp)
+            Icon(
+                imageVector = sportIcon(label),
+                contentDescription = label,
+                tint = if (selected) colors.textPrimary else colors.textMuted,
+                modifier = Modifier.size(28.dp)
+            )
         }
         Spacer(Modifier.height(6.dp))
         Text(
             label,
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = if (selected) colors.accent else colors.textMuted,
+            color = if (selected) colors.textPrimary else colors.textMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

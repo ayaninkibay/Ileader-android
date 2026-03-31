@@ -65,7 +65,9 @@ import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.FadeIn
 import com.ileader.app.ui.components.LoadingScreen
 import com.ileader.app.ui.components.formatShortDate
+import com.ileader.app.ui.components.sportColor
 import com.ileader.app.ui.components.sportEmoji
+import com.ileader.app.ui.components.sportIcon
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.SportViewModel
 import com.ileader.app.ui.viewmodels.SportViewModel.SportSubTab
@@ -258,7 +260,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -271,8 +273,9 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
             ) {
                 tournament.sportName?.let { sport ->
                     PillBadge(
-                        text = "${sportEmoji(sport)} $sport",
-                        color = Accent
+                        text = sport,
+                        color = TextMuted,
+                        icon = sportIcon(sport)
                     )
                 }
                 tournament.status?.let { status ->
@@ -386,7 +389,7 @@ private fun PersonCard(person: CommunityProfileDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -542,7 +545,7 @@ private fun ArticleCard(article: ArticleDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -626,18 +629,26 @@ private fun ArticleCard(article: ArticleDto, onClick: () -> Unit) {
 // ═══════════════════════════════════════════════════
 
 @Composable
-private fun PillBadge(text: String, color: Color) {
+private fun PillBadge(text: String, color: Color, icon: ImageVector? = null) {
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = color.copy(alpha = 0.1f)
     ) {
-        Text(
-            text = text,
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(
+                text = text,
+                color = color,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -674,10 +685,10 @@ private fun getStatusLabel(status: String): String = when (status) {
 
 @Composable
 private fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFF3B82F6)
+    "registration_open" -> com.ileader.app.ui.theme.ILeaderColors.Success
+    "in_progress" -> com.ileader.app.ui.theme.ILeaderColors.Info
     "completed" -> TextSecondary
-    "check_in" -> Color(0xFFF59E0B)
+    "check_in" -> com.ileader.app.ui.theme.ILeaderColors.Warning
     else -> TextSecondary
 }
 

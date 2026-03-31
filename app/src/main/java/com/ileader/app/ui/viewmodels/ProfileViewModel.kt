@@ -2,11 +2,14 @@ package com.ileader.app.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ileader.app.data.models.AthleteGoal
+import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ProfileDto
 import com.ileader.app.data.remote.dto.ProfileUpdateDto
 import com.ileader.app.data.remote.dto.UserSportDto
 import com.ileader.app.data.remote.dto.UserSportStatsDto
+import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class ProfileViewModel : ViewModel() {
     private val viewerRepo = ViewerRepository()
+    private val athleteRepo = AthleteRepository()
 
     private val _profile = MutableStateFlow<UiState<ProfileDto>>(UiState.Loading)
     val profile: StateFlow<UiState<ProfileDto>> = _profile
@@ -25,10 +29,13 @@ class ProfileViewModel : ViewModel() {
     private val _userSports = MutableStateFlow<List<UserSportDto>>(emptyList())
     val userSports: StateFlow<List<UserSportDto>> = _userSports
 
+    private val _goals = MutableStateFlow<UiState<List<AthleteGoal>>?>(null)
+    val goals: StateFlow<UiState<List<AthleteGoal>>?> = _goals
+
     private val _saveState = MutableStateFlow<UiState<Unit>?>(null)
     val saveState: StateFlow<UiState<Unit>?> = _saveState
 
-    fun load(userId: String) {
+    fun load(userId: String, role: UserRole? = null) {
         viewModelScope.launch {
             _profile.value = UiState.Loading
 
@@ -51,6 +58,19 @@ class ProfileViewModel : ViewModel() {
 
             _stats.value = statsDeferred.await()
             _userSports.value = sportsDeferred.await()
+
+            // Load goals for athlete
+            if (role == UserRole.ATHLETE) {
+                _goals.value = UiState.Loading
+                launch {
+                    try {
+                        val goalsList = athleteRepo.getGoals(userId)
+                        _goals.value = UiState.Success(goalsList)
+                    } catch (e: Exception) {
+                        _goals.value = UiState.Error(e.message ?: "Ошибка загрузки целей")
+                    }
+                }
+            }
         }
     }
 

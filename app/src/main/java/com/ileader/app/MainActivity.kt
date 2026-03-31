@@ -14,12 +14,15 @@ import androidx.compose.ui.Modifier
 import com.ileader.app.data.DeepLinkHandler
 import com.ileader.app.data.DeepLinkTarget
 import com.ileader.app.data.notifications.NotificationHelper
+import com.ileader.app.data.preferences.AppLanguage
+import com.ileader.app.data.preferences.LanguagePreference
 import com.ileader.app.data.preferences.ThemePreference
 import com.ileader.app.ui.navigation.NavGraph
 import com.ileader.app.ui.theme.ILeaderTheme
 import com.ileader.app.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -37,10 +40,22 @@ class MainActivity : ComponentActivity() {
         _deepLinkTarget.value = DeepLinkHandler.parse(intent)
 
         val themePreference = ThemePreference(this)
+        val languagePreference = LanguagePreference(this)
 
         setContent {
             val themeMode by themePreference.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val appLanguage by languagePreference.language.collectAsState(initial = AppLanguage.RUSSIAN)
             val deepLink by _deepLinkTarget.collectAsState()
+
+            // Apply locale
+            val locale = Locale(appLanguage.code)
+            val config = resources.configuration
+            if (config.locales[0] != locale) {
+                Locale.setDefault(locale)
+                config.setLocale(locale)
+                @Suppress("DEPRECATION")
+                resources.updateConfiguration(config, resources.displayMetrics)
+            }
 
             ILeaderTheme(themeMode = themeMode) {
                 Surface(

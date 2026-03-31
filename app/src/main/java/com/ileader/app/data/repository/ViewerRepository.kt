@@ -249,6 +249,45 @@ class ViewerRepository {
     }
 
     // ══════════════════════════════════════════════════════════
+    // SPORT DETAIL
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getTournamentsBySport(sportId: String, limit: Int = 5): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getTournamentsBySport") {
+        client.from("v_tournament_with_counts")
+            .select {
+                filter { eq("visibility", "public"); eq("sport_id", sportId) }
+                order("start_date", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<TournamentWithCountsDto>()
+    }
+
+    suspend fun getProfilesBySportAndRole(sportId: String, roleName: String, limit: Int = 5): List<CommunityProfileDto> {
+        val roleId = getRoleId(roleName)
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city, bio, athlete_subtype, user_sports!inner(rating, is_primary, sports(id, name))"))
+            {
+                filter { eq("primary_role_id", roleId); eq("status", "active"); eq("user_sports.sport_id", sportId) }
+                limit(limit.toLong())
+            }
+            .decodeList<CommunityProfileDto>()
+    }
+
+    suspend fun getTeamsBySport(sportId: String, limit: Int = 5): List<TeamWithStatsDto> {
+        return client.from("teams")
+            .select(Columns.raw("*, sports(id, name), profiles!owner_id(name), team_members(count)"))
+            { filter { eq("is_active", true); eq("sport_id", sportId) }; limit(limit.toLong()) }
+            .decodeList<TeamWithStatsDto>()
+    }
+
+    suspend fun getArticlesBySport(sportId: String, limit: Int = 5): List<ArticleDto> {
+        return client.from("articles")
+            .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, created_at, profiles!author_id(id, name), sports(id, name)"))
+            { filter { eq("status", "published"); eq("sport_id", sportId) }; order("published_at", Order.DESCENDING); limit(limit.toLong()) }
+            .decodeList<ArticleDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
     // PUBLIC PROFILES
     // ══════════════════════════════════════════════════════════
 

@@ -173,7 +173,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = 0.dp
+                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
@@ -196,7 +196,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = 0.dp
+                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         SectionLabel("Виды спорта")
@@ -208,7 +208,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                             ) {
                                 Text(
                                     "${sportEmoji(sport.sports?.name ?: "")} ${sport.sports?.name ?: ""}",
-                                    fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f)
+                                    fontSize = 14.sp, color = TextSecondary, modifier = Modifier.weight(1f)
                                 )
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
@@ -234,7 +234,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = 0.dp
+                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         SectionLabel("О себе")
@@ -252,7 +252,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = 0.dp
+                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,7 +277,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = 0.dp
+                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

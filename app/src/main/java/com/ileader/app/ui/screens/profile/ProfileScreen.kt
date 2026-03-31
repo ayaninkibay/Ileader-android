@@ -6,48 +6,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.SportsScore
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.ileader.app.data.models.AthleteGoal
+import com.ileader.app.data.models.GoalStatus
 import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.preferences.SportPreference
@@ -71,8 +42,9 @@ import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.LoadingScreen
-import com.ileader.app.ui.components.RoleBadge
 import com.ileader.app.ui.components.ThemeSwitcherCard
+import com.ileader.app.ui.theme.ILeaderColors
+import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.ProfileViewModel
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.launch
@@ -83,7 +55,7 @@ private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
 private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
-private val Border: Color @Composable get() = com.ileader.app.ui.theme.LocalAppColors.current.border
+private val Border: Color @Composable get() = LocalAppColors.current.border
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,15 +70,16 @@ fun ProfileScreen(
     val profileState by vm.profile.collectAsState()
     val stats by vm.stats.collectAsState()
     val userSports by vm.userSports.collectAsState()
+    val goalsState by vm.goals.collectAsState()
 
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showSportSheet by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
 
-    LaunchedEffect(user.id) { vm.load(user.id) }
+    LaunchedEffect(user.id) { vm.load(user.id, user.role) }
     LaunchedEffect(Unit) { started = true }
 
-    // Avatar scale-in animation
+    // Animations
     val avatarScale by animateFloatAsState(
         targetValue = if (started) 1f else 0.7f,
         animationSpec = tween(500, delayMillis = 100, easing = EaseOutBack),
@@ -117,7 +90,6 @@ fun ProfileScreen(
         animationSpec = tween(400, delayMillis = 100),
         label = "avatarAlpha"
     )
-    // Stats card animation
     val statsAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
         animationSpec = tween(400, delayMillis = 250),
@@ -128,7 +100,6 @@ fun ProfileScreen(
         animationSpec = tween(400, delayMillis = 250, easing = EaseOutBack),
         label = "statsOffset"
     )
-    // Quick actions animation
     val actionsAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
         animationSpec = tween(400, delayMillis = 400),
@@ -139,7 +110,6 @@ fun ProfileScreen(
         animationSpec = tween(400, delayMillis = 400, easing = EaseOutBack),
         label = "actionsOffset"
     )
-    // Theme + sign out animation
     val bottomAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
         animationSpec = tween(400, delayMillis = 550),
@@ -151,9 +121,11 @@ fun ProfileScreen(
         label = "bottomOffset"
     )
 
+    val isDark = DarkTheme.isDark
+
     when (val state = profileState) {
         is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorScreen(message = state.message, onRetry = { vm.load(user.id) })
+        is UiState.Error -> ErrorScreen(message = state.message, onRetry = { vm.load(user.id, user.role) })
         is UiState.Success -> {
             val profile = state.data
 
@@ -163,28 +135,81 @@ fun ProfileScreen(
                     .background(Bg)
                     .verticalScroll(rememberScrollState())
             ) {
-                // ── Gradient header with overlapping avatar ──
+                // ── Big gradient header (inzhu-style) ──
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    // Gradient background
+                    // Gradient bg
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp)
+                            .height(200.dp)
                             .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFFE53535), Color(0xFFFF6B6B))
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        ILeaderColors.DarkRed,
+                                        ILeaderColors.PrimaryRed,
+                                        Color(0xFFFF8A80)
+                                    ),
+                                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                    end = androidx.compose.ui.geometry.Offset(
+                                        Float.POSITIVE_INFINITY,
+                                        Float.POSITIVE_INFINITY
+                                    )
                                 ),
-                                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                                shape = RoundedCornerShape(
+                                    bottomStart = 28.dp,
+                                    bottomEnd = 28.dp
+                                )
                             )
                             .statusBarsPadding()
-                    )
+                    ) {
+                        // Top nav: Settings + Notifications
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Settings icon
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.15f))
+                                    .clickable { /* settings */ },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            // Notification bell
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .clickable { onNotifications() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    null,
+                                    tint = ILeaderColors.DarkRed,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
 
-                    // Avatar overlapping
+                    // Avatar overlapping header
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(top = 60.dp)
+                            .padding(top = 90.dp)
                             .graphicsLayer {
                                 scaleX = avatarScale
                                 scaleY = avatarScale
@@ -192,72 +217,127 @@ fun ProfileScreen(
                             },
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Avatar with white ring
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(CardBg)
-                                .border(4.dp, CardBg, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (profile.avatarUrl != null) {
-                                AsyncImage(
-                                    model = profile.avatarUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(92.dp)
-                                        .clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(92.dp)
-                                        .clip(CircleShape)
-                                        .background(Accent),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = (profile.name ?: user.name).take(2).uppercase(),
-                                        fontSize = 32.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
+                        // Avatar with rings (inzhu style)
+                        Box(contentAlignment = Alignment.Center) {
+                            // Outer ring
+                            Box(
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Transparent)
+                                    .border(
+                                        2.dp,
+                                        Color.White.copy(alpha = 0.15f),
+                                        CircleShape
                                     )
+                            )
+                            // Middle ring
+                            Box(
+                                modifier = Modifier
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Transparent)
+                                    .border(
+                                        1.5.dp,
+                                        Color.White.copy(alpha = 0.1f),
+                                        CircleShape
+                                    )
+                            )
+                            // Avatar circle
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(CardBg)
+                                    .border(3.dp, CardBg, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (profile.avatarUrl != null) {
+                                    AsyncImage(
+                                        model = profile.avatarUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(94.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(94.dp)
+                                            .clip(CircleShape)
+                                            .background(Accent),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = (profile.name ?: user.name)
+                                                .take(2).uppercase(),
+                                            fontSize = 32.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(14.dp))
 
                         // Name
                         Text(
                             text = profile.name ?: user.name,
-                            fontSize = 22.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
                             textAlign = TextAlign.Center
                         )
 
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
 
-                        // Role + city
+                        // Email
+                        Text(
+                            text = user.email,
+                            fontSize = 14.sp,
+                            color = TextSecondary
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Role badge + city
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RoleBadge(user.role)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = Accent.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = user.role.displayName,
+                                    modifier = Modifier.padding(
+                                        horizontal = 14.dp,
+                                        vertical = 5.dp
+                                    ),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Accent
+                                )
+                            }
                             if (profile.city != null) {
-                                Text(profile.city, fontSize = 13.sp, color = TextMuted)
+                                Text(
+                                    profile.city,
+                                    fontSize = 13.sp,
+                                    color = TextMuted
+                                )
                             }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(24.dp))
 
-                // ── Stats card ──
-                Surface(
+                // ── Stats row (inzhu style — with icons) ──
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -265,67 +345,140 @@ fun ProfileScreen(
                             alpha = statsAlpha
                             translationY = statsOffset
                         },
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg,
-                    shadowElevation = 0.dp
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
+                    val primaryStats = stats.firstOrNull()
+                    when (user.role) {
+                        UserRole.ATHLETE -> {
+                            StatCard(
+                                icon = Icons.Default.EmojiEvents,
+                                value = "${primaryStats?.tournaments ?: 0}",
+                                label = "Турниры",
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatCard(
+                                icon = Icons.Default.MilitaryTech,
+                                value = "${primaryStats?.wins ?: 0}",
+                                label = "Победы",
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatCard(
+                                icon = Icons.Default.Leaderboard,
+                                value = "${primaryStats?.rating ?: 1000}",
+                                label = "Рейтинг",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        UserRole.TRAINER -> {
+                            StatCard(
+                                icon = Icons.Default.EmojiEvents,
+                                value = "${primaryStats?.tournaments ?: 0}",
+                                label = "Турниры",
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatCard(
+                                icon = Icons.Default.Leaderboard,
+                                value = "${primaryStats?.rating ?: 1000}",
+                                label = "Рейтинг",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        UserRole.REFEREE, UserRole.ORGANIZER -> {
+                            StatCard(
+                                icon = Icons.Default.EmojiEvents,
+                                value = "${primaryStats?.tournaments ?: 0}",
+                                label = "Турниры",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        else -> {
+                            StatCard(
+                                icon = Icons.Default.SportsScore,
+                                value = "${userSports.size}",
+                                label = "Виды спорта",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // ── Goals section (athlete only) ──
+                if (user.role == UserRole.ATHLETE && goalsState != null) {
+                    Spacer(Modifier.height(16.dp))
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                            .padding(horizontal = 16.dp)
+                            .graphicsLayer {
+                                alpha = statsAlpha
+                                translationY = statsOffset
+                            },
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        val primaryStats = stats.firstOrNull()
-                        when (user.role) {
-                            UserRole.ATHLETE -> {
-                                StatItem("Турниры", "${primaryStats?.tournaments ?: 0}")
-                                VerticalDivider()
-                                StatItem("Победы", "${primaryStats?.wins ?: 0}")
-                                VerticalDivider()
-                                StatItem("Рейтинг", "${primaryStats?.rating ?: 1000}")
+                        Text(
+                            "Мои цели",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        when (val gs = goalsState) {
+                            is UiState.Success -> {
+                                if (gs.data.isEmpty()) {
+                                    Text(
+                                        "Нет активных целей",
+                                        fontSize = 13.sp,
+                                        color = TextMuted
+                                    )
+                                } else {
+                                    gs.data.forEach { goal ->
+                                        GoalCard(goal)
+                                    }
+                                }
                             }
-                            UserRole.TRAINER -> {
-                                StatItem("Турниры", "${primaryStats?.tournaments ?: 0}")
-                                VerticalDivider()
-                                StatItem("Рейтинг", "${primaryStats?.rating ?: 1000}")
-                            }
-                            UserRole.REFEREE, UserRole.ORGANIZER -> {
-                                StatItem("Турниры", "${primaryStats?.tournaments ?: 0}")
+                            is UiState.Error -> {
+                                Text(gs.message, fontSize = 13.sp, color = Accent)
                             }
                             else -> {
-                                StatItem("Виды спорта", "${userSports.size}")
+                                Text("Загрузка целей...", fontSize = 13.sp, color = TextMuted)
                             }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
-                // ── Quick Actions ──
-                Surface(
+                // ── Quick Actions (inzhu CustomButtonView style) ──
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .graphicsLayer {
                             alpha = actionsAlpha
                             translationY = actionsOffset
                         },
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg,
-                    shadowElevation = 0.dp
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Column {
-                        ActionRow(Icons.Default.Edit, "Редактировать профиль", onClick = onEditProfile)
-                        ActionDivider()
-                        ActionRow(Icons.Default.ConfirmationNumber, "Мои билеты", onClick = onTickets)
-                        ActionDivider()
-                        ActionRow(Icons.Default.Notifications, "Уведомления", onClick = onNotifications)
-                        ActionDivider()
-                        ActionRow(Icons.Default.SportsScore, "Виды спорта", onClick = { showSportSheet = true })
-                    }
+                    ActionCard(
+                        Icons.Default.Edit,
+                        "Редактировать профиль",
+                        onClick = onEditProfile
+                    )
+                    ActionCard(
+                        Icons.Default.ConfirmationNumber,
+                        "Мои билеты",
+                        onClick = onTickets
+                    )
+                    ActionCard(
+                        Icons.Default.Notifications,
+                        "Уведомления",
+                        onClick = onNotifications
+                    )
+                    ActionCard(
+                        Icons.Default.SportsScore,
+                        "Виды спорта",
+                        onClick = { showSportSheet = true }
+                    )
                 }
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
 
                 // Theme switcher
                 Box(
@@ -337,6 +490,20 @@ fun ProfileScreen(
                         }
                 ) {
                     ThemeSwitcherCard()
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                // Language switcher
+                Box(
+                    Modifier
+                        .padding(horizontal = 16.dp)
+                        .graphicsLayer {
+                            alpha = bottomAlpha
+                            translationY = bottomOffset
+                        }
+                ) {
+                    com.ileader.app.ui.components.LanguageSwitcherCard()
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -353,23 +520,32 @@ fun ProfileScreen(
                         .clickable { showSignOutDialog = true },
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = 0.dp
+                    shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ExitToApp,
-                            null,
-                            tint = Color(0xFFEF4444),
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(ILeaderColors.Error.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                null,
+                                tint = ILeaderColors.Error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Spacer(Modifier.width(14.dp))
                         Text(
                             "Выйти",
                             fontSize = 15.sp,
-                            color = Color(0xFFEF4444),
+                            fontWeight = FontWeight.Medium,
+                            color = ILeaderColors.Error,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -388,7 +564,7 @@ fun ProfileScreen(
             text = { Text("Вы уверены, что хотите выйти?", color = TextSecondary) },
             confirmButton = {
                 TextButton(onClick = { showSignOutDialog = false; onSignOut() }) {
-                    Text("Выйти", color = Color(0xFFEF4444))
+                    Text("Выйти", color = ILeaderColors.Error)
                 }
             },
             dismissButton = {
@@ -405,51 +581,175 @@ fun ProfileScreen(
 }
 
 // ══════════════════════════════════════════════════════════
-// Components
+// Stat Card (inzhu style — individual cards with icons)
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = 12.sp, color = TextMuted)
+private fun StatCard(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 16.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                icon, null,
+                tint = Accent,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                value,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                label,
+                fontSize = 11.sp,
+                color = TextMuted,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
-@Composable
-private fun VerticalDivider() {
-    Box(
-        modifier = Modifier
-            .width(1.dp)
-            .height(36.dp)
-            .background(Border)
-    )
-}
+// ══════════════════════════════════════════════════════════
+// Action Card (inzhu CustomButtonView style)
+// ══════════════════════════════════════════════════════════
 
 @Composable
-private fun ActionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Row(
+private fun ActionCard(icon: ImageVector, label: String, onClick: () -> Unit) {
+    val isDark = DarkTheme.isDark
+    val colors = LocalAppColors.current
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp
     ) {
-        Icon(icon, null, tint = TextSecondary, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(14.dp))
-        Text(label, fontSize = 15.sp, color = TextPrimary, modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(colors.accentSoft),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Text(
+                label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                null,
+                tint = TextMuted,
+                modifier = Modifier.size(16.dp)
+            )
+        }
     }
 }
 
+// ══════════════════════════════════════════════════════════
+// Goal Card
+// ══════════════════════════════════════════════════════════
+
 @Composable
-private fun ActionDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        thickness = 0.5.dp,
-        color = Border
-    )
+private fun GoalCard(goal: AthleteGoal) {
+    val isDark = DarkTheme.isDark
+    val progress = if (goal.targetValue > 0) {
+        (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f)
+    } else 0f
+
+    val statusColor = when (goal.status) {
+        GoalStatus.COMPLETED -> Color(0xFF22C55E)
+        GoalStatus.FAILED -> Color(0xFFEF4444)
+        GoalStatus.ACTIVE -> Accent
+    }
+
+    val progressColor = when (goal.status) {
+        GoalStatus.COMPLETED -> Color(0xFF22C55E)
+        GoalStatus.FAILED -> Color(0xFFEF4444)
+        GoalStatus.ACTIVE -> Color(0xFF3B82F6)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    goal.title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = statusColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        goal.status.displayName,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = statusColor
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = progressColor,
+                trackColor = progressColor.copy(alpha = 0.12f),
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                "${goal.currentValue}/${goal.targetValue} ${goal.type.displayName.lowercase()}",
+                fontSize = 12.sp,
+                color = TextSecondary
+            )
+        }
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -488,7 +788,12 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text("Виды спорта", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(
+                "Виды спорта",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary
+            )
             Text("Выберите 1-3 вида спорта", fontSize = 13.sp, color = TextMuted)
             Spacer(Modifier.height(16.dp))
 
@@ -506,13 +811,18 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
                                 else if (selectedIds.size < 3) selectedIds.add(sport.id)
                             },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) Accent.copy(alpha = 0.1f) else Color.Transparent
+                        color = if (isSelected) Accent.copy(alpha = 0.1f)
+                        else Color.Transparent
                     ) {
                         Text(
                             sport.name,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            modifier = Modifier.padding(
+                                horizontal = 14.dp,
+                                vertical = 12.dp
+                            ),
                             fontSize = 15.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            fontWeight = if (isSelected) FontWeight.SemiBold
+                            else FontWeight.Normal,
                             color = if (isSelected) Accent else TextPrimary
                         )
                     }
@@ -525,9 +835,12 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
                         .fillMaxWidth()
                         .clickable(enabled = selectedIds.isNotEmpty()) {
                             scope.launch {
-                                val selected = allSports.filter { selectedIds.contains(it.id) }
+                                val selected =
+                                    allSports.filter { selectedIds.contains(it.id) }
                                 if (selected.isNotEmpty()) {
-                                    sportPref.setSports(selected.map { it.id }, selected.map { it.name })
+                                    sportPref.setSports(
+                                        selected.map { it.id },
+                                        selected.map { it.name })
                                 }
                                 onDismiss()
                             }
@@ -537,7 +850,9 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
                 ) {
                     Text(
                         "Сохранить",
-                        modifier = Modifier.padding(vertical = 14.dp).fillMaxWidth(),
+                        modifier = Modifier
+                            .padding(vertical = 14.dp)
+                            .fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,

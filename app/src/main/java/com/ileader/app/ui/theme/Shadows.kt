@@ -65,15 +65,27 @@ fun Modifier.coloredShadow(
 }
 
 /**
- * Card shadow — disabled (flat design).
+ * Card shadow — subtle in light mode (inzhu style), flat in dark mode.
  */
 fun Modifier.cardShadow(
     isDark: Boolean = false
-): Modifier = this
+): Modifier = if (isDark) this else this.coloredShadow(
+    color = Color.Black.copy(alpha = 0.06f),
+    blurRadius = 8.dp,
+    offsetX = 0.dp,
+    offsetY = 3.dp,
+    cornerRadius = 16.dp
+)
 
 /**
- * Floating element shadow — disabled (flat design).
+ * Floating element shadow — subtle in light mode, flat in dark mode.
  */
 fun Modifier.floatingShadow(
     isDark: Boolean = false
-): Modifier = this
+): Modifier = if (isDark) this else this.coloredShadow(
+    color = Color.Black.copy(alpha = 0.1f),
+    blurRadius = 12.dp,
+    offsetX = 0.dp,
+    offsetY = 4.dp,
+    cornerRadius = 20.dp
+)

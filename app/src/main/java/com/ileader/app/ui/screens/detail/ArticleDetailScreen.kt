@@ -178,7 +178,7 @@ fun ArticleDetailScreen(
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = CardBg,
-                                shadowElevation = 0.dp
+                                shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -217,14 +217,14 @@ fun ArticleDetailScreen(
                                     article.sports?.let { sport ->
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = AccentSoft
+                                            color = TextMuted.copy(alpha = 0.1f)
                                         ) {
                                             Text(
                                                 "${sportEmoji(sport.name)} ${sport.name}",
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Medium,
-                                                color = Accent
+                                                color = TextSecondary
                                             )
                                         }
                                     }

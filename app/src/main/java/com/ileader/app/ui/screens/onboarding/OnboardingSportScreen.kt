@@ -1,18 +1,24 @@
 package com.ileader.app.ui.screens.onboarding
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,9 +29,12 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.ErrorScreen
-import com.ileader.app.ui.components.FadeIn
+import com.ileader.app.ui.components.GradientButton
 import com.ileader.app.ui.components.LoadingScreen
 import com.ileader.app.ui.components.sportEmoji
+import com.ileader.app.ui.theme.DarkAppColors
+import com.ileader.app.ui.theme.ILeaderColors
+import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.OnboardingViewModel
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -41,10 +50,45 @@ fun OnboardingSportScreen(
     onComplete: () -> Unit,
     viewModel: OnboardingViewModel = viewModel()
 ) {
+    val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
     val sportsState by viewModel.sportsState.collectAsState()
     val selectedIds by viewModel.selectedSportIds.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val context = LocalContext.current
+
+    // Entrance animations
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+
+    val titleAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 100),
+        label = "titleAlpha"
+    )
+    val titleOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(700, delayMillis = 100, easing = EaseOutBack),
+        label = "titleOffset"
+    )
+
+    val buttonAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 800),
+        label = "buttonAlpha"
+    )
+
+    // Background glow
+    val infiniteTransition = rememberInfiniteTransition(label = "onboardBg")
+    val glowShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowShift"
+    )
 
     Box(
         modifier = Modifier
@@ -52,6 +96,27 @@ fun OnboardingSportScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
+        // Subtle animated background
+        val bgAlpha = if (isDark) 0.08f else 0.04f
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                color = ILeaderColors.PrimaryRed.copy(alpha = bgAlpha),
+                radius = size.width * 0.35f,
+                center = Offset(
+                    size.width * (0.2f + glowShift * 0.3f),
+                    size.height * 0.15f
+                )
+            )
+            drawCircle(
+                color = ILeaderColors.DarkRed.copy(alpha = bgAlpha * 0.5f),
+                radius = size.width * 0.25f,
+                center = Offset(
+                    size.width * (0.85f - glowShift * 0.2f),
+                    size.height * 0.8f
+                )
+            )
+        }
+
         when (val state = sportsState) {
             is UiState.Loading -> LoadingScreen()
             is UiState.Error -> ErrorScreen(
@@ -59,42 +124,92 @@ fun OnboardingSportScreen(
                 onRetry = { viewModel.retry() }
             )
             is UiState.Success -> {
-                FadeIn(visible = true, delayMs = 0) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Spacer(Modifier.height(48.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(Modifier.height(48.dp))
 
-                        Text(
-                            text = "Выберите вид спорта",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            textAlign = TextAlign.Center
-                        )
+                    // Title with animation
+                    Text(
+                        text = "Выберите вид спорта",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = (-0.5).sp,
+                        modifier = Modifier.graphicsLayer {
+                            alpha = titleAlpha
+                            translationY = titleOffset
+                        }
+                    )
 
-                        Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
-                        Text(
-                            text = "Выберите 1-3 вида спорта",
-                            fontSize = 16.sp,
-                            color = TextSecondary,
-                            textAlign = TextAlign.Center
-                        )
+                    Text(
+                        text = "Выберите 1-3 вида спорта",
+                        fontSize = 15.sp,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.graphicsLayer {
+                            alpha = titleAlpha
+                            translationY = titleOffset
+                        }
+                    )
 
-                        Spacer(Modifier.height(32.dp))
-
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 16.dp)
+                    // Selected count indicator
+                    if (selectedIds.isNotEmpty()) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Accent.copy(alpha = 0.12f)
                         ) {
-                            items(state.data) { sport ->
+                            Text(
+                                text = "Выбрано: ${selectedIds.size}/3",
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Accent
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(28.dp))
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        itemsIndexed(state.data) { index, sport ->
+                            val delay = (index * 80).coerceAtMost(500)
+                            var itemVisible by remember { mutableStateOf(false) }
+                            LaunchedEffect(Unit) {
+                                kotlinx.coroutines.delay((300 + delay).toLong())
+                                itemVisible = true
+                            }
+                            val itemAlpha by animateFloatAsState(
+                                targetValue = if (itemVisible) 1f else 0f,
+                                animationSpec = tween(400),
+                                label = "sportAlpha$index"
+                            )
+                            val itemScale by animateFloatAsState(
+                                targetValue = if (itemVisible) 1f else 0.8f,
+                                animationSpec = tween(400, easing = EaseOutBack),
+                                label = "sportScale$index"
+                            )
+
+                            Box(
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = itemAlpha
+                                    scaleX = itemScale
+                                    scaleY = itemScale
+                                }
+                            ) {
                                 SportCard(
                                     sport = sport,
                                     isSelected = sport.id in selectedIds,
@@ -102,41 +217,24 @@ fun OnboardingSportScreen(
                                 )
                             }
                         }
+                    }
 
-                        Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                        Button(
+                    Box(
+                        modifier = Modifier.graphicsLayer { alpha = buttonAlpha }
+                    ) {
+                        GradientButton(
+                            text = if (isSaving) "" else "Продолжить",
                             onClick = {
                                 viewModel.saveSports(userId, context, onComplete)
                             },
                             enabled = selectedIds.isNotEmpty() && !isSaving,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Accent,
-                                disabledContainerColor = Accent.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            if (isSaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    "Продолжить",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(24.dp))
+                            loading = isSaving
+                        )
                     }
+
+                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -149,47 +247,96 @@ private fun SportCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val colors = LocalAppColors.current
+
+    // Animate selection
     val borderColor by animateColorAsState(
         targetValue = if (isSelected) Accent else Border,
-        animationSpec = tween(200),
+        animationSpec = tween(250),
         label = "borderColor"
     )
     val bgColor by animateColorAsState(
         targetValue = if (isSelected) Accent.copy(alpha = 0.12f) else CardBg,
-        animationSpec = tween(200),
+        animationSpec = tween(250),
         label = "bgColor"
     )
+    val selectScale by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "selectScale"
+    )
+
+    // Tap bounce
+    var justTapped by remember { mutableStateOf(false) }
+    val tapScale by animateFloatAsState(
+        targetValue = if (justTapped) 0.93f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "tapScale"
+    )
+    LaunchedEffect(justTapped) {
+        if (justTapped) {
+            kotlinx.coroutines.delay(120)
+            justTapped = false
+        }
+    }
 
     Surface(
-        onClick = onClick,
+        onClick = {
+            justTapped = true
+            onClick()
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp),
-        shape = RoundedCornerShape(14.dp),
+            .height(110.dp)
+            .scale(tapScale * selectScale),
+        shape = RoundedCornerShape(16.dp),
         color = bgColor,
         border = BorderStroke(
             width = if (isSelected) 2.dp else 1.dp,
             color = borderColor
         )
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = sportEmoji(sport.name),
-                fontSize = 32.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = sport.name,
-                fontSize = 14.sp,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                color = if (isSelected) Accent else TextPrimary,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Checkmark for selected
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Accent,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-8).dp, y = 8.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = sportEmoji(sport.name),
+                    fontSize = 36.sp
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = sport.name,
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Accent else TextPrimary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

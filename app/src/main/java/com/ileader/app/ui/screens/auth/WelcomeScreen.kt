@@ -1,6 +1,7 @@
 package com.ileader.app.ui.screens.auth
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -17,8 +18,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,6 +36,34 @@ import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.random.Random
+
+// ══════════════════════════════════════════════════════════
+// Floating particles data
+// ══════════════════════════════════════════════════════════
+
+private data class Particle(
+    val startX: Float,
+    val startY: Float,
+    val radius: Float,
+    val speed: Float,
+    val alpha: Float,
+    val drift: Float
+)
+
+private fun generateParticles(count: Int): List<Particle> {
+    val rng = Random(42)
+    return List(count) {
+        Particle(
+            startX = rng.nextFloat(),
+            startY = rng.nextFloat(),
+            radius = rng.nextFloat() * 2.5f + 1f,
+            speed = rng.nextFloat() * 0.3f + 0.1f,
+            alpha = rng.nextFloat() * 0.25f + 0.05f,
+            drift = (rng.nextFloat() - 0.5f) * 0.15f
+        )
+    }
+}
 
 @Composable
 fun WelcomeScreen(
@@ -40,19 +71,20 @@ fun WelcomeScreen(
     onNavigateToRegister: () -> Unit
 ) {
     val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
 
-    // Entrance animations
+    // ── Entrance animations ──
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
     val logoAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000, delayMillis = 200),
+        animationSpec = tween(durationMillis = 900, delayMillis = 300),
         label = "logoAlpha"
     )
 
     val logoScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.8f,
+        targetValue = if (started) 1f else 0.5f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -60,34 +92,64 @@ fun WelcomeScreen(
         label = "logoScale"
     )
 
-    val buttonsAlpha by animateFloatAsState(
+    val titleOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 50f,
+        animationSpec = tween(durationMillis = 800, delayMillis = 500, easing = EaseOutBack),
+        label = "titleOffset"
+    )
+
+    val titleAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 800, delayMillis = 700),
-        label = "buttonsAlpha"
+        animationSpec = tween(durationMillis = 700, delayMillis = 500),
+        label = "titleAlpha"
+    )
+
+    val subtitleAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, delayMillis = 700),
+        label = "subtitleAlpha"
     )
 
     val statsAlpha by animateFloatAsState(
         targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 600, delayMillis = 500),
+        animationSpec = tween(durationMillis = 600, delayMillis = 900),
         label = "statsAlpha"
     )
 
-    // Infinite animations
+    val statsOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(durationMillis = 700, delayMillis = 900, easing = FastOutSlowInEasing),
+        label = "statsOffset"
+    )
+
+    val buttonsAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(durationMillis = 600, delayMillis = 1100),
+        label = "buttonsAlpha"
+    )
+
+    val buttonsOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 40f,
+        animationSpec = tween(durationMillis = 700, delayMillis = 1100, easing = FastOutSlowInEasing),
+        label = "buttonsOffset"
+    )
+
+    // ── Infinite animations ──
     val infiniteTransition = rememberInfiniteTransition(label = "welcome")
 
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.06f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = FastOutSlowInEasing),
+            animation = tween(3000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseScale"
     )
 
     val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.5f,
+        initialValue = 0.15f,
+        targetValue = 0.45f,
         animationSpec = infiniteRepeatable(
             animation = tween(3000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -115,10 +177,71 @@ fun WelcomeScreen(
         label = "secondOrbit"
     )
 
+    // Background gradient shift
+    val gradientOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gradientOffset"
+    )
+
+    // Particle time
+    val particleTime by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "particleTime"
+    )
+
+    val particles = remember { generateParticles(30) }
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
+        // ── Animated background gradient ──
+        val bgGradientAlpha = if (isDark) 0.12f else 0.06f
+        Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val w = size.width
+            val h = size.height
+
+            // Soft gradient blobs
+            val blob1X = w * (0.2f + gradientOffset * 0.3f)
+            val blob1Y = h * (0.15f + gradientOffset * 0.1f)
+            val blob2X = w * (0.8f - gradientOffset * 0.2f)
+            val blob2Y = h * (0.7f + gradientOffset * 0.1f)
+
+            drawCircle(
+                color = ILeaderColors.PrimaryRed.copy(alpha = bgGradientAlpha),
+                radius = w * 0.45f,
+                center = Offset(blob1X, blob1Y)
+            )
+            drawCircle(
+                color = ILeaderColors.DarkRed.copy(alpha = bgGradientAlpha * 0.7f),
+                radius = w * 0.35f,
+                center = Offset(blob2X, blob2Y)
+            )
+
+            // Floating particles
+            val particleColor = ILeaderColors.PrimaryRed
+            particles.forEach { p ->
+                val y = ((p.startY - particleTime * p.speed) % 1f + 1f) % 1f
+                val x = p.startX + sin(y * Math.PI * 2 + p.drift * 10).toFloat() * 0.03f
+                drawCircle(
+                    color = particleColor.copy(alpha = p.alpha),
+                    radius = p.radius.dp.toPx(),
+                    center = Offset(x * w, y * h)
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -127,13 +250,16 @@ fun WelcomeScreen(
                 .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(0.25f))
+            Spacer(modifier = Modifier.weight(0.22f))
 
-            // Logo + orbiting icons
+            // ── Logo + orbiting icons ──
             Box(
                 modifier = Modifier
-                    .alpha(logoAlpha)
-                    .scale(logoScale),
+                    .graphicsLayer {
+                        alpha = logoAlpha
+                        scaleX = logoScale
+                        scaleY = logoScale
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 // Outer orbit ring
@@ -155,9 +281,9 @@ fun WelcomeScreen(
                     Box(
                         modifier = Modifier
                             .offset(x = radius * offsetX, y = radius * offsetY)
-                            .size(36.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
-                            .background(colors.cardBg.copy(alpha = 0.8f))
+                            .background(colors.cardBg.copy(alpha = 0.85f))
                             .border(
                                 width = 0.5.dp,
                                 color = colors.border.copy(alpha = 0.4f),
@@ -168,7 +294,7 @@ fun WelcomeScreen(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = ILeaderColors.PrimaryRed.copy(alpha = 0.5f),
+                            tint = ILeaderColors.PrimaryRed.copy(alpha = 0.6f),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -198,19 +324,29 @@ fun WelcomeScreen(
                 }
 
                 // Main logo with glow
-                val isDark = colors.bg == DarkAppColors.bg
                 val logoRes = if (isDark) R.drawable.logo_dark else R.drawable.logo_light
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(contentAlignment = Alignment.Center) {
+                        // Outer glow
                         Box(
                             modifier = Modifier
-                                .size(60.dp)
-                                .blur(20.dp)
+                                .size(90.dp)
+                                .blur(30.dp)
                                 .background(
-                                    ILeaderColors.PrimaryRed.copy(alpha = glowAlpha * 0.4f),
+                                    ILeaderColors.PrimaryRed.copy(alpha = glowAlpha * 0.5f),
+                                    CircleShape
+                                )
+                        )
+                        // Inner glow ring
+                        Box(
+                            modifier = Modifier
+                                .size(70.dp)
+                                .blur(15.dp)
+                                .background(
+                                    ILeaderColors.LightRed.copy(alpha = glowAlpha * 0.3f),
                                     CircleShape
                                 )
                         )
@@ -222,44 +358,53 @@ fun WelcomeScreen(
                                 .scale(pulseScale)
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    Text(
-                        text = "iLeader",
-                        fontSize = 46.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = colors.textPrimary,
-                        letterSpacing = (-1.5).sp
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "СПОРТИВНАЯ ПЛАТФОРМА",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary,
-                        letterSpacing = 4.sp
-                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Stats row
+            // ── Title ──
+            Text(
+                text = "iLeader",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+                letterSpacing = (-1.5).sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = titleAlpha
+                    translationY = titleOffset
+                }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "СПОРТИВНАЯ ПЛАТФОРМА",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = colors.textSecondary,
+                letterSpacing = 5.sp,
+                modifier = Modifier.alpha(subtitleAlpha)
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // ── Stats row ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(statsAlpha)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.cardBg)
+                    .graphicsLayer {
+                        alpha = statsAlpha
+                        translationY = statsOffset
+                    }
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(colors.cardBg.copy(alpha = 0.8f))
                     .border(
                         width = 0.5.dp,
-                        color = colors.border.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(16.dp)
+                        color = colors.border.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(18.dp)
                     )
-                    .padding(vertical = 20.dp, horizontal = 8.dp),
+                    .padding(vertical = 22.dp, horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -270,25 +415,31 @@ fun WelcomeScreen(
                 WelcomeStatItem(value = "50+", label = "Турниров")
             }
 
-            Spacer(modifier = Modifier.weight(0.35f))
+            Spacer(modifier = Modifier.weight(0.3f))
 
-            // Tagline
+            // ── Tagline ──
             Text(
                 text = "Турниры, команды, результаты —\nвсё в одном месте",
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 color = colors.textSecondary,
                 textAlign = TextAlign.Center,
-                lineHeight = 21.sp,
-                modifier = Modifier.alpha(buttonsAlpha)
+                lineHeight = 22.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = buttonsAlpha
+                    translationY = buttonsOffset
+                }
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Buttons
+            // ── Buttons ──
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(buttonsAlpha),
+                    .graphicsLayer {
+                        alpha = buttonsAlpha
+                        translationY = buttonsOffset
+                    },
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 ILeaderButton(
@@ -317,12 +468,12 @@ private fun WelcomeStatItem(value: String, label: String) {
     ) {
         Text(
             text = value,
-            fontSize = 20.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
             color = ILeaderColors.PrimaryRed,
             letterSpacing = (-0.5).sp
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             fontSize = 11.sp,

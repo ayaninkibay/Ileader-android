@@ -2,6 +2,7 @@ package com.ileader.app.ui.screens.auth
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,10 +19,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -32,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.ui.components.ILeaderButton
 import com.ileader.app.ui.components.ILeaderInputField
+import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 
@@ -46,15 +51,83 @@ fun LoginScreen(
     onClearError: () -> Unit
 ) {
     val colors = LocalAppColors.current
+    val isDark = colors.bg == DarkAppColors.bg
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
+    // ── Entrance animations ──
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+
+    val backAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(400, delayMillis = 100),
+        label = "backAlpha"
+    )
+
+    val headerAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 200),
+        label = "headerAlpha"
+    )
+    val headerOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(600, delayMillis = 200, easing = EaseOutBack),
+        label = "headerOffset"
+    )
+
+    val formAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 400),
+        label = "formAlpha"
+    )
+    val formOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 40f,
+        animationSpec = tween(600, delayMillis = 400, easing = FastOutSlowInEasing),
+        label = "formOffset"
+    )
+
+    val demoAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 600),
+        label = "demoAlpha"
+    )
+    val demoOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(600, delayMillis = 600, easing = FastOutSlowInEasing),
+        label = "demoOffset"
+    )
+
+    // ── Background glow ──
+    val infiniteTransition = rememberInfiniteTransition(label = "loginBg")
+    val glowShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowShift"
+    )
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Subtle background glow
+        val bgAlpha = if (isDark) 0.08f else 0.04f
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                color = ILeaderColors.PrimaryRed.copy(alpha = bgAlpha),
+                radius = size.width * 0.4f,
+                center = Offset(
+                    size.width * (0.8f - glowShift * 0.3f),
+                    size.height * (0.15f + glowShift * 0.1f)
+                )
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -66,7 +139,9 @@ fun LoginScreen(
             // Back button
             IconButton(
                 onClick = onNavigateBack,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .graphicsLayer { alpha = backAlpha }
             ) {
                 Box(
                     modifier = Modifier
@@ -88,7 +163,14 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             // Header
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = headerAlpha
+                        translationY = headerOffset
+                    }
+            ) {
                 Box(
                     modifier = Modifier
                         .size(52.dp)
@@ -134,7 +216,12 @@ fun LoginScreen(
 
             // Form card
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = formAlpha
+                        translationY = formOffset
+                    },
                 shape = RoundedCornerShape(20.dp),
                 color = colors.cardBg,
                 border = ButtonDefaults.outlinedButtonBorder(true).copy(
@@ -274,46 +361,53 @@ fun LoginScreen(
             if (onDemoLogin != null) {
                 Spacer(modifier = Modifier.height(28.dp))
 
-                Text(
-                    text = "Быстрый вход (демо)",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
-                )
+                Column(
+                    modifier = Modifier.graphicsLayer {
+                        alpha = demoAlpha
+                        translationY = demoOffset
+                    }
+                ) {
+                    Text(
+                        text = "Быстрый вход (демо)",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(start = 2.dp, bottom = 10.dp)
+                    )
 
-                val demoRoles = listOf(
-                    Triple(com.ileader.app.data.models.UserRole.ATHLETE, "Спортсмен", ILeaderColors.AthleteColor),
-                    Triple(com.ileader.app.data.models.UserRole.TRAINER, "Тренер", ILeaderColors.TrainerColor),
-                    Triple(com.ileader.app.data.models.UserRole.ORGANIZER, "Организатор", ILeaderColors.OrganizerColor),
-                    Triple(com.ileader.app.data.models.UserRole.REFEREE, "Судья", ILeaderColors.RefereeColor),
-                    Triple(com.ileader.app.data.models.UserRole.MEDIA, "СМИ", ILeaderColors.MediaColor),
-                    Triple(com.ileader.app.data.models.UserRole.USER, "Зритель", ILeaderColors.ViewerColor),
-                )
+                    val demoRoles = listOf(
+                        Triple(com.ileader.app.data.models.UserRole.ATHLETE, "Спортсмен", ILeaderColors.AthleteColor),
+                        Triple(com.ileader.app.data.models.UserRole.TRAINER, "Тренер", ILeaderColors.TrainerColor),
+                        Triple(com.ileader.app.data.models.UserRole.ORGANIZER, "Организатор", ILeaderColors.OrganizerColor),
+                        Triple(com.ileader.app.data.models.UserRole.REFEREE, "Судья", ILeaderColors.RefereeColor),
+                        Triple(com.ileader.app.data.models.UserRole.MEDIA, "СМИ", ILeaderColors.MediaColor),
+                        Triple(com.ileader.app.data.models.UserRole.USER, "Зритель", ILeaderColors.ViewerColor),
+                    )
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (row in demoRoles.chunked(4)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            row.forEach { (role, label, color) ->
-                                Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .clickable { onDemoLogin(role) },
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = color.copy(alpha = 0.12f)
-                                ) {
-                                    Text(
-                                        text = label,
-                                        modifier = Modifier.padding(vertical = 10.dp),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = color,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (row in demoRoles.chunked(4)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                row.forEach { (role, label, color) ->
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { onDemoLogin(role) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = color.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            modifier = Modifier.padding(vertical = 10.dp),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = color,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
                                 }
                             }
                         }

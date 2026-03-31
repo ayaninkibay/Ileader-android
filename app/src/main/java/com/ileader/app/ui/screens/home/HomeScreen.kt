@@ -1,9 +1,6 @@
 package com.ileader.app.ui.screens.home
 
-import androidx.compose.animation.core.EaseOutBack
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.ileader.app.data.models.User
 import com.ileader.app.data.preferences.SportPreference
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
@@ -46,6 +44,9 @@ import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.HomeViewModel
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -57,6 +58,7 @@ private val Border: Color @Composable get() = LocalAppColors.current.border
 
 @Composable
 fun HomeScreen(
+    user: User,
     onArticleClick: (String) -> Unit,
     onTournamentClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
@@ -74,18 +76,6 @@ fun HomeScreen(
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
-    // Scale animation for the gradient header
-    val headerScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.95f,
-        animationSpec = tween(500, easing = EaseOutBack),
-        label = "headerScale"
-    )
-    val headerAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(400),
-        label = "headerAlpha"
-    )
-
     val colors = LocalAppColors.current
 
     LazyColumn(
@@ -94,71 +84,126 @@ fun HomeScreen(
             .background(Bg),
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        // ── Gradient Header ──
+        // ── Big Gradient Header (inzhu style) ──
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = headerScale
-                        scaleY = headerScale
-                        alpha = headerAlpha
-                    }
                     .background(
                         brush = Brush.linearGradient(
                             colors = listOf(
-                                Color(0xFFE53535),
-                                Color(0xFFFF6B6B),
-                                Color(0xFFE53535).copy(alpha = 0.85f)
+                                ILeaderColors.DarkRed,
+                                ILeaderColors.PrimaryRed,
+                                Color(0xFFFF8A80)
+                            ),
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(
+                                Float.POSITIVE_INFINITY,
+                                Float.POSITIVE_INFINITY
                             )
                         ),
-                        shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
                     )
                     .statusBarsPadding()
                     .padding(horizontal = 20.dp)
-                    .padding(top = 20.dp, bottom = 28.dp)
+                    .padding(top = 16.dp, bottom = 24.dp)
             ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            "iLeader",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Спортивная платформа",
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    // Decorative icon
-                    Box(
-                        Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center
+                Column {
+                    // ── Avatar row: avatar + greeting + notification bell ──
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.EmojiEvents,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
+                        // Avatar
+                        UserAvatar(
+                            avatarUrl = user.avatarUrl,
+                            name = user.displayName,
+                            size = 50.dp,
+                            showGradientBorder = false
                         )
+
+                        Spacer(Modifier.width(12.dp))
+
+                        // Greeting + role badge
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Привет, ${user.name.split(" ").firstOrNull() ?: ""}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            // Role badge
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = Color.White.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = user.role.displayName,
+                                    modifier = Modifier.padding(
+                                        horizontal = 12.dp,
+                                        vertical = 4.dp
+                                    ),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Notification bell
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = ILeaderColors.DarkRed,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    // ── Week calendar strip ──
+                    WeekCalendarStrip()
                 }
             }
         }
 
-        // ── Sport Circles (story-like filter) ──
+        // ── Section: Главная ──
+        item {
+            Spacer(Modifier.height(20.dp))
+            FadeIn(visible = started, delayMs = 0) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Главная",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Icon(
+                        Icons.Default.Tune,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+
+        // ── Sport Circles ──
         item {
             Spacer(Modifier.height(16.dp))
             FadeIn(visible = started, delayMs = 0) {
@@ -183,7 +228,7 @@ fun HomeScreen(
             }
         }
 
-        // ── Новости ──
+        // ── Новости (overlay card style) ──
         item {
             Spacer(Modifier.height(20.dp))
             FadeIn(visible = started, delayMs = 60) {
@@ -199,9 +244,17 @@ fun HomeScreen(
             }
         }
 
+        // ── Promo card (dark, like inzhu sleep calculator) ──
+        item {
+            Spacer(Modifier.height(20.dp))
+            FadeIn(visible = started, delayMs = 120) {
+                PromoRatingCard()
+            }
+        }
+
         // ── Турниры ──
         item {
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
             FadeIn(visible = started, delayMs = 150) {
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     SectionHeader(title = "Ближайшие турниры", action = "Все", onAction = {})
@@ -211,7 +264,10 @@ fun HomeScreen(
         }
         item {
             FadeIn(visible = started, delayMs = 150) {
-                TournamentsContent(state = state.tournaments, onTournamentClick = onTournamentClick)
+                TournamentsContent(
+                    state = state.tournaments,
+                    onTournamentClick = onTournamentClick
+                )
             }
         }
 
@@ -234,7 +290,192 @@ fun HomeScreen(
 }
 
 // ══════════════════════════════════════════════════════════
-// News
+// Week Calendar Strip (inzhu style)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun WeekCalendarStrip() {
+    val today = remember { LocalDate.now() }
+    val startOfWeek = remember { today.minusDays(today.dayOfWeek.value.toLong() - 1) }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.15f)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
+        ) {
+            // Header: "Сегодня" + date
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Сегодня",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Text(
+                    "${today.dayOfMonth} ${today.month.getDisplayName(TextStyle.SHORT, Locale("ru"))} ${today.year}",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Days row
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                val dayNames = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+                for (i in 0..6) {
+                    val date = startOfWeek.plusDays(i.toLong())
+                    val isToday = date == today
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            dayNames[i],
+                            fontSize = 11.sp,
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isToday) Color.White
+                                    else Color.White.copy(alpha = 0.1f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${date.dayOfMonth}",
+                                fontSize = 13.sp,
+                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isToday) ILeaderColors.DarkRed else Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Promo Rating Card (dark, inzhu sleep-calc style)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun PromoRatingCard() {
+    val colors = LocalAppColors.current
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.Transparent
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF1A0A0A),
+                            Color(0xFF2D1111),
+                            Color(0xFF1A0808)
+                        ),
+                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        end = androidx.compose.ui.geometry.Offset(
+                            Float.POSITIVE_INFINITY,
+                            Float.POSITIVE_INFINITY
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.15f),
+                            Color.White.copy(alpha = 0.05f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .padding(20.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Icon circle
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(ILeaderColors.PrimaryRed.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Leaderboard,
+                        contentDescription = null,
+                        tint = ILeaderColors.PrimaryRed,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "Рейтинг спортсменов",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Узнайте свою позицию среди лучших",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.65f),
+                        lineHeight = 18.sp
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                // Arrow button
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// News (overlay style cards like inzhu)
 // ══════════════════════════════════════════════════════════
 
 @Composable
@@ -243,10 +484,15 @@ private fun NewsContent(
     onArticleClick: (String) -> Unit
 ) {
     when (state) {
-        is UiState.Loading -> Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { LoadingScreen() }
+        is UiState.Loading -> Box(
+            Modifier.fillMaxWidth().height(200.dp),
+            contentAlignment = Alignment.Center
+        ) { LoadingScreen() }
+
         is UiState.Error -> Box(Modifier.padding(horizontal = 16.dp)) {
             EmptyState(title = "Ошибка загрузки", subtitle = state.message)
         }
+
         is UiState.Success -> {
             if (state.data.isEmpty()) {
                 Box(Modifier.padding(horizontal = 16.dp)) {
@@ -280,7 +526,10 @@ private fun NewsContent(
                                 translationY = itemOffset
                             }
                         ) {
-                            NewsCard(article = article, onClick = { onArticleClick(article.id) })
+                            NewsCardOverlay(
+                                article = article,
+                                onClick = { onArticleClick(article.id) }
+                            )
                         }
                     }
                 }
@@ -290,106 +539,91 @@ private fun NewsContent(
 }
 
 @Composable
-private fun NewsCard(article: ArticleDto, onClick: () -> Unit) {
-    val colors = LocalAppColors.current
-    val isDark = DarkTheme.isDark
+private fun NewsCardOverlay(article: ArticleDto, onClick: () -> Unit) {
     var isPressed by remember { mutableStateOf(false) }
     val pressScale by animateFloatAsState(
         if (isPressed) 0.97f else 1f,
         tween(100), label = "newsPress"
     )
 
-    Surface(
+    // Overlay-style card: image fills the whole card, text on top
+    Box(
         modifier = Modifier
-            .width(270.dp)
-            .scale(pressScale),
-        shape = RoundedCornerShape(18.dp),
-        color = CardBg,
-        border = if (isDark) DarkTheme.cardBorderStroke
-        else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = 0.dp
-    ) {
-        Column(
-            Modifier.pointerInput(Unit) {
+            .width(180.dp)
+            .height(200.dp)
+            .scale(pressScale)
+            .clip(RoundedCornerShape(16.dp))
+            .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
                     onTap = { onClick() }
                 )
             }
-        ) {
-            // Cover image with gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-            ) {
-                AsyncImage(
-                    model = article.coverImageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                // Dark gradient overlay at bottom
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(70.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f))
-                            )
-                        )
-                )
-                // Category badge — pill shape
-                article.category?.let { cat ->
-                    Surface(
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .align(Alignment.TopStart),
-                        shape = RoundedCornerShape(50),
-                        color = Accent.copy(alpha = 0.9f)
-                    ) {
-                        Text(
-                            getCategoryLabel(cat),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                    }
-                }
-            }
+    ) {
+        // Background image
+        AsyncImage(
+            model = article.coverImageUrl,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(
-                    text = article.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
+        // Dark gradient overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.1f),
+                            Color.Black.copy(alpha = 0.7f)
+                        )
+                    )
                 )
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Schedule, null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = formatDateShort(article.publishedAt ?: article.createdAt),
-                        fontSize = 12.sp,
-                        color = TextMuted
-                    )
-                }
-            }
+        )
+
+        // Play icon (top right)
+        Box(
+            modifier = Modifier
+                .padding(10.dp)
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.3f))
+                .align(Alignment.TopEnd),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        // Text content (bottom)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(12.dp)
+        ) {
+            Text(
+                text = article.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 18.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = article.excerpt?.take(60) ?: "",
+                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.75f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 15.sp
+            )
         }
     }
 }
@@ -404,10 +638,15 @@ private fun TournamentsContent(
     onTournamentClick: (String) -> Unit
 ) {
     when (state) {
-        is UiState.Loading -> Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) { LoadingScreen() }
+        is UiState.Loading -> Box(
+            Modifier.fillMaxWidth().height(180.dp),
+            contentAlignment = Alignment.Center
+        ) { LoadingScreen() }
+
         is UiState.Error -> Box(Modifier.padding(horizontal = 16.dp)) {
             EmptyState(title = "Ошибка загрузки", subtitle = state.message)
         }
+
         is UiState.Success -> {
             if (state.data.isEmpty()) {
                 Box(Modifier.padding(horizontal = 16.dp)) {
@@ -418,7 +657,9 @@ private fun TournamentsContent(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    itemsIndexed(state.data, key = { _, it -> it.id }) { index, tournament ->
+                    itemsIndexed(
+                        state.data,
+                        key = { _, it -> it.id }) { index, tournament ->
                         val delay = (index * 60).coerceAtMost(400)
                         var itemVisible by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) {
@@ -471,83 +712,153 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = 0.dp
+        shadowElevation = if (isDark) 0.dp else 4.dp
     ) {
         Column(
             modifier = Modifier.pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
+                    onPress = {
+                        isPressed = true; tryAwaitRelease(); isPressed = false
+                    },
                     onTap = { onClick() }
                 )
             }
         ) {
-            // Gradient sport header strip
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                getStatusColor(tournament.status ?: ""),
-                                getStatusColor(tournament.status ?: "").copy(alpha = 0.5f)
-                            )
-                        ),
-                        RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
-                    )
-            )
-
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Sport + status row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+            // Cover image
+            if (tournament.imageUrl != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
                 ) {
-                    tournament.sportName?.let { sport ->
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Accent.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                "${sportEmoji(sport)} $sport",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Accent
+                    AsyncImage(
+                        model = tournament.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    // Gradient overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.4f)
+                                    )
+                                )
                             )
+                    )
+                    // Status + sport on image
+                    Row(
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .align(Alignment.TopStart),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        tournament.sportName?.let { sport ->
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = Color.Black.copy(alpha = 0.4f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        sportIcon(sport), null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(sport, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                }
+                            }
                         }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    tournament.status?.let { status ->
-                        val statusColor = getStatusColor(status)
-                        if (status == "in_progress") {
-                            LiveIndicator()
-                        } else {
-                            StatusBadge(
-                                text = getStatusLabel(status),
-                                color = statusColor
-                            )
+                        tournament.status?.let { status ->
+                            if (status == "in_progress") {
+                                LiveIndicator()
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = getStatusColor(status).copy(alpha = 0.9f)
+                                ) {
+                                    Text(
+                                        getStatusLabel(status),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+            } else {
+                // No image — color strip
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    getStatusColor(tournament.status ?: ""),
+                                    getStatusColor(tournament.status ?: "").copy(alpha = 0.5f)
+                                )
+                            ),
+                            RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                        )
+                )
+            }
 
-                Spacer(Modifier.height(12.dp))
+            Column(modifier = Modifier.padding(14.dp)) {
+                // Sport + status (only when no image)
+                if (tournament.imageUrl == null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        tournament.sportName?.let { sport ->
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = TextMuted.copy(alpha = 0.1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(sportIcon(sport), null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(sport, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        tournament.status?.let { status ->
+                            val statusColor = getStatusColor(status)
+                            if (status == "in_progress") LiveIndicator()
+                            else StatusBadge(text = getStatusLabel(status), color = statusColor)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
 
-                // Title
                 Text(
                     text = tournament.name,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 21.sp,
+                    lineHeight = 20.sp,
                     letterSpacing = (-0.2).sp
                 )
 
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                // Info chips row
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -565,8 +876,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                     }
                 }
 
-                // Participants bar
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -578,13 +888,10 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                     ) {
                         Icon(Icons.Default.People, null, modifier = Modifier.size(15.dp), tint = TextMuted)
                         Text(
-                            text = "${tournament.participantCount} участников",
-                            fontSize = 12.sp,
-                            color = TextMuted,
-                            fontWeight = FontWeight.Medium
+                            "${tournament.participantCount} участников",
+                            fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium
                         )
                     }
-                    // Mini arrow indicator
                     Box(
                         Modifier
                             .size(28.dp)
@@ -594,8 +901,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForwardIos, null,
-                            tint = Accent,
-                            modifier = Modifier.size(12.dp)
+                            tint = Accent, modifier = Modifier.size(12.dp)
                         )
                     }
                 }
@@ -614,10 +920,15 @@ private fun PeopleContent(
     onProfileClick: (String) -> Unit
 ) {
     when (state) {
-        is UiState.Loading -> Box(Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) { LoadingScreen() }
+        is UiState.Loading -> Box(
+            Modifier.fillMaxWidth().height(150.dp),
+            contentAlignment = Alignment.Center
+        ) { LoadingScreen() }
+
         is UiState.Error -> Box(Modifier.padding(horizontal = 16.dp)) {
             EmptyState(title = "Ошибка загрузки", subtitle = state.message)
         }
+
         is UiState.Success -> {
             if (state.data.isEmpty()) {
                 Box(Modifier.padding(horizontal = 16.dp)) {
@@ -628,7 +939,9 @@ private fun PeopleContent(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    itemsIndexed(state.data, key = { _, it -> it.id }) { index, profile ->
+                    itemsIndexed(
+                        state.data,
+                        key = { _, it -> it.id }) { index, profile ->
                         val delay = (index * 60).coerceAtMost(400)
                         var itemVisible by remember { mutableStateOf(false) }
                         LaunchedEffect(Unit) {
@@ -677,13 +990,12 @@ private fun PersonCard(profile: CommunityProfileDto, onClick: () -> Unit) {
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = 0.dp
+        shadowElevation = if (isDark) 0.dp else 2.dp
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar using shared UserAvatar component
             UserAvatar(
                 avatarUrl = profile.avatarUrl,
                 name = profile.name ?: "?",
@@ -758,9 +1070,9 @@ private fun getStatusLabel(status: String): String = when (status) {
 }
 
 private fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFF3B82F6)
-    "check_in" -> Color(0xFFF59E0B)
+    "registration_open" -> ILeaderColors.Success
+    "in_progress" -> ILeaderColors.Info
+    "check_in" -> ILeaderColors.Warning
     "completed" -> Color(0xFF8E8E93)
     else -> Color(0xFF8E8E93)
 }

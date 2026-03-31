@@ -77,7 +77,10 @@ import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.FadeIn
 import com.ileader.app.ui.components.LoadingScreen
 import com.ileader.app.ui.components.StatusBadge
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.ileader.app.ui.components.sportColor
 import com.ileader.app.ui.components.sportEmoji
+import com.ileader.app.ui.components.sportIcon
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.MyTournamentsViewModel
 
@@ -315,26 +318,35 @@ private fun PillBadge(
     text: String,
     bgColor: Color,
     textColor: Color = Color.White,
+    icon: ImageVector? = null,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = text,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = textColor,
+    Row(
         modifier = modifier
             .background(bgColor, RoundedCornerShape(20.dp))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-    )
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(icon, null, tint = textColor, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+        }
+        Text(
+            text = text,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor
+        )
+    }
 }
 
 @Composable
 private fun SportPill(sportName: String) {
-    val emoji = sportEmoji(sportName)
     PillBadge(
-        text = "$emoji $sportName",
-        bgColor = Accent.copy(alpha = 0.12f),
-        textColor = Accent
+        text = sportName,
+        bgColor = TextMuted.copy(alpha = 0.1f),
+        textColor = TextSecondary,
+        icon = sportIcon(sportName)
     )
 }
 
@@ -380,7 +392,7 @@ private fun SpectatorCard(spectator: SpectatorDto) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, Border)
     ) {
         Row(
@@ -516,7 +528,7 @@ private fun TrainerSection(data: List<Any>) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = 0.dp,
+                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Border)
                 ) {
                     Row(
@@ -616,7 +628,7 @@ private fun OrganizerSection(
                         .clickable { onTournamentClick(t.id) },
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = 0.dp,
+                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Border)
                 ) {
                     Column(Modifier.padding(16.dp)) {
@@ -801,7 +813,7 @@ private fun RefereeSection(
                         .clickable { onTournamentClick(t.id) },
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = 0.dp,
+                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Border)
                 ) {
                     Column(Modifier.padding(16.dp)) {
@@ -905,7 +917,7 @@ private fun MediaSection(invites: List<MediaInviteFullDto>) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = 0.dp,
+                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Border)
                 ) {
                     Row(
@@ -1019,7 +1031,7 @@ private fun GoalCard(goal: AthleteGoal) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, Border)
     ) {
         Column(Modifier.padding(16.dp)) {
@@ -1105,7 +1117,7 @@ private fun HelperSection(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 color = CardBg,
-                shadowElevation = 0.dp,
+                shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Border)
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -1207,7 +1219,7 @@ private fun TournamentCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = 0.dp,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, Border)
     ) {
         Column(Modifier.padding(16.dp)) {

@@ -19,6 +19,7 @@ fun HomeTab(user: User) {
 
     when (val state = navState) {
         is HomeNavState.Home -> HomeScreen(
+            user = user,
             onArticleClick = { navState = HomeNavState.ArticleDetail(it) },
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) }

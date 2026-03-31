@@ -9,6 +9,8 @@ data class SportDto(
     val name: String,
     val slug: String? = null,
     @SerialName("athlete_label") val athleteLabel: String? = null,
+    val description: String? = null,
+    val rules: String? = null,
     @SerialName("icon_url") val iconUrl: String? = null,
     @SerialName("is_active") val isActive: Boolean = true
 )

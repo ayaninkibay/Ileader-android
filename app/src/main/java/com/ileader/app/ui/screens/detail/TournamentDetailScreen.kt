@@ -1,8 +1,10 @@
 package com.ileader.app.ui.screens.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -108,77 +110,131 @@ private fun TournamentContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Hero Header ──
+            // ── Hero Header (inzhu style) ──
             FadeIn(visible = started, delayMs = 0) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.verticalGradient(listOf(accentColor, accentDarkColor)))
-                        .padding(top = 8.dp, bottom = 20.dp)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFC62828),
+                                    accentColor,
+                                    Color(0xFFFF8A80)
+                                ),
+                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(
+                                    Float.POSITIVE_INFINITY,
+                                    Float.POSITIVE_INFINITY
+                                )
+                            ),
+                            shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+                        )
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, bottom = 28.dp)
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        // Back button row
+                        // Top row: back + share
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            IconButton(onClick = onBack) {
-                                Icon(Icons.Default.ArrowBack, "Назад", tint = Color.White)
+                            // Back button (white circle like inzhu)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .clickable { onBack() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.ArrowBack, "Назад",
+                                    tint = accentDarkColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                             Spacer(Modifier.weight(1f))
+                            // Share button
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Share, null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
 
-                        // Status + sport
+                        Spacer(Modifier.height(20.dp))
+
+                        // Status + sport pills
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             tournament.status?.let { status ->
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
+                                    shape = RoundedCornerShape(50),
                                     color = Color.White.copy(alpha = 0.2f)
                                 ) {
                                     Text(
                                         text = getStatusLabel(status),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                     )
                                 }
                             }
                             tournament.sports?.name?.let { sportName ->
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
+                                    shape = RoundedCornerShape(50),
                                     color = Color.White.copy(alpha = 0.15f)
                                 ) {
                                     Text(
-                                        text = sportName,
-                                        fontSize = 11.sp,
+                                        text = sportEmoji(sportName) + " " + sportName,
+                                        fontSize = 12.sp,
                                         color = Color.White.copy(alpha = 0.9f),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                                     )
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(16.dp))
 
+                        // Tournament name
                         Text(
                             text = tournament.name,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
-                            lineHeight = 30.sp
+                            lineHeight = 32.sp,
+                            letterSpacing = (-0.5).sp
                         )
 
+                        // Organizer
                         tournament.profiles?.name?.let { org ->
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = org,
-                                fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Business, null,
+                                    tint = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = org,
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                            }
                         }
                     }
                 }
@@ -467,14 +523,14 @@ private fun ActionButton(
                 enabled = !loading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .height(54.dp),
+                shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (buttonConfig.isDestructive) Color.Transparent else Accent,
-                    contentColor = if (buttonConfig.isDestructive) Color(0xFFEF4444) else Color.White
+                    contentColor = if (buttonConfig.isDestructive) com.ileader.app.ui.theme.ILeaderColors.Error else Color.White
                 ),
                 border = if (buttonConfig.isDestructive) {
-                    BorderStroke(1.dp, Color(0xFFEF4444))
+                    BorderStroke(1.dp, com.ileader.app.ui.theme.ILeaderColors.Error)
                 } else null
             ) {
                 if (loading) {
