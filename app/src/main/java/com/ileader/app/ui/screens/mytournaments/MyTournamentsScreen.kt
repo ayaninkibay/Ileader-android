@@ -172,17 +172,6 @@ fun MyTournamentsScreen(
                         }
                     }
 
-                    // ── Goals section (athlete only) ──
-                    if (user.role == UserRole.ATHLETE && goals != null) {
-                        item {
-                            FadeIn(visible = started, delayMs = 250) {
-                                Column(Modifier.padding(horizontal = 20.dp)) {
-                                    GoalsSection(goalsState = goals ?: UiState.Loading)
-                                }
-                            }
-                        }
-                    }
-
                     // ── Helper section (all roles) ──
                     val helpersState = helperAssignments
                     if (helpersState is UiState.Success && helpersState.data.isNotEmpty()) {
