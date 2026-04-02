@@ -130,6 +130,10 @@ fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
     "лёгкая атлетика", "легкая атлетика",
     "athletics", "track and field"           -> Icons.Default.DirectionsRun
     "гребля", "rowing"                       -> Icons.Default.Rowing
+    "рыболовство", "sportivnoe-rybolovstvo",
+    "спортивное рыболовство"                 -> Icons.Default.Water
+    "страйкбол", "страйк бол", "strayk-bol",
+    "airsoft"                                -> Icons.Default.Adjust
     else                                     -> Icons.Default.EmojiEvents
 }
 

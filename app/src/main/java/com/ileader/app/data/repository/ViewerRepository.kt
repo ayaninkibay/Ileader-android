@@ -373,4 +373,16 @@ class ViewerRepository {
         client.from("profiles")
             .update(data) { filter { eq("id", userId) } }
     }
+
+    suspend fun getLegalPages(): List<LegalPageDto> {
+        val row = client.from("platform_settings")
+            .select { filter { eq("key", "legal_pages") } }
+            .decodeSingleOrNull<PlatformSettingValueDto>()
+            ?: return emptyList()
+
+        return try {
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString<List<LegalPageDto>>(row.value ?: "[]")
+        } catch (_: Exception) { emptyList() }
+    }
 }

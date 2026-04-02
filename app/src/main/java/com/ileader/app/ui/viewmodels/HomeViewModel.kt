@@ -39,7 +39,12 @@ class HomeViewModel : ViewModel() {
     fun load(sportIds: List<String> = emptyList()) {
         viewModelScope.launch {
             val currentSports = state.sports
-            state = HomeState(sports = currentSports) // reset to loading but keep sports
+            state = HomeState(sports = currentSports)
+
+            val sportsDeferred = async {
+                if (currentSports.isNotEmpty()) currentSports
+                else try { repo.getSports() } catch (_: Exception) { emptyList() }
+            }
 
             val newsDeferred = async {
                 try {
@@ -71,6 +76,7 @@ class HomeViewModel : ViewModel() {
             }
 
             state = HomeState(
+                sports = sportsDeferred.await(),
                 news = newsDeferred.await(),
                 tournaments = tournamentsDeferred.await(),
                 people = peopleDeferred.await()

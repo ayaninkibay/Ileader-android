@@ -72,9 +72,26 @@ fun HomeScreen(
 
     val state = viewModel.state
     var started by remember { mutableStateOf(false) }
+    var selectedSportId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { started = true }
 
     val colors = LocalAppColors.current
+
+    // Filter data by selected sport
+    val filteredTournaments = remember(state.tournaments, selectedSportId) {
+        when (val t = state.tournaments) {
+            is UiState.Success -> if (selectedSportId == null) t
+                else UiState.Success(t.data.filter { it.sportId == selectedSportId })
+            else -> t
+        }
+    }
+    val filteredNews = remember(state.news, selectedSportId) {
+        when (val n = state.news) {
+            is UiState.Success -> if (selectedSportId == null) n
+                else UiState.Success(n.data.filter { it.sportId == selectedSportId })
+            else -> n
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -136,29 +153,11 @@ fun HomeScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Sport calendar strip
-                SportWeekCalendar(tournaments = state.tournaments)
-            }
-        }
-
-        // ── Sport Circles ──
-        item {
-            Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 0) {
-                val sportsList = remember(state.sports) {
-                    state.sports.map { sport ->
-                        Triple(
-                            sport.slug ?: sport.name.lowercase(),
-                            sport.name,
-                            sportEmoji(sport.name)
-                        )
-                    }
-                }
-                var selectedSport by remember { mutableStateOf<String?>(null) }
-                SportCirclesRow(
-                    sports = sportsList,
-                    selectedId = selectedSport,
-                    onSelect = { selectedSport = it }
+                // Sport filter box
+                SportFilterBox(
+                    sports = state.sports,
+                    selectedSportId = selectedSportId,
+                    onSelect = { selectedSportId = it }
                 )
             }
         }
@@ -175,7 +174,7 @@ fun HomeScreen(
         }
         item {
             FadeIn(visible = started, delayMs = 60) {
-                NewsContent(state = state.news, onArticleClick = onArticleClick)
+                NewsContent(state = filteredNews, onArticleClick = onArticleClick)
             }
         }
 
@@ -200,7 +199,7 @@ fun HomeScreen(
         item {
             FadeIn(visible = started, delayMs = 150) {
                 TournamentsContent(
-                    state = state.tournaments,
+                    state = filteredTournaments,
                     onTournamentClick = onTournamentClick
                 )
             }
@@ -225,11 +224,177 @@ fun HomeScreen(
 }
 
 // ══════════════════════════════════════════════════════════
-// Sport Week Calendar
+// Sport Filter Box
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>>) {
+private fun SportFilterBox(
+    sports: List<com.ileader.app.data.remote.dto.SportDto>,
+    selectedSportId: String?,
+    onSelect: (String?) -> Unit
+) {
+    val isDark = DarkTheme.isDark
+    var showAll by remember { mutableStateOf(false) }
+    val topTwo = sports.take(2)
+    val rest = sports.drop(2)
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            // Two featured sports
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                topTwo.forEach { sport ->
+                    val isSelected = selectedSportId == sport.id
+                    val imgUrl = com.ileader.app.ui.viewmodels.SportViewModel.getFallbackImage(sport)
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(90.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable {
+                                onSelect(if (isSelected) null else sport.id)
+                            }
+                    ) {
+                        if (imgUrl != null) {
+                            AsyncImage(model = imgUrl, contentDescription = sport.name,
+                                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        } else {
+                            Box(Modifier.fillMaxSize().background(sportColor(sport.name).copy(0.5f)))
+                        }
+                        Box(Modifier.fillMaxSize().background(
+                            Color.Black.copy(if (isSelected) 0.25f else 0.5f)
+                        ))
+                        if (isSelected) {
+                            Box(
+                                Modifier.align(Alignment.TopEnd).padding(6.dp)
+                                    .size(22.dp).clip(CircleShape).background(Accent),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            }
+                        }
+                        Row(
+                            Modifier.align(Alignment.BottomStart).padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(sportIcon(sport.name), null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(sport.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+
+                // Filter button
+                Box(
+                    modifier = Modifier
+                        .width(56.dp)
+                        .height(90.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (showAll) Accent.copy(0.1f) else TextMuted.copy(0.08f))
+                        .clickable { showAll = !showAll },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            if (showAll) Icons.Default.Close else Icons.Default.Tune,
+                            null, tint = if (showAll) Accent else TextSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (showAll) "Скрыть" else "Ещё",
+                            fontSize = 10.sp, color = if (showAll) Accent else TextMuted,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // Expanded: all other sports
+            androidx.compose.animation.AnimatedVisibility(visible = showAll) {
+                Column {
+                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.fillMaxWidth().height(0.5.dp).background(Border.copy(0.2f)))
+                    Spacer(Modifier.height(10.dp))
+
+                    // "Все" reset
+                    if (selectedSportId != null) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = TextMuted.copy(0.08f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(null) }
+                                .padding(bottom = 6.dp)
+                        ) {
+                            Text(
+                                "Сбросить фильтр",
+                                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                fontSize = 13.sp, color = Accent, fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    // Grid of remaining sports
+                    val rows = rest.chunked(3)
+                    rows.forEach { row ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { sport ->
+                                val isSelected = selectedSportId == sport.id
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) Accent.copy(0.12f) else TextMuted.copy(0.06f),
+                                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, Accent)
+                                        else null,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { onSelect(if (isSelected) null else sport.id) }
+                                ) {
+                                    Row(
+                                        Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            sportIcon(sport.name), null,
+                                            tint = if (isSelected) Accent else TextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            sport.name, fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) Accent else TextPrimary,
+                                            maxLines = 1, overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// (SportWeekCalendar removed)
+
+@Suppress("unused")
+private fun _deleted_SportWeekCalendar_placeholder() {}
+
+@Composable
+private fun _dead_code_removal(tournaments: UiState<List<TournamentWithCountsDto>>) {
     val today = remember { java.time.LocalDate.now() }
     val startOfWeek = remember { today.minusDays(today.dayOfWeek.value.toLong() - 1) }
     var selectedDate by remember { mutableStateOf<java.time.LocalDate?>(null) }
