@@ -6,6 +6,7 @@ import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -246,6 +247,20 @@ class ViewerRepository {
             .select(Columns.raw("*, sports(id, name), profiles!owner_id(name), team_members(count)"))
             { filter { eq("is_active", true) } }
             .decodeList<TeamWithStatsDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SPORT IMAGES
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getSportImageUrls(sportSlug: String): List<String> {
+        return try {
+            val bucket = client.storage.from("sport-images")
+            val files = bucket.list(sportSlug)
+            files.filter { f ->
+                f.name.endsWith(".jpeg") || f.name.endsWith(".jpg") || f.name.endsWith(".png") || f.name.endsWith(".webp")
+            }.map { f -> bucket.publicUrl("$sportSlug/${f.name}") }
+        } catch (_: Exception) { emptyList() }
     }
 
     // ══════════════════════════════════════════════════════════

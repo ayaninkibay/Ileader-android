@@ -19,6 +19,7 @@ sealed class SportNavState {
     data class TournamentDetail(val id: String) : SportNavState()
     data class ArticleDetail(val id: String) : SportNavState()
     data class PublicProfile(val id: String) : SportNavState()
+    data class LeagueDetail(val name: String, val sportName: String, val imageUrl: String?) : SportNavState()
 }
 
 @Composable
@@ -37,7 +38,8 @@ fun SportTab(user: User) {
                 user = user,
                 onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
                 onArticleClick = { navState = SportNavState.ArticleDetail(it) },
-                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+                onProfileClick = { navState = SportNavState.PublicProfile(it) },
+                onLeagueClick = { name, sport, img -> navState = SportNavState.LeagueDetail(name, sport, img) }
             )
             is SportNavState.TournamentDetail -> TournamentDetailScreen(
                 tournamentId = currentState.id,
@@ -50,6 +52,12 @@ fun SportTab(user: User) {
             )
             is SportNavState.PublicProfile -> PublicProfileScreen(
                 userId = currentState.id,
+                onBack = { navState = SportNavState.Search }
+            )
+            is SportNavState.LeagueDetail -> LeagueDetailScreen(
+                leagueName = currentState.name,
+                sportName = currentState.sportName,
+                imageUrl = currentState.imageUrl,
                 onBack = { navState = SportNavState.Search }
             )
         }

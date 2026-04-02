@@ -115,6 +115,7 @@ class SportViewModel : ViewModel() {
             SportSubTab.TOURNAMENTS -> loadMoreTournaments()
             SportSubTab.PEOPLE -> loadMorePeople()
             SportSubTab.NEWS -> loadMoreNews()
+            SportSubTab.LEAGUES -> { /* mock data, no pagination */ }
         }
     }
 
@@ -238,7 +239,7 @@ class SportViewModel : ViewModel() {
         val hasMoreNews: Boolean = true
     )
 
-    enum class SportSubTab { TOURNAMENTS, PEOPLE, NEWS }
+    enum class SportSubTab { TOURNAMENTS, PEOPLE, NEWS, LEAGUES }
 
     data class SportFilterState(
         val sportId: String? = null,

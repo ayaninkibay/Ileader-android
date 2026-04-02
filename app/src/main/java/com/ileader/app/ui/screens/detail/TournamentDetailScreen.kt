@@ -197,12 +197,14 @@ private fun TournamentContent(
                                     shape = RoundedCornerShape(50),
                                     color = Color.White.copy(alpha = 0.15f)
                                 ) {
-                                    Text(
-                                        text = sportEmoji(sportName) + " " + sportName,
-                                        fontSize = 12.sp,
-                                        color = Color.White.copy(alpha = 0.9f),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(sportIcon(sportName), null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(sportName, fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                                    }
                                 }
                             }
                         }

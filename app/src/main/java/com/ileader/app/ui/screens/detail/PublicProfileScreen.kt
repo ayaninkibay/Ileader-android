@@ -206,10 +206,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                                 Modifier.fillMaxWidth().padding(vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    "${sportEmoji(sport.sports?.name ?: "")} ${sport.sports?.name ?: ""}",
-                                    fontSize = 14.sp, color = TextSecondary, modifier = Modifier.weight(1f)
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(sportIcon(sport.sports?.name ?: ""), null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(sport.sports?.name ?: "", fontSize = 14.sp, color = TextSecondary)
+                                }
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
                                     color = Accent.copy(alpha = 0.1f)
@@ -290,7 +291,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text(m.teams?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                                 m.teams?.sports?.name?.let {
-                                    Text("${sportEmoji(it)} $it", fontSize = 12.sp, color = TextMuted)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(sportIcon(it), null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(it, fontSize = 12.sp, color = TextMuted)
+                                    }
                                 }
                             }
                             Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {

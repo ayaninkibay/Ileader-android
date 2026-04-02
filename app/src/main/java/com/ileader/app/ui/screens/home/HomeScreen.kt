@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,9 +45,6 @@ import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.HomeViewModel
-import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -84,122 +82,62 @@ fun HomeScreen(
             .background(Bg),
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        // ── Big Gradient Header (inzhu style) ──
+        // ── Header ──
         item {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                ILeaderColors.DarkRed,
-                                ILeaderColors.PrimaryRed,
-                                Color(0xFFFF8A80)
-                            ),
-                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                            end = androidx.compose.ui.geometry.Offset(
-                                Float.POSITIVE_INFINITY,
-                                Float.POSITIVE_INFINITY
-                            )
-                        ),
-                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-                    )
                     .statusBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 16.dp, bottom = 24.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp)
             ) {
-                Column {
-                    // ── Avatar row: avatar + greeting + notification bell ──
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Avatar
-                        UserAvatar(
-                            avatarUrl = user.avatarUrl,
-                            name = user.displayName,
-                            size = 50.dp,
-                            showGradientBorder = false
-                        )
-
-                        Spacer(Modifier.width(12.dp))
-
-                        // Greeting + role badge
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Привет, ${user.name.split(" ").firstOrNull() ?: ""}",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            // Role badge
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = user.role.displayName,
-                                    modifier = Modifier.padding(
-                                        horizontal = 12.dp,
-                                        vertical = 4.dp
-                                    ),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
-                        // Notification bell
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(Color.White),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Notifications,
-                                contentDescription = null,
-                                tint = ILeaderColors.DarkRed,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(20.dp))
-
-                    // ── Week calendar strip ──
-                    WeekCalendarStrip()
-                }
-            }
-        }
-
-        // ── Section: Главная ──
-        item {
-            Spacer(Modifier.height(20.dp))
-            FadeIn(visible = started, delayMs = 0) {
+                // Top row: greeting + bell
                 Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "Главная",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                    Icon(
-                        Icons.Default.Tune,
-                        contentDescription = null,
-                        tint = TextMuted,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Привет, ${user.name.split(" ").firstOrNull() ?: ""}",
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimary,
+                            letterSpacing = (-0.5).sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = user.role.displayName,
+                            fontSize = 14.sp,
+                            color = TextMuted
+                        )
+                    }
+
+                    // Notification bell
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(CardBg)
+                            .border(
+                                1.dp,
+                                Border.copy(alpha = 0.3f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = TextPrimary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Sport calendar strip
+                SportWeekCalendar(tournaments = state.tournaments)
             }
         }
 
@@ -207,17 +145,14 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(16.dp))
             FadeIn(visible = started, delayMs = 0) {
-                val sportsList = remember {
-                    listOf(
-                        Triple("karting", "Картинг", "🏎️"),
-                        Triple("shooting", "Стрельба", "🎯"),
-                        Triple("tennis", "Теннис", "🎾"),
-                        Triple("football", "Футбол", "⚽"),
-                        Triple("boxing", "Бокс", "🥊"),
-                        Triple("swimming", "Плавание", "🏊"),
-                        Triple("athletics", "Атлетика", "🏃"),
-                        Triple("rowing", "Гребля", "🚣")
-                    )
+                val sportsList = remember(state.sports) {
+                    state.sports.map { sport ->
+                        Triple(
+                            sport.slug ?: sport.name.lowercase(),
+                            sport.name,
+                            sportEmoji(sport.name)
+                        )
+                    }
                 }
                 var selectedSport by remember { mutableStateOf<String?>(null) }
                 SportCirclesRow(
@@ -244,11 +179,11 @@ fun HomeScreen(
             }
         }
 
-        // ── Promo card (dark, like inzhu sleep calculator) ──
+        // ── Promo: Rating card ──
         item {
             Spacer(Modifier.height(20.dp))
             FadeIn(visible = started, delayMs = 120) {
-                PromoRatingCard()
+                RatingPromoCard()
             }
         }
 
@@ -290,183 +225,395 @@ fun HomeScreen(
 }
 
 // ══════════════════════════════════════════════════════════
-// Week Calendar Strip (inzhu style)
+// Sport Week Calendar
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun WeekCalendarStrip() {
-    val today = remember { LocalDate.now() }
+private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>>) {
+    val today = remember { java.time.LocalDate.now() }
     val startOfWeek = remember { today.minusDays(today.dayOfWeek.value.toLong() - 1) }
+    var selectedDate by remember { mutableStateOf<java.time.LocalDate?>(null) }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White.copy(alpha = 0.15f)
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
-        ) {
-            // Header: "Сегодня" + date
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    "Сегодня",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-                Text(
-                    "${today.dayOfMonth} ${today.month.getDisplayName(TextStyle.SHORT, Locale("ru"))} ${today.year}",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
+    // Tournament data by date
+    val tournamentList = remember(tournaments) {
+        when (tournaments) {
+            is UiState.Success -> tournaments.data
+            else -> emptyList()
+        }
+    }
+    val tournamentsByDate = remember(tournamentList) {
+        tournamentList.groupBy { it.startDate?.take(10) ?: "" }
+    }
+    val weekTournamentCount = remember(tournamentsByDate, startOfWeek) {
+        (0..6).sumOf { i ->
+            val dateStr = startOfWeek.plusDays(i.toLong()).toString()
+            tournamentsByDate[dateStr]?.size ?: 0
+        }
+    }
+
+    // Nearest upcoming tournament
+    val nearestTournament = remember(tournamentList, today) {
+        tournamentList
+            .filter { t -> t.startDate?.take(10)?.let { it >= today.toString() } == true }
+            .minByOrNull { it.startDate ?: "" }
+    }
+    val daysUntilNearest = remember(nearestTournament, today) {
+        nearestTournament?.startDate?.take(10)?.let {
+            try {
+                java.time.temporal.ChronoUnit.DAYS.between(today, java.time.LocalDate.parse(it)).toInt()
+            } catch (_: Exception) { null }
+        }
+    }
+
+    // Tournaments for selected day
+    val selectedDayTournaments = remember(selectedDate, tournamentsByDate) {
+        selectedDate?.let { tournamentsByDate[it.toString()] } ?: emptyList()
+    }
+
+    // Background image
+    val calendarBgUrl = remember(tournaments) {
+        when (tournaments) {
+            is UiState.Success -> {
+                val firstSport = tournaments.data.firstOrNull()?.sportName
+                firstSport?.let { sportImageUrl(it) }
+                    ?: "https://ileader.kz/img/karting/karting-15-1280x853.jpeg"
             }
+            else -> "https://ileader.kz/img/karting/karting-15-1280x853.jpeg"
+        }
+    }
 
-            Spacer(Modifier.height(12.dp))
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+        ) {
+            AsyncImage(
+                model = calendarBgUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().height(180.dp),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                Modifier.matchParentSize().background(
+                    Brush.verticalGradient(
+                        listOf(Color.Black.copy(alpha = 0.65f), Color.Black.copy(alpha = 0.8f))
+                    )
+                )
+            )
 
-            // Days row
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                val dayNames = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
-                for (i in 0..6) {
-                    val date = startOfWeek.plusDays(i.toLong())
-                    val isToday = date == today
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            dayNames[i],
-                            fontSize = 11.sp,
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Medium
+                // Header
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.CalendarMonth, null,
+                            tint = ILeaderColors.PrimaryRed,
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.height(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isToday) Color.White
-                                    else Color.White.copy(alpha = 0.1f)
-                                ),
-                            contentAlignment = Alignment.Center
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Расписание",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    }
+                    if (weekTournamentCount > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = ILeaderColors.PrimaryRed.copy(alpha = 0.8f)
                         ) {
                             Text(
-                                "${date.dayOfMonth}",
+                                "$weekTournamentCount ${pluralTournament(weekTournamentCount)}",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                        }
+                    } else {
+                        Text(
+                            "${today.dayOfMonth}.${String.format("%02d", today.monthValue)}.${today.year}",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                // Days row
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    val dayNames = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+                    for (i in 0..6) {
+                        val date = startOfWeek.plusDays(i.toLong())
+                        val isToday = date == today
+                        val isSelected = date == selectedDate
+                        val dateStr = date.toString()
+                        val dayTournaments = tournamentsByDate[dateStr] ?: emptyList()
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.clickable {
+                                selectedDate = if (selectedDate == date) null else date
+                            }
+                        ) {
+                            Text(
+                                dayNames[i],
+                                fontSize = 11.sp,
+                                color = if (isToday) ILeaderColors.PrimaryRed else Color.White.copy(alpha = 0.5f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .then(
+                                        if (isSelected && !isToday) Modifier.border(
+                                            1.5.dp, ILeaderColors.PrimaryRed, CircleShape
+                                        ) else Modifier
+                                    )
+                                    .background(
+                                        when {
+                                            isToday -> ILeaderColors.PrimaryRed
+                                            else -> Color.White.copy(alpha = 0.1f)
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "${date.dayOfMonth}",
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                if (dayTournaments.isNotEmpty()) {
+                                    dayTournaments.take(3).forEach { t ->
+                                        Box(
+                                            Modifier
+                                                .size(5.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    t.sportName?.let { sportColor(it) }
+                                                        ?: ILeaderColors.PrimaryRed
+                                                )
+                                        )
+                                    }
+                                } else {
+                                    Box(Modifier.size(5.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Nearest tournament teaser (when no day selected)
+                if (selectedDate == null && nearestTournament != null && daysUntilNearest != null) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.White.copy(alpha = 0.1f))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.EmojiEvents, null,
+                            tint = ILeaderColors.PrimaryRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                nearestTournament.name,
                                 fontSize = 13.sp,
-                                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isToday) ILeaderColors.DarkRed else Color.White
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            nearestTournament.sportName?.let { sport ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(sportIcon(sport), null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(13.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(sport, fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                                }
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (daysUntilNearest == 0) ILeaderColors.PrimaryRed
+                            else Color.White.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                when (daysUntilNearest) {
+                                    0 -> "Сегодня"
+                                    1 -> "Завтра"
+                                    else -> "через $daysUntilNearest дн."
+                                },
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
                         }
                     }
                 }
             }
         }
+
+        // Selected day tournaments
+        if (selectedDate != null && selectedDayTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            selectedDayTournaments.forEach { t ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CardBg,
+                    border = if (DarkTheme.isDark) DarkTheme.cardBorderStroke else null
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Sport color indicator
+                        Box(
+                            Modifier
+                                .width(4.dp)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(t.sportName?.let { sportColor(it) } ?: Accent)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                t.name,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                t.sportName?.let { sport ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(sportIcon(sport), null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(3.dp))
+                                        Text(sport, fontSize = 12.sp, color = TextMuted)
+                                    }
+                                }
+                                t.locationName?.let { loc ->
+                                    Text("· $loc", fontSize = 12.sp, color = TextMuted, maxLines = 1)
+                                }
+                            }
+                        }
+                        Text(
+                            "${t.participantCount} уч.",
+                            fontSize = 12.sp,
+                            color = TextMuted
+                        )
+                    }
+                }
+            }
+        } else if (selectedDate != null && selectedDayTournaments.isEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CardBg)
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Нет турниров в этот день", color = TextMuted, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+private fun pluralTournament(count: Int): String {
+    val mod10 = count % 10
+    val mod100 = count % 100
+    return when {
+        mod100 in 11..14 -> "турниров"
+        mod10 == 1 -> "турнир"
+        mod10 in 2..4 -> "турнира"
+        else -> "турниров"
     }
 }
 
 // ══════════════════════════════════════════════════════════
-// Promo Rating Card (dark, inzhu sleep-calc style)
+// Rating Promo Card (gradient accent)
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun PromoRatingCard() {
-    val colors = LocalAppColors.current
-
+private fun RatingPromoCard() {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         color = Color.Transparent
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF1A0A0A),
-                            Color(0xFF2D1111),
-                            Color(0xFF1A0808)
-                        ),
-                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                        end = androidx.compose.ui.geometry.Offset(
-                            Float.POSITIVE_INFINITY,
-                            Float.POSITIVE_INFINITY
-                        )
+                    brush = Brush.horizontalGradient(
+                        listOf(ILeaderColors.PrimaryRed, ILeaderColors.DarkRed)
                     ),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(18.dp)
                 )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.15f),
-                            Color.White.copy(alpha = 0.05f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .padding(20.dp)
+                .padding(18.dp)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon circle
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(ILeaderColors.PrimaryRed.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Leaderboard,
-                        contentDescription = null,
-                        tint = ILeaderColors.PrimaryRed,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-
-                Spacer(Modifier.width(16.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Рейтинг спортсменов",
-                        fontSize = 16.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Узнайте свою позицию среди лучших",
+                        "Узнайте свою позицию",
                         fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.65f),
-                        lineHeight = 18.sp
+                        color = Color.White.copy(alpha = 0.8f)
                     )
                 }
-
-                Spacer(Modifier.width(8.dp))
-
-                // Arrow button
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.1f)),
+                        .background(Color.White.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.size(14.dp)
+                        Icons.Default.Leaderboard,
+                        null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

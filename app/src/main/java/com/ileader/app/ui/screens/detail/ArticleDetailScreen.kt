@@ -219,13 +219,14 @@ fun ArticleDetailScreen(
                                             shape = RoundedCornerShape(8.dp),
                                             color = TextMuted.copy(alpha = 0.1f)
                                         ) {
-                                            Text(
-                                                "${sportEmoji(sport.name)} ${sport.name}",
+                                            Row(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = TextSecondary
-                                            )
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(sportIcon(sport.name), null, tint = TextSecondary, modifier = Modifier.size(13.dp))
+                                                Spacer(Modifier.width(4.dp))
+                                                Text(sport.name, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                                            }
                                         }
                                     }
                                 }

@@ -32,6 +32,7 @@ import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.GradientButton
 import com.ileader.app.ui.components.LoadingScreen
 import com.ileader.app.ui.components.sportEmoji
+import com.ileader.app.ui.components.sportIcon
 import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -323,9 +324,10 @@ private fun SportCard(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = sportEmoji(sport.name),
-                    fontSize = 36.sp
+                Icon(
+                    sportIcon(sport.name), null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(36.dp)
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(

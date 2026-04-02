@@ -4,6 +4,7 @@ import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,6 +71,7 @@ import com.ileader.app.ui.components.formatShortDate
 import com.ileader.app.ui.components.sportColor
 import com.ileader.app.ui.components.sportEmoji
 import com.ileader.app.ui.components.sportIcon
+import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.SportViewModel
 import com.ileader.app.ui.viewmodels.SportViewModel.SportSubTab
@@ -86,12 +90,25 @@ fun SportScreen(
     onTournamentClick: (String) -> Unit,
     onArticleClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
+    onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
     viewModel: SportViewModel = viewModel()
 ) {
     val s = viewModel.state
     var showFilterPopup by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
+
+    // Mock leagues data
+    val mockLeagues = remember { listOf(
+        MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
+            "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
+            listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
+        MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
+            "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
+        MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
+            "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
+            listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
+    ) }
 
     // Search bar slide-down animation
     val searchAlpha by animateFloatAsState(
@@ -141,7 +158,7 @@ fun SportScreen(
 
         // Segmented control
         DarkSegmentedControl(
-            options = listOf("Турниры", "Люди", "Новости"),
+            options = listOf("Турниры", "Люди", "Новости", "Лиги"),
             selectedIndex = s.activeTab.ordinal,
             onSelect = { viewModel.setTab(SportSubTab.entries[it]) },
             modifier = Modifier.fillMaxWidth()
@@ -171,6 +188,10 @@ fun SportScreen(
                 onClick = onArticleClick,
                 onLoadMore = { viewModel.loadMore() },
                 onRetry = { viewModel.retry() }
+            )
+            SportSubTab.LEAGUES -> LeaguesContent(
+                leagues = mockLeagues,
+                onLeagueClick = onLeagueClick
             )
         }
     }
@@ -441,10 +462,7 @@ private fun PersonCard(person: CommunityProfileDto, onClick: () -> Unit) {
                 if (person.primarySportName.isNotEmpty()) {
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = sportEmoji(person.primarySportName),
-                            fontSize = 13.sp
-                        )
+                        Icon(sportIcon(person.primarySportName), null, tint = TextSecondary, modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = person.primarySportName,
@@ -685,10 +703,10 @@ private fun getStatusLabel(status: String): String = when (status) {
 
 @Composable
 private fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> com.ileader.app.ui.theme.ILeaderColors.Success
-    "in_progress" -> com.ileader.app.ui.theme.ILeaderColors.Info
+    "registration_open" -> ILeaderColors.Success
+    "in_progress" -> ILeaderColors.Info
     "completed" -> TextSecondary
-    "check_in" -> com.ileader.app.ui.theme.ILeaderColors.Warning
+    "check_in" -> ILeaderColors.Warning
     else -> TextSecondary
 }
 
@@ -701,3 +719,376 @@ private fun getCategoryLabel(category: String): String = when (category) {
     "announcement" -> "Анонс"
     else -> category.replaceFirstChar { it.uppercase() }
 }
+
+private fun getLeagueStatusLabel(status: String): String = when (status) {
+    "in_progress" -> "Идёт"
+    "registration_open" -> "Регистрация"
+    "completed" -> "Завершена"
+    "upcoming" -> "Скоро"
+    else -> status
+}
+
+@Composable
+private fun getLeagueStatusColor(status: String): Color = when (status) {
+    "in_progress" -> ILeaderColors.Info
+    "registration_open" -> ILeaderColors.Success
+    "completed" -> TextSecondary
+    "upcoming" -> ILeaderColors.Warning
+    else -> TextSecondary
+}
+
+private fun getMedalEmoji(index: Int): String = when (index) {
+    0 -> "\uD83E\uDD47"
+    1 -> "\uD83E\uDD48"
+    2 -> "\uD83E\uDD49"
+    else -> "${index + 1}."
+}
+
+// ═══════════════════════════════════════════════════
+// Leagues
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun LeaguesContent(
+    leagues: List<MockLeague>,
+    onLeagueClick: (String, String, String?) -> Unit
+) {
+    if (leagues.isEmpty()) {
+        EmptyState(title = "Лиги не найдены", subtitle = "Скоро здесь появятся лиги")
+    } else {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            itemsIndexed(leagues) { index, league ->
+                val delay = (index * 80).coerceAtMost(400)
+                var itemVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(delay.toLong())
+                    itemVisible = true
+                }
+                val itemAlpha by animateFloatAsState(
+                    targetValue = if (itemVisible) 1f else 0f,
+                    animationSpec = tween(350),
+                    label = "lItemAlpha"
+                )
+                val itemOffset by animateFloatAsState(
+                    targetValue = if (itemVisible) 0f else 50f,
+                    animationSpec = tween(350, easing = EaseOutBack),
+                    label = "lItemOffset"
+                )
+                Box(
+                    modifier = Modifier.graphicsLayer {
+                        alpha = itemAlpha
+                        translationY = itemOffset
+                    }
+                ) {
+                    LeagueMiniCard(
+                        league = league,
+                        onClick = { onLeagueClick(league.name, league.sportName, league.imageUrl) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit) {
+    val accentColor = Accent
+    val cardBg = CardBg
+    val textPrimary = TextPrimary
+    val textSecondary = TextSecondary
+    val textMuted = TextMuted
+    val borderColor = Border
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = cardBg,
+        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column {
+            // Hero image with gradient overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+            ) {
+                AsyncImage(
+                    model = league.imageUrl,
+                    contentDescription = league.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Gradient overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.7f)
+                                ),
+                                startY = 30f
+                            )
+                        )
+                )
+                // Sport + status pills on image top
+                Row(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .align(Alignment.TopStart),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Sport pill with icon
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color.Black.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                sportIcon(league.sportName),
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = league.sportName,
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    // Status pill
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = getLeagueStatusColor(league.status).copy(alpha = 0.85f)
+                    ) {
+                        Text(
+                            text = getLeagueStatusLabel(league.status),
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                // Name on image bottom
+                Text(
+                    text = league.name,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                )
+            }
+
+            // Content below image
+            Column(modifier = Modifier.padding(12.dp)) {
+                // Stage timeline header
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Этапы",
+                        color = textSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "${league.completedStages}/${league.totalStages}",
+                        color = textMuted,
+                        fontSize = 11.sp
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                StageTimeline(
+                    totalStages = league.totalStages,
+                    completedStages = league.completedStages,
+                    accentColor = accentColor,
+                    borderColor = borderColor
+                )
+
+                // Top 3 leaders
+                if (league.leaders.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Лидеры",
+                        color = textSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    league.leaders.forEachIndexed { idx, leader ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = getMedalEmoji(idx),
+                                fontSize = 14.sp
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = leader.name,
+                                color = textPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${leader.points} очк.",
+                                color = textMuted,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+
+                // Next stage date + participants
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    league.nextStageDate?.let { date ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = accentColor.copy(alpha = 0.08f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = date,
+                                    color = accentColor,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.People,
+                            contentDescription = null,
+                            tint = textMuted,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "${league.participants}",
+                            color = textMuted,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StageTimeline(
+    totalStages: Int,
+    completedStages: Int,
+    accentColor: Color,
+    borderColor: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        for (i in 0 until totalStages) {
+            val isCompleted = i < completedStages
+            val isCurrent = i == completedStages
+
+            // Circle
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(20.dp)
+            ) {
+                if (isCompleted) {
+                    // Completed: accent filled with check
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(accentColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                } else if (isCurrent) {
+                    // Current: accent border, empty
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, accentColor, CircleShape)
+                    )
+                } else {
+                    // Future: gray
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(borderColor)
+                    )
+                }
+            }
+
+            // Line between circles
+            if (i < totalStages - 1) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(2.dp)
+                        .background(if (i < completedStages) accentColor else borderColor)
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// Data classes
+// ═══════════════════════════════════════════════════
+
+private data class MockLeague(
+    val name: String, val sportName: String, val totalStages: Int,
+    val completedStages: Int, val status: String, val participants: Int,
+    val imageUrl: String?, val nextStageDate: String?,
+    val leaders: List<MockLeader>
+)
+
+private data class MockLeader(val name: String, val points: Int)

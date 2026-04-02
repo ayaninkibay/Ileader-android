@@ -104,6 +104,7 @@ fun FilterPopupScreen(
                         filters = localFilters,
                         onUpdate = { localFilters = it }
                     )
+                    else -> {}
                 }
             }
 

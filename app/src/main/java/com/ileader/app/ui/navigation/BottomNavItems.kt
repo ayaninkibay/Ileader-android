@@ -13,7 +13,7 @@ data class BottomNavItem(
 
 fun getBottomNavItems(): List<BottomNavItem> = listOf(
     BottomNavItem("home", "Главная", Icons.Default.Home),
-    BottomNavItem("sport", "Спорт", Icons.Default.Search),
+    BottomNavItem("sport", "Спорт", Icons.Default.SportsScore),
     BottomNavItem("my_tournaments", "Мои турниры", Icons.Default.EmojiEvents),
     BottomNavItem("profile", "Профиль", Icons.Default.Person)
 )

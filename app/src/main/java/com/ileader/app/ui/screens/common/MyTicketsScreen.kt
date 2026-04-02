@@ -169,11 +169,11 @@ private fun TicketCard(ticket: TicketItem, onShowQr: () -> Unit) {
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (ticket.sportName != null) {
-                    Text(
-                        sportEmoji(ticket.sportName) + " " + ticket.sportName,
-                        fontSize = 13.sp,
-                        color = TextSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(sportIcon(ticket.sportName), null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(ticket.sportName, fontSize = 13.sp, color = TextSecondary)
+                    }
                     Spacer(Modifier.width(12.dp))
                 }
                 if (ticket.startDate != null) {
