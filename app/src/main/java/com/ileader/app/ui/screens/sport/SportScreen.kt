@@ -70,9 +70,6 @@ fun SportScreen(
         return
     }
 
-    val topSports = s.sports.take(2)
-    val secondarySports = s.sports.drop(2).take(2)
-
     // Mock leagues
     val mockLeagues = remember {
         listOf(
@@ -103,51 +100,48 @@ fun SportScreen(
             )
         }
 
-        // ── 2 Main sport cards ──
+        // ── Hero sport card (full width, featured sport) ──
         item {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(180.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                topSports.forEach { sport ->
-                    val idx = s.sports.indexOf(sport)
-                    SportImageCard(
-                        sport = sport, isSelected = idx in s.selectedIndices,
-                        onClick = { viewModel.toggleSport(idx) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            val featuredIdx = s.selectedIndices.firstOrNull() ?: 0
+            val featured = s.sports.getOrNull(featuredIdx) ?: s.sports.firstOrNull()
+            if (featured != null) {
+                SportHeroCard(
+                    sport = featured,
+                    tournamentsCount = when (val t = s.tournaments) { is UiState.Success -> t.data.size; else -> 0 },
+                    athletesCount = when (val p = s.people) { is UiState.Success -> p.data.size; else -> 0 },
+                    onClick = { viewModel.toggleSport(s.sports.indexOf(featured)) }
+                )
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
         }
 
-        // ── 2 Secondary + "Ещё" button ──
+        // ── Sport chips row (horizontal scroll, all sports) ──
         item {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(100.dp),
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                secondarySports.forEach { sport ->
-                    val idx = s.sports.indexOf(sport)
-                    SportImageCard(
-                        sport = sport, isSelected = idx in s.selectedIndices,
-                        onClick = { viewModel.toggleSport(idx) },
-                        modifier = Modifier.weight(1f)
+                // "Все" chip
+                item {
+                    SportChip(
+                        name = "Все",
+                        icon = Icons.Default.Apps,
+                        isSelected = s.selectedIndices.isEmpty(),
+                        onClick = {
+                            if (s.selectedIndices.isNotEmpty()) {
+                                viewModel.toggleSport(s.selectedIndices.first())
+                            }
+                        }
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(12.dp), color = CardBg,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                ) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.Tune, null, tint = Accent, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text("Ещё", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    }
+                items(s.sports.size) { idx ->
+                    val sport = s.sports[idx]
+                    SportChip(
+                        name = sport.name,
+                        icon = sportIcon(sport.name),
+                        isSelected = idx in s.selectedIndices,
+                        onClick = { viewModel.toggleSport(idx) }
+                    )
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -292,45 +286,105 @@ fun SportScreen(
 }
 
 // ═══════════════════════════════════════════════════
-// Sport Image Card
+// Sport Hero Card (full-width featured sport)
 // ═══════════════════════════════════════════════════
 
 @Composable
-private fun SportImageCard(
-    sport: SportDto, isSelected: Boolean,
-    onClick: () -> Unit, modifier: Modifier = Modifier
+private fun SportHeroCard(
+    sport: SportDto,
+    tournamentsCount: Int,
+    athletesCount: Int,
+    onClick: () -> Unit
 ) {
-    val sColor = sportColor(sport.name)
     val imgUrl = SportViewModel.getFallbackImage(sport)
+    val sColor = sportColor(sport.name)
 
     Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(16.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(200.dp)
+            .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
     ) {
+        // Background
         if (imgUrl != null) {
-            AsyncImage(model = imgUrl, contentDescription = sport.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            AsyncImage(model = imgUrl, contentDescription = sport.name,
+                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         } else {
-            Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sColor.copy(0.8f), sColor.copy(0.4f)))))
+            Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sColor.copy(0.8f), sColor.copy(0.3f)))))
         }
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isSelected) 0.25f else 0.45f)))
 
-        // Selection indicator
-        if (isSelected) {
-            Box(
-                Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp).clip(CircleShape).background(Accent),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+        // Gradient overlay
+        Box(Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color.Black.copy(0.15f), Color.Black.copy(0.75f)))
+        ))
+
+        // Content
+        Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+            // Sport icon + name
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(sportIcon(sport.name), null, tint = Color.White, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(sport.name, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold,
+                    color = Color.White, letterSpacing = (-0.3).sp)
+            }
+
+            // Description
+            sport.description?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(it, fontSize = 12.sp, color = Color.White.copy(0.75f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+
+            // Stats
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.EmojiEvents, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("$tournamentsCount турниров", fontSize = 12.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.Medium)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("$athletesCount атлетов", fontSize = 12.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.Medium)
+                }
             }
         }
+    }
+}
 
-        // Sport name
-        Text(
-            sport.name, Modifier.align(Alignment.BottomStart).padding(12.dp),
-            fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White
-        )
+// ═══════════════════════════════════════════════════
+// Sport Chip (filter pill)
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun SportChip(
+    name: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (isSelected) Accent else CardBg,
+        border = if (!isSelected) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.3f)) else null,
+        shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = if (isSelected) Color.White else TextSecondary, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                color = if (isSelected) Color.White else TextPrimary
+            )
+        }
     }
 }
 

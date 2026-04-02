@@ -291,7 +291,7 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
             AsyncImage(
                 model = calendarBgUrl,
                 contentDescription = null,
-                modifier = Modifier.fillMaxSize().height(180.dp),
+                modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.Crop
             )
             Box(
@@ -303,8 +303,8 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
             )
 
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Header
                 Row(
@@ -1131,58 +1131,104 @@ private fun PersonCard(profile: CommunityProfileDto, onClick: () -> Unit) {
 
     Surface(
         modifier = Modifier
-            .width(110.dp)
+            .width(140.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = if (isDark) 0.dp else 4.dp
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Avatar
             UserAvatar(
                 avatarUrl = profile.avatarUrl,
                 name = profile.name ?: "?",
-                size = 58.dp,
+                size = 56.dp,
                 showGradientBorder = profile.primaryRating > 0
             )
 
             Spacer(Modifier.height(10.dp))
 
+            // Name
             Text(
                 text = profile.name ?: "",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            if (profile.primarySportName.isNotEmpty()) {
-                Text(
-                    text = profile.primarySportName,
-                    fontSize = 11.sp,
-                    color = TextMuted,
-                    maxLines = 1
-                )
+            // Subtype or sport
+            val subtitle = profile.subtypeLabel ?: profile.primarySportName.ifEmpty { null }
+            if (subtitle != null) {
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (profile.primarySportName.isNotEmpty()) {
+                        Icon(
+                            sportIcon(profile.primarySportName), null,
+                            tint = TextMuted,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(3.dp))
+                    }
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.sp,
+                        color = TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
+            // City
+            if (!profile.city.isNullOrEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.LocationOn, null,
+                        tint = TextMuted.copy(alpha = 0.7f),
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        text = profile.city,
+                        fontSize = 10.sp,
+                        color = TextMuted.copy(alpha = 0.7f),
+                        maxLines = 1
+                    )
+                }
+            }
+
+            // Rating badge
             if (profile.primaryRating > 0) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Accent.copy(alpha = 0.1f)
                 ) {
-                    Text(
-                        text = "${profile.primaryRating}",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Accent
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Star, null,
+                            tint = Accent,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "${profile.primaryRating}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Accent
+                        )
+                    }
                 }
             }
         }
