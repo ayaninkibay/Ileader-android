@@ -112,7 +112,7 @@ fun ProfileScreen(
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(220.dp)
+                            .height(320.dp)
                             .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -120,7 +120,7 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(220.dp)
+                            .height(320.dp)
                             .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                             .background(
                                 Brush.verticalGradient(

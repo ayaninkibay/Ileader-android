@@ -297,7 +297,7 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
             Box(
                 Modifier.matchParentSize().background(
                     Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = 0.65f), Color.Black.copy(alpha = 0.8f))
+                        listOf(Color.Black.copy(alpha = 0.35f), Color.Black.copy(alpha = 0.55f))
                     )
                 )
             )

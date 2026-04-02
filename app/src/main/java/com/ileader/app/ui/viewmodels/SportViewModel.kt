@@ -220,11 +220,27 @@ class SportViewModel : ViewModel() {
         )
     }
 
-    companion object {
-        private const val PAGE_SIZE = 50
+    // ── Data classes ──
+
+    fun toggleSport(index: Int) {
+        state.sports.getOrNull(index) ?: return
+        val newSet = if (index in state.selectedIndices) emptySet() else setOf(index)
+        state = state.copy(selectedIndices = newSet)
+        applyClientFilters()
     }
 
-    // ── Data classes ──
+    val selectedSports: List<SportDto>
+        get() = state.selectedIndices.mapNotNull { state.sports.getOrNull(it) }
+
+    companion object {
+        private const val PAGE_SIZE = 50
+
+        fun getFallbackImage(sport: SportDto): String? = when (sport.slug) {
+            "karting" -> "https://ileader.kz/img/karting/karting-04-1280x853.jpeg"
+            "shooting" -> "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg"
+            else -> null
+        }
+    }
 
     data class SportState(
         val activeTab: SportSubTab = SportSubTab.TOURNAMENTS,
@@ -234,10 +250,15 @@ class SportViewModel : ViewModel() {
         val people: UiState<List<CommunityProfileDto>> = UiState.Loading,
         val news: UiState<List<ArticleDto>> = UiState.Loading,
         val sports: List<SportDto> = emptyList(),
+        val selectedIndices: Set<Int> = emptySet(),
+        val sportImages: Map<String, List<String>> = emptyMap(),
         val hasMoreTournaments: Boolean = true,
         val hasMorePeople: Boolean = true,
         val hasMoreNews: Boolean = true
-    )
+    ) {
+        val selectedSports: List<SportDto>
+            get() = selectedIndices.mapNotNull { sports.getOrNull(it) }
+    }
 
     enum class SportSubTab { TOURNAMENTS, PEOPLE, NEWS, LEAGUES }
 

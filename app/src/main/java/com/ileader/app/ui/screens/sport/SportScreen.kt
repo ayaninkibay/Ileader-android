@@ -6,41 +6,18 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,22 +36,12 @@ import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.CommunityProfileDto
+import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
-import com.ileader.app.ui.components.DarkSearchField
-import com.ileader.app.ui.components.DarkSegmentedControl
-import com.ileader.app.ui.components.DarkTheme
-import com.ileader.app.ui.components.EmptyState
-import com.ileader.app.ui.components.ErrorScreen
-import com.ileader.app.ui.components.FadeIn
-import com.ileader.app.ui.components.LoadingScreen
-import com.ileader.app.ui.components.formatShortDate
-import com.ileader.app.ui.components.sportColor
-import com.ileader.app.ui.components.sportEmoji
-import com.ileader.app.ui.components.sportIcon
+import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.SportViewModel
-import com.ileader.app.ui.viewmodels.SportViewModel.SportSubTab
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -94,1001 +61,539 @@ fun SportScreen(
     viewModel: SportViewModel = viewModel()
 ) {
     val s = viewModel.state
-    var showFilterPopup by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
+    val isDark = DarkTheme.isDark
 
-    // Mock leagues data
-    val mockLeagues = remember { listOf(
-        MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
-            "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
-            listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
-        MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
-            "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
-        MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
-            "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
-            listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
-    ) }
+    if (s.sports.isEmpty() && s.tournaments is UiState.Loading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Accent, strokeWidth = 2.dp)
+        }
+        return
+    }
 
-    // Search bar slide-down animation
-    val searchAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(400),
-        label = "searchAlpha"
-    )
-    val searchOffset by animateFloatAsState(
-        targetValue = if (started) 0f else -30f,
-        animationSpec = tween(400, easing = EaseOutBack),
-        label = "searchOffset"
-    )
+    val topSports = s.sports.take(2)
+    val secondarySports = s.sports.drop(2).take(2)
 
-    Column(
+    // Mock leagues
+    val mockLeagues = remember {
+        listOf(
+            MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
+                "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
+                listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
+            MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
+                "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
+            MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
+                "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
+                listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
+        )
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .background(Bg)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 100.dp)
     ) {
-        // Search + Filter button
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                    alpha = searchAlpha
-                    translationY = searchOffset
-                }
-        ) {
-            DarkSearchField(
-                value = s.searchQuery,
-                onValueChange = { viewModel.search(it) },
-                placeholder = "Поиск...",
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            IconButton(onClick = { showFilterPopup = true }) {
-                Icon(
-                    Icons.Default.Tune,
-                    contentDescription = "Фильтры",
-                    tint = TextSecondary
-                )
-            }
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        // Segmented control
-        DarkSegmentedControl(
-            options = listOf("Турниры", "Люди", "Новости", "Лиги"),
-            selectedIndex = s.activeTab.ordinal,
-            onSelect = { viewModel.setTab(SportSubTab.entries[it]) },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        // Content
-        when (s.activeTab) {
-            SportSubTab.TOURNAMENTS -> TournamentsContent(
-                state = s.tournaments,
-                hasMore = s.hasMoreTournaments,
-                onClick = onTournamentClick,
-                onLoadMore = { viewModel.loadMore() },
-                onRetry = { viewModel.retry() }
-            )
-            SportSubTab.PEOPLE -> PeopleContent(
-                state = s.people,
-                hasMore = s.hasMorePeople,
-                onClick = onProfileClick,
-                onLoadMore = { viewModel.loadMore() },
-                onRetry = { viewModel.retry() }
-            )
-            SportSubTab.NEWS -> NewsContent(
-                state = s.news,
-                hasMore = s.hasMoreNews,
-                onClick = onArticleClick,
-                onLoadMore = { viewModel.loadMore() },
-                onRetry = { viewModel.retry() }
-            )
-            SportSubTab.LEAGUES -> LeaguesContent(
-                leagues = mockLeagues,
-                onLeagueClick = onLeagueClick
+        // ── Title ──
+        item {
+            Text(
+                "Спорт", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold,
+                color = TextPrimary, letterSpacing = (-0.5).sp,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
             )
         }
-    }
 
-    // Filter popup
-    if (showFilterPopup) {
-        FilterPopupScreen(
-            activeTab = s.activeTab,
-            sports = s.sports,
-            filters = s.filters,
-            onApply = {
-                viewModel.applyFilters(it)
-                showFilterPopup = false
-            },
-            onReset = {
-                viewModel.resetFilters()
-                showFilterPopup = false
-            },
-            onDismiss = { showFilterPopup = false }
-        )
-    }
-}
-
-// ═══════════════════════════════════════════════════
-// Tournaments
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun TournamentsContent(
-    state: UiState<List<TournamentWithCountsDto>>,
-    hasMore: Boolean,
-    onClick: (String) -> Unit,
-    onLoadMore: () -> Unit,
-    onRetry: () -> Unit
-) {
-    when (state) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorScreen(message = state.message, onRetry = onRetry)
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                EmptyState(title = "Турниры не найдены", subtitle = "Попробуйте изменить фильтры")
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    itemsIndexed(state.data, key = { _, it -> it.id }) { index, tournament ->
-                        val delay = (index * 50).coerceAtMost(500)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(350),
-                            label = "tItemAlpha"
-                        )
-                        val itemOffset by animateFloatAsState(
-                            targetValue = if (itemVisible) 0f else 50f,
-                            animationSpec = tween(350, easing = EaseOutBack),
-                            label = "tItemOffset"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                translationY = itemOffset
-                            }
-                        ) {
-                            TournamentCard(tournament = tournament, onClick = { onClick(tournament.id) })
-                        }
-                    }
-                    if (hasMore) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                TextButton(onClick = onLoadMore) {
-                                    Text("Загрузить ещё", color = Accent, fontWeight = FontWeight.Medium)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Pill badges row
+        // ── 2 Main sport cards ──
+        item {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(180.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                tournament.sportName?.let { sport ->
-                    PillBadge(
-                        text = sport,
-                        color = TextMuted,
-                        icon = sportIcon(sport)
-                    )
-                }
-                tournament.status?.let { status ->
-                    PillBadge(
-                        text = getStatusLabel(status),
-                        color = getStatusColor(status)
+                topSports.forEach { sport ->
+                    val idx = s.sports.indexOf(sport)
+                    SportImageCard(
+                        sport = sport, isSelected = idx in s.selectedIndices,
+                        onClick = { viewModel.toggleSport(idx) },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
-
-            Spacer(Modifier.height(10.dp))
-
-            // Title
-            Text(
-                text = tournament.name,
-                color = TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            // Info rows with icons
-            InfoRow(
-                icon = Icons.Default.CalendarMonth,
-                text = formatShortDate(tournament.startDate)
-            )
-
-            tournament.locationName?.let { location ->
-                Spacer(Modifier.height(6.dp))
-                InfoRow(
-                    icon = Icons.Default.LocationOn,
-                    text = location
-                )
-            }
-
-            Spacer(Modifier.height(6.dp))
-            InfoRow(
-                icon = Icons.Default.People,
-                text = "${tournament.participantCount} участников"
-            )
+            Spacer(Modifier.height(8.dp))
         }
-    }
-}
 
-// ═══════════════════════════════════════════════════
-// People
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun PeopleContent(
-    state: UiState<List<CommunityProfileDto>>,
-    hasMore: Boolean,
-    onClick: (String) -> Unit,
-    onLoadMore: () -> Unit,
-    onRetry: () -> Unit
-) {
-    when (state) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorScreen(message = state.message, onRetry = onRetry)
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                EmptyState(title = "Люди не найдены", subtitle = "Попробуйте изменить фильтры")
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    itemsIndexed(state.data, key = { _, it -> it.id }) { index, person ->
-                        val delay = (index * 50).coerceAtMost(500)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(350),
-                            label = "pItemAlpha"
-                        )
-                        val itemOffset by animateFloatAsState(
-                            targetValue = if (itemVisible) 0f else 50f,
-                            animationSpec = tween(350, easing = EaseOutBack),
-                            label = "pItemOffset"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                translationY = itemOffset
-                            }
-                        ) {
-                            PersonCard(person = person, onClick = { onClick(person.id) })
-                        }
-                    }
-                    if (hasMore) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                TextButton(onClick = onLoadMore) {
-                                    Text("Загрузить ещё", color = Accent, fontWeight = FontWeight.Medium)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PersonCard(person: CommunityProfileDto, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar
-            Surface(
-                shape = CircleShape,
-                color = Border,
-                modifier = Modifier.size(48.dp)
+        // ── 2 Secondary + "Ещё" button ──
+        item {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(100.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (person.avatarUrl != null) {
-                    AsyncImage(
-                        model = person.avatarUrl,
-                        contentDescription = person.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
+                secondarySports.forEach { sport ->
+                    val idx = s.sports.indexOf(sport)
+                    SportImageCard(
+                        sport = sport, isSelected = idx in s.selectedIndices,
+                        onClick = { viewModel.toggleSport(idx) },
+                        modifier = Modifier.weight(1f)
                     )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
                 }
-            }
-
-            Spacer(Modifier.width(14.dp))
-
-            // Name + info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = person.name ?: "Без имени",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
-                if (person.primarySportName.isNotEmpty()) {
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(sportIcon(person.primarySportName), null, tint = TextSecondary, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = person.primarySportName,
-                            color = TextSecondary,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-                person.city?.let { city ->
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(3.dp))
-                        Text(text = city, color = TextMuted, fontSize = 13.sp)
-                    }
-                }
-            }
-
-            // Rating pill
-            if (person.primaryRating > 0) {
-                PillBadge(
-                    text = "${person.primaryRating}",
-                    color = Accent
-                )
-            }
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════
-// News
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun NewsContent(
-    state: UiState<List<ArticleDto>>,
-    hasMore: Boolean,
-    onClick: (String) -> Unit,
-    onLoadMore: () -> Unit,
-    onRetry: () -> Unit
-) {
-    when (state) {
-        is UiState.Loading -> LoadingScreen()
-        is UiState.Error -> ErrorScreen(message = state.message, onRetry = onRetry)
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                EmptyState(title = "Новости не найдены", subtitle = "Попробуйте изменить фильтры")
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    itemsIndexed(state.data, key = { _, it -> it.id }) { index, article ->
-                        val delay = (index * 50).coerceAtMost(500)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(350),
-                            label = "aItemAlpha"
-                        )
-                        val itemOffset by animateFloatAsState(
-                            targetValue = if (itemVisible) 0f else 50f,
-                            animationSpec = tween(350, easing = EaseOutBack),
-                            label = "aItemOffset"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                translationY = itemOffset
-                            }
-                        ) {
-                            ArticleCard(article = article, onClick = { onClick(article.id) })
-                        }
-                    }
-                    if (hasMore) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
-                                TextButton(onClick = onLoadMore) {
-                                    Text("Загрузить ещё", color = Accent, fontWeight = FontWeight.Medium)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ArticleCard(article: ArticleDto, onClick: () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            // Cover image
-            if (article.coverImageUrl != null) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Border,
-                    modifier = Modifier.size(80.dp)
+                    shape = RoundedCornerShape(12.dp), color = CardBg,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 ) {
-                    AsyncImage(
-                        model = article.coverImageUrl,
-                        contentDescription = article.title,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                    Column(
+                        Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Tune, null, tint = Accent, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.height(4.dp))
+                        Text("Ещё", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    }
                 }
-                Spacer(Modifier.width(14.dp))
             }
+            Spacer(Modifier.height(20.dp))
+        }
 
-            // Text content
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = article.title,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp
-                )
-                article.excerpt?.let { excerpt ->
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = excerpt,
-                        color = TextMuted,
-                        fontSize = 13.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        lineHeight = 18.sp
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    article.category?.let { category ->
-                        PillBadge(
-                            text = getCategoryLabel(category),
-                            color = Accent
-                        )
+        // ── Description (when sport selected) ──
+        val selectedSports = s.selectedSports
+        if (selectedSports.isNotEmpty()) {
+            item {
+                SectionTitle("О спорте")
+                selectedSports.forEach { sp ->
+                    Surface(
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp), color = CardBg,
+                        shadowElevation = if (isDark) 0.dp else 2.dp
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(sportIcon(sp.name), null, tint = TextSecondary, modifier = Modifier.size(24.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(sp.name, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    sp.athleteLabel?.let { Text("Участник: $it", color = TextMuted, fontSize = 12.sp) }
+                                }
+                            }
+                            sp.description?.let {
+                                Spacer(Modifier.height(12.dp))
+                                Text(it, color = TextSecondary, fontSize = 14.sp, lineHeight = 21.sp)
+                            }
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(Modifier.width(3.dp))
-                        Text(
-                            text = formatShortDate(article.publishedAt ?: article.createdAt),
-                            color = TextMuted,
-                            fontSize = 12.sp
-                        )
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
+        // ── Турниры ──
+        item {
+            SectionTitle(title = "Турниры", action = "Все", onAction = {})
+            SportSection(state = s.tournaments) { list ->
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(list, key = { it.id }) { t ->
+                        TournamentMiniCard(t, onClick = { onTournamentClick(t.id) })
                     }
                 }
             }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── Спортсмены ──
+        item {
+            SectionTitle(title = "Спортсмены", action = "Все", onAction = {})
+            SportSection(state = s.people) { list ->
+                val athletes = list.take(10)
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(athletes, key = { it.id }) { p ->
+                        PersonMiniCard(p, onClick = { onProfileClick(p.id) })
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── СМИ ──
+        item {
+            SectionTitle(title = "СМИ", action = "Все", onAction = {})
+            SportSection(state = s.news) { list ->
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(list, key = { it.id }) { a ->
+                        ArticleMiniCard(a, onClick = { onArticleClick(a.id) })
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── Лиги ──
+        item {
+            SectionTitle(title = "Лиги", action = "Все", onAction = {})
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(mockLeagues.size) { i ->
+                    val league = mockLeagues[i]
+                    LeagueMiniCard(league) { onLeagueClick(league.name, league.sportName, league.imageUrl) }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── Судьи ──
+        item {
+            SectionTitle("Судьи")
+            SportSection(state = s.people) { list ->
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(list.takeLast(5), key = { "ref_${it.id}" }) { p ->
+                        PersonMiniCard(p, onClick = { onProfileClick(p.id) })
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── Тренера ──
+        item {
+            SectionTitle("Тренера")
+            SportSection(state = s.people) { list ->
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(list.drop(3).take(5), key = { "tr_${it.id}" }) { p ->
+                        PersonMiniCard(p, onClick = { onProfileClick(p.id) })
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+
+        // ── Команды ──
+        item {
+            SectionTitle("Команды")
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                EmptyState(title = "Команды появятся позже", subtitle = "")
+            }
+            Spacer(Modifier.height(20.dp))
         }
     }
 }
 
 // ═══════════════════════════════════════════════════
-// Shared components
+// Sport Image Card
 // ═══════════════════════════════════════════════════
 
 @Composable
-private fun PillBadge(text: String, color: Color, icon: ImageVector? = null) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.1f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-            }
-            Text(
-                text = text,
-                color = color,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(icon: ImageVector, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = TextMuted,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = text,
-            color = TextSecondary,
-            fontSize = 13.sp
-        )
-    }
-}
-
-// ═══════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════
-
-private fun getStatusLabel(status: String): String = when (status) {
-    "registration_open" -> "Регистрация"
-    "in_progress" -> "Идёт"
-    "completed" -> "Завершён"
-    "check_in" -> "Check-in"
-    "draft" -> "Черновик"
-    else -> status
-}
-
-@Composable
-private fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> ILeaderColors.Success
-    "in_progress" -> ILeaderColors.Info
-    "completed" -> TextSecondary
-    "check_in" -> ILeaderColors.Warning
-    else -> TextSecondary
-}
-
-private fun getCategoryLabel(category: String): String = when (category) {
-    "news" -> "Новости"
-    "report" -> "Отчёт"
-    "interview" -> "Интервью"
-    "analytics" -> "Аналитика"
-    "review" -> "Обзор"
-    "announcement" -> "Анонс"
-    else -> category.replaceFirstChar { it.uppercase() }
-}
-
-private fun getLeagueStatusLabel(status: String): String = when (status) {
-    "in_progress" -> "Идёт"
-    "registration_open" -> "Регистрация"
-    "completed" -> "Завершена"
-    "upcoming" -> "Скоро"
-    else -> status
-}
-
-@Composable
-private fun getLeagueStatusColor(status: String): Color = when (status) {
-    "in_progress" -> ILeaderColors.Info
-    "registration_open" -> ILeaderColors.Success
-    "completed" -> TextSecondary
-    "upcoming" -> ILeaderColors.Warning
-    else -> TextSecondary
-}
-
-private fun getMedalEmoji(index: Int): String = when (index) {
-    0 -> "\uD83E\uDD47"
-    1 -> "\uD83E\uDD48"
-    2 -> "\uD83E\uDD49"
-    else -> "${index + 1}."
-}
-
-// ═══════════════════════════════════════════════════
-// Leagues
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun LeaguesContent(
-    leagues: List<MockLeague>,
-    onLeagueClick: (String, String, String?) -> Unit
+private fun SportImageCard(
+    sport: SportDto, isSelected: Boolean,
+    onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
-    if (leagues.isEmpty()) {
-        EmptyState(title = "Лиги не найдены", subtitle = "Скоро здесь появятся лиги")
-    } else {
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            itemsIndexed(leagues) { index, league ->
-                val delay = (index * 80).coerceAtMost(400)
-                var itemVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(delay.toLong())
-                    itemVisible = true
-                }
-                val itemAlpha by animateFloatAsState(
-                    targetValue = if (itemVisible) 1f else 0f,
-                    animationSpec = tween(350),
-                    label = "lItemAlpha"
-                )
-                val itemOffset by animateFloatAsState(
-                    targetValue = if (itemVisible) 0f else 50f,
-                    animationSpec = tween(350, easing = EaseOutBack),
-                    label = "lItemOffset"
-                )
-                Box(
-                    modifier = Modifier.graphicsLayer {
-                        alpha = itemAlpha
-                        translationY = itemOffset
-                    }
-                ) {
-                    LeagueMiniCard(
-                        league = league,
-                        onClick = { onLeagueClick(league.name, league.sportName, league.imageUrl) }
-                    )
-                }
+    val sColor = sportColor(sport.name)
+    val imgUrl = SportViewModel.getFallbackImage(sport)
+
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+    ) {
+        if (imgUrl != null) {
+            AsyncImage(model = imgUrl, contentDescription = sport.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        } else {
+            Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sColor.copy(0.8f), sColor.copy(0.4f)))))
+        }
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isSelected) 0.25f else 0.45f)))
+
+        // Selection indicator
+        if (isSelected) {
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp).clip(CircleShape).background(Accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
             }
+        }
+
+        // Sport name
+        Text(
+            sport.name, Modifier.align(Alignment.BottomStart).padding(12.dp),
+            fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// Section helpers
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun SectionTitle(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        if (action != null && onAction != null) {
+            Text(action, fontSize = 13.sp, color = Accent, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { onAction() })
         }
     }
 }
 
 @Composable
-private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit) {
-    val accentColor = Accent
-    val cardBg = CardBg
-    val textPrimary = TextPrimary
-    val textSecondary = TextSecondary
-    val textMuted = TextMuted
-    val borderColor = Border
+private fun <T> SportSection(state: UiState<List<T>>, content: @Composable (List<T>) -> Unit) {
+    when (state) {
+        is UiState.Loading -> Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+        }
+        is UiState.Error -> Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            EmptyState(title = "Ошибка", subtitle = state.message)
+        }
+        is UiState.Success -> {
+            if (state.data.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    EmptyState(title = "Пусто", subtitle = "Данные появятся позже")
+                }
+            } else {
+                content(state.data)
+            }
+        }
+    }
+}
 
+// ═══════════════════════════════════════════════════
+// Tournament Mini Card
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun TournamentMiniCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
+    val isDark = DarkTheme.isDark
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = cardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        shape = RoundedCornerShape(18.dp), color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 4.dp,
+        modifier = Modifier.width(260.dp).clickable(onClick = onClick)
     ) {
         Column {
-            // Hero image with gradient overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            ) {
-                AsyncImage(
-                    model = league.imageUrl,
-                    contentDescription = league.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                // Gradient overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.7f)
-                                ),
-                                startY = 30f
-                            )
-                        )
-                )
-                // Sport + status pills on image top
-                Row(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .align(Alignment.TopStart),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // Sport pill with icon
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.5f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                sportIcon(league.sportName),
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = league.sportName,
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                    // Status pill
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = getLeagueStatusColor(league.status).copy(alpha = 0.85f)
-                    ) {
-                        Text(
-                            text = getLeagueStatusLabel(league.status),
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+            Box(Modifier.fillMaxWidth().height(120.dp)) {
+                if (t.imageUrl != null) {
+                    AsyncImage(model = t.imageUrl, contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
+                        contentScale = ContentScale.Crop)
+                } else {
+                    val sColor = if (t.sportName != null) sportColor(t.sportName) else Accent
+                    Box(Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                        .background(Brush.linearGradient(listOf(sColor.copy(0.8f), sColor.copy(0.4f)))))
                 }
-                // Name on image bottom
-                Text(
-                    text = league.name,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                )
-            }
-
-            // Content below image
-            Column(modifier = Modifier.padding(12.dp)) {
-                // Stage timeline header
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Этапы",
-                        color = textSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "${league.completedStages}/${league.totalStages}",
-                        color = textMuted,
-                        fontSize = 11.sp
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                StageTimeline(
-                    totalStages = league.totalStages,
-                    completedStages = league.completedStages,
-                    accentColor = accentColor,
-                    borderColor = borderColor
-                )
-
-                // Top 3 leaders
-                if (league.leaders.isNotEmpty()) {
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Лидеры",
-                        color = textSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    league.leaders.forEachIndexed { idx, leader ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = getMedalEmoji(idx),
-                                fontSize = 14.sp
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = leader.name,
-                                color = textPrimary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${leader.points} очк.",
-                                color = textMuted,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-
-                // Next stage date + participants
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    league.nextStageDate?.let { date ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = accentColor.copy(alpha = 0.08f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(13.dp)
-                                )
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.5f)))))
+                Row(Modifier.padding(10.dp).align(Alignment.TopStart), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    t.sportName?.let { sport ->
+                        Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(0.4f)) {
+                            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(sportIcon(sport), null, tint = Color.White, modifier = Modifier.size(12.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = date,
-                                    color = accentColor,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
+                                Text(sport, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.People,
-                            contentDescription = null,
-                            tint = textMuted,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "${league.participants}",
-                            color = textMuted,
-                            fontSize = 12.sp
-                        )
-                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun StageTimeline(
-    totalStages: Int,
-    completedStages: Int,
-    accentColor: Color,
-    borderColor: Color
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        for (i in 0 until totalStages) {
-            val isCompleted = i < completedStages
-            val isCurrent = i == completedStages
-
-            // Circle
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(20.dp)
-            ) {
-                if (isCompleted) {
-                    // Completed: accent filled with check
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(accentColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                } else if (isCurrent) {
-                    // Current: accent border, empty
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, accentColor, CircleShape)
-                    )
-                } else {
-                    // Future: gray
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(borderColor)
-                    )
+            Column(Modifier.padding(14.dp)) {
+                Text(t.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis, lineHeight = 20.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    InfoChip(icon = Icons.Default.CalendarMonth, text = formatShortDate(t.startDate))
+                    t.locationName?.let { InfoChip(icon = Icons.Default.LocationOn, text = it) }
                 }
-            }
-
-            // Line between circles
-            if (i < totalStages - 1) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(2.dp)
-                        .background(if (i < completedStages) accentColor else borderColor)
-                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("${t.participantCount} участников", fontSize = 12.sp, color = TextMuted)
+                }
             }
         }
     }
 }
 
 // ═══════════════════════════════════════════════════
-// Data classes
+// Person Mini Card
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        shape = RoundedCornerShape(16.dp), color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp,
+        modifier = Modifier.width(110.dp).clickable(onClick = onClick)
+    ) {
+        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            UserAvatar(avatarUrl = p.avatarUrl, name = p.name ?: "?", size = 48.dp, showGradientBorder = p.primaryRating > 0)
+            Spacer(Modifier.height(8.dp))
+            Text(p.name ?: "", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (p.primarySportName.isNotEmpty()) {
+                Text(p.primarySportName, fontSize = 11.sp, color = TextMuted, maxLines = 1)
+            }
+            if (p.primaryRating > 0) {
+                Spacer(Modifier.height(4.dp))
+                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
+                    Text("${p.primaryRating}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// Article Mini Card
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        shape = RoundedCornerShape(18.dp), color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 4.dp,
+        modifier = Modifier.width(220.dp).clickable(onClick = onClick)
+    ) {
+        Column {
+            Box(Modifier.fillMaxWidth().height(120.dp)) {
+                if (a.coverImageUrl != null) {
+                    AsyncImage(model = a.coverImageUrl, contentDescription = a.title,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
+                        contentScale = ContentScale.Crop)
+                } else {
+                    Box(Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                        .background(TextMuted.copy(0.1f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Article, null, tint = TextMuted, modifier = Modifier.size(32.dp))
+                    }
+                }
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.4f)))))
+            }
+            Column(Modifier.padding(14.dp)) {
+                Text(a.title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 19.sp)
+                Spacer(Modifier.height(6.dp))
+                Text(formatShortDate(a.publishedAt ?: a.createdAt), color = TextMuted, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// League Mini Card
 // ═══════════════════════════════════════════════════
 
 private data class MockLeague(
     val name: String, val sportName: String, val totalStages: Int,
     val completedStages: Int, val status: String, val participants: Int,
-    val imageUrl: String?, val nextStageDate: String?,
-    val leaders: List<MockLeader>
+    val imageUrl: String?, val nextStageDate: String?, val leaders: List<MockLeader>
 )
-
 private data class MockLeader(val name: String, val points: Int)
+
+@Composable
+private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        shape = RoundedCornerShape(18.dp), color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 4.dp,
+        modifier = Modifier.width(280.dp).clickable(onClick = onClick)
+    ) {
+        Column {
+            // Hero
+            Box(Modifier.fillMaxWidth().height(110.dp)) {
+                if (league.imageUrl != null) {
+                    AsyncImage(model = league.imageUrl, contentDescription = null,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)),
+                        contentScale = ContentScale.Crop)
+                }
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.2f), Color.Black.copy(0.7f)))))
+                Row(Modifier.padding(10.dp).align(Alignment.TopStart), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(0.4f)) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(sportIcon(league.sportName), null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(league.sportName, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                    val (statusLabel, statusColor) = when (league.status) {
+                        "in_progress" -> "Идёт" to ILeaderColors.Success
+                        "registration_open" -> "Регистрация" to ILeaderColors.Info
+                        else -> league.status to TextMuted
+                    }
+                    Surface(shape = RoundedCornerShape(50), color = statusColor.copy(0.9f)) {
+                        Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                    }
+                }
+                Text(league.name, Modifier.align(Alignment.BottomStart).padding(12.dp), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 2, lineHeight = 22.sp)
+            }
+
+            Column(Modifier.padding(14.dp)) {
+                // Stage timeline
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Этапы", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                    Text("${league.completedStages}/${league.totalStages}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                    for (i in 1..league.totalStages) {
+                        val done = i <= league.completedStages; val current = i == league.completedStages + 1
+                        Box(
+                            Modifier.size(if (current) 20.dp else 14.dp).clip(CircleShape)
+                                .background(when { done -> Accent; current -> Accent.copy(0.3f); else -> TextMuted.copy(0.12f) })
+                                .then(if (current) Modifier.border(2.dp, Accent, CircleShape) else Modifier),
+                            contentAlignment = Alignment.Center
+                        ) { if (done) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp)) }
+                        if (i < league.totalStages) Box(Modifier.weight(1f).height(2.dp).padding(horizontal = 2.dp)
+                            .background(if (i < league.completedStages + 1) Accent.copy(0.5f) else TextMuted.copy(0.12f), RoundedCornerShape(1.dp)))
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+
+                // Leaders
+                if (league.leaders.isNotEmpty()) {
+                    Text("Лидеры", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
+                    Spacer(Modifier.height(8.dp))
+                    league.leaders.forEachIndexed { idx, leader ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(when (idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }, fontSize = 14.sp, modifier = Modifier.width(24.dp))
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.12f)), contentAlignment = Alignment.Center) {
+                                Text(leader.name.take(1), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(leader.name, fontSize = 13.sp, color = TextPrimary, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("${leader.points} очк.", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                        }
+                    }
+                }
+
+                // Next stage
+                league.nextStageDate?.let { date ->
+                    Spacer(Modifier.height(12.dp))
+                    Surface(shape = RoundedCornerShape(10.dp), color = Accent.copy(0.08f), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Следующий этап: $date", fontSize = 12.sp, color = Accent, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
