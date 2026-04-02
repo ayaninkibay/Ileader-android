@@ -62,12 +62,12 @@ fun MediaArticlesScreen(
     val topArticles by vm.topArticles.collectAsState()
     val actionState by vm.actionState.collectAsState()
 
-    var started by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(ArticleFilter.ALL) }
     var deleteConfirmId by remember { mutableStateOf<String?>(null) }
 
     val snackbar = LocalSnackbarHost.current
 
+    var started by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) {
         vm.loadArticles(user.id)
         started = true
@@ -103,49 +103,44 @@ fun MediaArticlesScreen(
     ) {
         // ── 1. Hero ──
         item {
-            FadeIn(visible = started, delayMs = 0) {
-                ArticlesHero(stats = stats, onBack = onBack)
-            }
+            ArticlesHero(stats = stats, onBack = onBack)
+            
         }
 
         // ── 2. Top articles ──
         if (topArticles.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(16.dp))
-                FadeIn(visible = started, delayMs = 60) {
-                    SectionHeader(title = "Популярные статьи")
-                }
+                SectionHeader(title = "Популярные статьи")
+                
                 Spacer(Modifier.height(8.dp))
             }
             item {
-                FadeIn(visible = started, delayMs = 80) {
-                    TopArticlesRow(articles = topArticles, onClick = onArticleClick)
-                }
+                TopArticlesRow(articles = topArticles, onClick = onArticleClick)
+                
             }
         }
 
         // ── 3. Create button ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 100) {
-                CreateArticleButton(onClick = onCreateArticle)
-            }
+            CreateArticleButton(onClick = onCreateArticle)
+            
         }
 
         // ── 4. Filter chips ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 120) {
-                ArticleFilterChips(
-                    selected = selectedFilter,
-                    onSelect = { selectedFilter = it },
-                    counts = mapOf(
-                        ArticleFilter.ALL to allArticles.size,
-                        ArticleFilter.PUBLISHED to published.size,
-                        ArticleFilter.DRAFT to drafts.size
-                    )
+            ArticleFilterChips(
+                selected = selectedFilter,
+                onSelect = { selectedFilter = it },
+                counts = mapOf(
+                    ArticleFilter.ALL to allArticles.size,
+                    ArticleFilter.PUBLISHED to published.size,
+                    ArticleFilter.DRAFT to drafts.size
                 )
-            }
+            )
+            
         }
 
         when (articles) {
@@ -183,13 +178,12 @@ fun MediaArticlesScreen(
                     item { Spacer(Modifier.height(8.dp)) }
                     itemsIndexed(filtered, key = { _, it -> it.id }) { index, article ->
                         val delay = (160 + index * 50).coerceAtMost(500)
-                        FadeIn(visible = started, delayMs = delay) {
-                            ArticleCard(
-                                article = article,
-                                onClick = { onArticleClick(article.id) },
-                                onDelete = { deleteConfirmId = article.id }
-                            )
-                        }
+                        ArticleCard(
+                            article = article,
+                            onClick = { onArticleClick(article.id) },
+                            onDelete = { deleteConfirmId = article.id }
+                        )
+                        
                     }
                 }
             }

@@ -72,8 +72,6 @@ fun HomeScreen(
     }
 
     val state = viewModel.state
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
 
     val colors = LocalAppColors.current
 
@@ -145,82 +143,74 @@ fun HomeScreen(
         // ── Sport Circles ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 0) {
-                val sportsList = remember(state.sports) {
-                    state.sports.map { sport ->
-                        Triple(
-                            sport.slug ?: sport.name.lowercase(),
-                            sport.name,
-                            sportEmoji(sport.name)
-                        )
-                    }
+            val sportsList = remember(state.sports) {
+                state.sports.map { sport ->
+                    Triple(
+                        sport.slug ?: sport.name.lowercase(),
+                        sport.name,
+                        sportEmoji(sport.name)
+                    )
                 }
-                var selectedSport by remember { mutableStateOf<String?>(null) }
-                SportCirclesRow(
-                    sports = sportsList,
-                    selectedId = selectedSport,
-                    onSelect = { selectedSport = it }
-                )
             }
+            var selectedSport by remember { mutableStateOf<String?>(null) }
+            SportCirclesRow(
+                sports = sportsList,
+                selectedId = selectedSport,
+                onSelect = { selectedSport = it }
+            )
+            
         }
 
         // ── Новости (overlay card style) ──
         item {
             Spacer(Modifier.height(20.dp))
-            FadeIn(visible = started, delayMs = 60) {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    SectionHeader(title = "Новости", action = "Все", onAction = {})
-                    Spacer(Modifier.height(12.dp))
-                }
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader(title = "Новости", action = "Все", onAction = {})
+                Spacer(Modifier.height(12.dp))
             }
+            
         }
         item {
-            FadeIn(visible = started, delayMs = 60) {
-                NewsContent(state = state.news, onArticleClick = onArticleClick)
-            }
+            NewsContent(state = state.news, onArticleClick = onArticleClick)
+            
         }
 
         // ── Promo: Rating card ──
         item {
             Spacer(Modifier.height(20.dp))
-            FadeIn(visible = started, delayMs = 120) {
-                RatingPromoCard(onClick = onRankingsClick)
-            }
+            RatingPromoCard(onClick = onRankingsClick)
+            
         }
 
         // ── Турниры ──
         item {
             Spacer(Modifier.height(20.dp))
-            FadeIn(visible = started, delayMs = 150) {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    SectionHeader(title = "Ближайшие турниры", action = "Все", onAction = {})
-                    Spacer(Modifier.height(12.dp))
-                }
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader(title = "Ближайшие турниры", action = "Все", onAction = {})
+                Spacer(Modifier.height(12.dp))
             }
+            
         }
         item {
-            FadeIn(visible = started, delayMs = 150) {
-                TournamentsContent(
-                    state = state.tournaments,
-                    onTournamentClick = onTournamentClick
-                )
-            }
+            TournamentsContent(
+                state = state.tournaments,
+                onTournamentClick = onTournamentClick
+            )
+            
         }
 
         // ── Люди ──
         item {
             Spacer(Modifier.height(24.dp))
-            FadeIn(visible = started, delayMs = 300) {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    SectionHeader(title = "Сообщество", action = "Все", onAction = {})
-                    Spacer(Modifier.height(12.dp))
-                }
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader(title = "Сообщество", action = "Все", onAction = {})
+                Spacer(Modifier.height(12.dp))
             }
+            
         }
         item {
-            FadeIn(visible = started, delayMs = 300) {
-                PeopleContent(state = state.people, onProfileClick = onProfileClick)
-            }
+            PeopleContent(state = state.people, onProfileClick = onProfileClick)
+            
         }
     }
 }

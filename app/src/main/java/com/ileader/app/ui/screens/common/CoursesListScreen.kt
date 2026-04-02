@@ -88,112 +88,108 @@ fun CoursesListScreen(
             ) {
                 Spacer(Modifier.height(16.dp))
 
-                FadeIn(visible, 0) {
-                    if (onBack != null) {
-                        BackHeader(title = "Академия", onBack = onBack)
-                    } else {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    "Академия",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    letterSpacing = (-0.5).sp
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    "Обучающие курсы и материалы",
-                                    fontSize = 14.sp,
-                                    color = TextSecondary
-                                )
-                            }
-                            UserAvatar(
-                                avatarUrl = user.avatarUrl,
-                                displayName = user.displayName
+                if (onBack != null) {
+                    BackHeader(title = "Академия", onBack = onBack)
+                } else {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "Академия",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                letterSpacing = (-0.5).sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Обучающие курсы и материалы",
+                                fontSize = 14.sp,
+                                color = TextSecondary
                             )
                         }
+                        UserAvatar(
+                            avatarUrl = user.avatarUrl,
+                            displayName = user.displayName
+                        )
                     }
                 }
+                
 
                 Spacer(Modifier.height(20.dp))
 
-                FadeIn(visible, 200) {
-                    DarkSearchField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = "Поиск по названию, описанию..."
-                    )
-                }
+                DarkSearchField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = "Поиск по названию, описанию..."
+                )
+                
 
                 Spacer(Modifier.height(12.dp))
 
-                FadeIn(visible, 300) {
-                    Column {
-                        Row(
-                            Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            priceFilters.forEachIndexed { index, (_, label) ->
-                                DarkFilterChip(
-                                    text = label,
-                                    selected = priceFilter == index,
-                                    onClick = { priceFilter = index }
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Row(
-                            Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            sportFilters.forEachIndexed { index, (_, label) ->
-                                DarkFilterChip(
-                                    text = label,
-                                    selected = sportFilter == index,
-                                    onClick = { sportFilter = index }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                FadeIn(visible, 400) {
-                    Column {
-                        Text(
-                            "Найдено: ${filteredCourses.size} курсов",
-                            fontSize = 13.sp,
-                            color = TextMuted
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        if (filteredCourses.isEmpty()) {
-                            EmptyState(
-                                icon = Icons.Default.School,
-                                title = "Курсы не найдены",
-                                subtitle = "Попробуйте изменить фильтры поиска"
+                Column {
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        priceFilters.forEachIndexed { index, (_, label) ->
+                            DarkFilterChip(
+                                text = label,
+                                selected = priceFilter == index,
+                                onClick = { priceFilter = index }
                             )
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                filteredCourses.forEach { item ->
-                                    CourseCard(
-                                        item = item,
-                                        onClick = { onNavigateToDetail(item.course.id) }
-                                    )
-                                }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        sportFilters.forEachIndexed { index, (_, label) ->
+                            DarkFilterChip(
+                                text = label,
+                                selected = sportFilter == index,
+                                onClick = { sportFilter = index }
+                            )
+                        }
+                    }
+                }
+                
+
+                Spacer(Modifier.height(12.dp))
+
+                Column {
+                    Text(
+                        "Найдено: ${filteredCourses.size} курсов",
+                        fontSize = 13.sp,
+                        color = TextMuted
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    if (filteredCourses.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.School,
+                            title = "Курсы не найдены",
+                            subtitle = "Попробуйте изменить фильтры поиска"
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            filteredCourses.forEach { item ->
+                                CourseCard(
+                                    item = item,
+                                    onClick = { onNavigateToDetail(item.course.id) }
+                                )
                             }
                         }
                     }
                 }
+                
 
                 Spacer(Modifier.height(32.dp))
             }

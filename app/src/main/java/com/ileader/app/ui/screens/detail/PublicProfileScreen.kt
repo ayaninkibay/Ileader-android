@@ -78,6 +78,7 @@ fun PublicProfileScreen(
 private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     val profile = data.profile
     val user = profile.toDomain()
+
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
@@ -175,24 +176,23 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // SPORT CHIPS
         // ══════════════════════════════════════
         if (data.sports.isNotEmpty()) {
-            FadeIn(visible = started, delayMs = 0) {
-                Row(
-                    Modifier.padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    data.sports.forEach { sport ->
-                        val name = sport.sports?.name ?: ""
-                        val emoji = sportEmoji(name)
-                        Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
-                            Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(emoji, fontSize = 14.sp)
-                                Spacer(Modifier.width(6.dp))
-                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                            }
+            Row(
+                Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                data.sports.forEach { sport ->
+                    val name = sport.sports?.name ?: ""
+                    val emoji = sportEmoji(name)
+                    Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(emoji, fontSize = 14.sp)
+                            Spacer(Modifier.width(6.dp))
+                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
                         }
                     }
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 
@@ -201,25 +201,24 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // ══════════════════════════════════════
         if (data.stats.isNotEmpty()) {
             val s = data.stats.first()
-            FadeIn(visible = started, delayMs = 50) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры", started)
-                        Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                        AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы", started)
-                        Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                        AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг", started)
-                    }
+                    AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры", started)
+                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                    AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы", started)
+                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                    AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг", started)
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 
@@ -227,42 +226,41 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // SPORTS with ratings
         // ══════════════════════════════════════
         if (data.sports.isNotEmpty()) {
-            FadeIn(visible = started, delayMs = 100) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                        Spacer(Modifier.height(10.dp))
-                        data.sports.forEach { sport ->
-                            val name = sport.sports?.name ?: ""
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Spacer(Modifier.height(10.dp))
+                    data.sports.forEach { sport ->
+                        val name = sport.sports?.name ?: ""
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
+                                    .background(TextMuted.copy(0.08f)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                                        .background(TextMuted.copy(0.08f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(sportEmoji(name), fontSize = 18.sp)
-                                }
-                                Spacer(Modifier.width(12.dp))
-                                Text(name, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
-                                Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.12f)) {
-                                    Text(
-                                        "${sport.rating}",
-                                        Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
-                                    )
-                                }
+                                Text(sportEmoji(name), fontSize = 18.sp)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Text(name, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
+                            Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.12f)) {
+                                Text(
+                                    "${sport.rating}",
+                                    Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
+                                )
                             }
                         }
                     }
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 
@@ -270,19 +268,18 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // BIO
         // ══════════════════════════════════════
         if (!profile.bio.isNullOrEmpty()) {
-            FadeIn(visible = started, delayMs = 200) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("О себе", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                        Spacer(Modifier.height(8.dp))
-                        Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
-                    }
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("О себе", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Spacer(Modifier.height(8.dp))
+                    Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 
@@ -290,26 +287,25 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // RESULTS
         // ══════════════════════════════════════
         if (data.results.isNotEmpty()) {
-            FadeIn(visible = started, delayMs = 300) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Результаты", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        data.results.take(10).forEachIndexed { i, result ->
-                            if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.2f), modifier = Modifier.padding(vertical = 6.dp))
-                            ResultRow(result)
-                        }
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Результаты", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    data.results.take(10).forEachIndexed { i, result ->
+                        if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.2f), modifier = Modifier.padding(vertical = 6.dp))
+                        ResultRow(result)
                     }
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 
@@ -317,46 +313,45 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // TEAM
         // ══════════════════════════════════════
         data.membership?.let { m ->
-            FadeIn(visible = started, delayMs = 400) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Команда", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Команда", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        val sportName = m.teams?.sports?.name ?: ""
+                        Box(
+                            Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                                .background(TextMuted.copy(0.08f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(sportEmoji(sportName), fontSize = 22.sp)
                         }
-                        Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            val sportName = m.teams?.sports?.name ?: ""
-                            Box(
-                                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                                    .background(TextMuted.copy(0.08f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(sportEmoji(sportName), fontSize = 22.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(m.teams?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            if (sportName.isNotEmpty()) {
+                                Text(sportName, fontSize = 12.sp, color = TextMuted)
                             }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(m.teams?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                if (sportName.isNotEmpty()) {
-                                    Text(sportName, fontSize = 12.sp, color = TextMuted)
-                                }
-                            }
-                            Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {
-                                Text(
-                                    when (m.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Резерв"; else -> m.role ?: "" },
-                                    Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
-                                )
-                            }
+                        }
+                        Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {
+                            Text(
+                                when (m.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Резерв"; else -> m.role ?: "" },
+                                Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
+                            )
                         }
                     }
                 }
             }
+            
             Spacer(Modifier.height(12.dp))
         }
 

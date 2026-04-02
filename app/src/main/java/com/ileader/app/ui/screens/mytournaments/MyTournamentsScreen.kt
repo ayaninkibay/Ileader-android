@@ -78,6 +78,7 @@ fun MyTournamentsScreen(
     val favoritesPref = remember { com.ileader.app.data.preferences.FavoritesPreference(context) }
     val favoriteIds by favoritesPref.favoriteTournamentIds.collectAsState(initial = emptyList())
 
+    @Suppress("UNUSED_VALUE")
     var started by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(Tab.MY) }
     var selectedFilter by remember { mutableStateOf(Filter.ALL) }
@@ -142,16 +143,15 @@ fun MyTournamentsScreen(
         // HERO
         // ══════════════════════════════════════
         item {
-            FadeIn(visible = started, delayMs = 0) {
-                HeroSection(
-                    user = user,
-                    total = myAll.size,
-                    active = active.size,
-                    completed = completed.size,
-                    heroImageUrl = heroImageUrl,
-                    isDark = isDark
-                )
-            }
+            HeroSection(
+                user = user,
+                total = myAll.size,
+                active = active.size,
+                completed = completed.size,
+                heroImageUrl = heroImageUrl,
+                isDark = isDark
+            )
+            
         }
 
         // ══════════════════════════════════════
@@ -159,42 +159,40 @@ fun MyTournamentsScreen(
         // ══════════════════════════════════════
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 50) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Tab.entries.forEach { tab ->
-                        val isSelected = selectedTab == tab
-                        val count = if (tab == Tab.MY) myAll.size else favAll.size
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) Accent else CardBg,
-                            border = if (!isSelected && isDark) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.2f))
-                            else if (!isSelected) androidx.compose.foundation.BorderStroke(0.5.dp, Border.copy(0.3f)) else null,
-                            shadowElevation = if (isDark || isSelected) 0.dp else 2.dp,
-                            modifier = Modifier.weight(1f).clickable { selectedTab = tab; selectedFilter = Filter.ALL }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Tab.entries.forEach { tab ->
+                    val isSelected = selectedTab == tab
+                    val count = if (tab == Tab.MY) myAll.size else favAll.size
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) Accent else CardBg,
+                        border = if (!isSelected && isDark) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.2f))
+                        else if (!isSelected) androidx.compose.foundation.BorderStroke(0.5.dp, Border.copy(0.3f)) else null,
+                        shadowElevation = if (isDark || isSelected) 0.dp else 2.dp,
+                        modifier = Modifier.weight(1f).clickable { selectedTab = tab; selectedFilter = Filter.ALL }
+                    ) {
+                        Row(
+                            Modifier.padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                Modifier.padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    tab.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                                    color = if (isSelected) Color.White else TextSecondary
-                                )
-                                if (count > 0) {
-                                    Spacer(Modifier.width(6.dp))
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = if (isSelected) Color.White.copy(0.25f) else TextMuted.copy(0.15f),
-                                        modifier = Modifier.size(22.dp)
-                                    ) {
-                                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Text("$count", fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                                                color = if (isSelected) Color.White else TextMuted)
-                                        }
+                            Text(
+                                tab.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = if (isSelected) Color.White else TextSecondary
+                            )
+                            if (count > 0) {
+                                Spacer(Modifier.width(6.dp))
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (isSelected) Color.White.copy(0.25f) else TextMuted.copy(0.15f),
+                                    modifier = Modifier.size(22.dp)
+                                ) {
+                                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                        Text("$count", fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else TextMuted)
                                     }
                                 }
                             }
@@ -202,6 +200,7 @@ fun MyTournamentsScreen(
                     }
                 }
             }
+            
         }
 
         // ══════════════════════════════════════
@@ -210,14 +209,13 @@ fun MyTournamentsScreen(
         if (selectedTab == Tab.MY && nearest != null && daysUntil != null) {
             item {
                 Spacer(Modifier.height(12.dp))
-                FadeIn(visible = started, delayMs = 80) {
-                    CountdownCard(
-                        data = nearest,
-                        daysUntil = daysUntil,
-                        onClick = { onTournamentClick(nearest.id) },
-                        isDark = isDark
-                    )
-                }
+                CountdownCard(
+                    data = nearest,
+                    daysUntil = daysUntil,
+                    onClick = { onTournamentClick(nearest.id) },
+                    isDark = isDark
+                )
+                
             }
         }
 
@@ -227,19 +225,18 @@ fun MyTournamentsScreen(
         if (currentList.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(12.dp))
-                FadeIn(visible = started, delayMs = 100) {
-                    FilterChips(
-                        selected = selectedFilter,
-                        onSelect = { selectedFilter = it },
-                        counts = mapOf(
-                            Filter.ALL to currentList.size,
-                            Filter.ACTIVE to active.size,
-                            Filter.UPCOMING to upcoming.size,
-                            Filter.COMPLETED to completed.size
-                        ),
-                        isDark = isDark
-                    )
-                }
+                FilterChips(
+                    selected = selectedFilter,
+                    onSelect = { selectedFilter = it },
+                    counts = mapOf(
+                        Filter.ALL to currentList.size,
+                        Filter.ACTIVE to active.size,
+                        Filter.UPCOMING to upcoming.size,
+                        Filter.COMPLETED to completed.size
+                    ),
+                    isDark = isDark
+                )
+                
             }
         }
 
@@ -261,36 +258,35 @@ fun MyTournamentsScreen(
         if (!isLoading && currentList.isEmpty()) {
             item {
                 Spacer(Modifier.height(40.dp))
-                FadeIn(visible = started, delayMs = 120) {
-                    Column(
-                        Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        Modifier.size(72.dp).background(Accent.copy(0.08f), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            Modifier.size(72.dp).background(Accent.copy(0.08f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                if (selectedTab == Tab.FAVORITES) Icons.Default.FavoriteBorder else Icons.Default.EmojiEvents,
-                                null, tint = Accent.copy(0.4f), modifier = Modifier.size(36.dp)
-                            )
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            if (selectedTab == Tab.FAVORITES) "Нет избранных турниров"
-                            else "Нет турниров",
-                            fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            if (selectedTab == Tab.FAVORITES) "Нажмите ★ на турнире, чтобы добавить"
-                            else "Зарегистрируйтесь на турнир на вкладке Спорт",
-                            fontSize = 14.sp, color = TextMuted,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            lineHeight = 20.sp
+                        Icon(
+                            if (selectedTab == Tab.FAVORITES) Icons.Default.FavoriteBorder else Icons.Default.EmojiEvents,
+                            null, tint = Accent.copy(0.4f), modifier = Modifier.size(36.dp)
                         )
                     }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        if (selectedTab == Tab.FAVORITES) "Нет избранных турниров"
+                        else "Нет турниров",
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (selectedTab == Tab.FAVORITES) "Нажмите ★ на турнире, чтобы добавить"
+                        else "Зарегистрируйтесь на турнир на вкладке Спорт",
+                        fontSize = 14.sp, color = TextMuted,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        lineHeight = 20.sp
+                    )
                 }
+                
             }
         }
 
@@ -310,17 +306,16 @@ fun MyTournamentsScreen(
         if (!isLoading && filtered.isNotEmpty()) {
             itemsIndexed(filtered, key = { _, it -> it.id }) { index, t ->
                 val delay = (140 + index * 50).coerceAtMost(500)
-                FadeIn(visible = started, delayMs = delay) {
-                    BigTournamentCard(
-                        data = t,
-                        onClick = { onTournamentClick(t.id) },
-                        isOrganizer = user.role == UserRole.ORGANIZER,
-                        onEdit = { onEditTournament(t.id) },
-                        onQrScan = { onQrScan(t.id, t.name) },
-                        onHelpers = { onHelperManagement(t.id, t.name) },
-                        isDark = isDark
-                    )
-                }
+                BigTournamentCard(
+                    data = t,
+                    onClick = { onTournamentClick(t.id) },
+                    isOrganizer = user.role == UserRole.ORGANIZER,
+                    onEdit = { onEditTournament(t.id) },
+                    onQrScan = { onQrScan(t.id, t.name) },
+                    onHelpers = { onHelperManagement(t.id, t.name) },
+                    isDark = isDark
+                )
+                
             }
         }
     }

@@ -59,116 +59,114 @@ private fun NotificationsContent(user: User, notifications: List<NotificationDto
             }
 
             // Header
-            FadeIn(visible, 0) {
-                Column(Modifier.padding(horizontal = 20.dp)) {
-                    Spacer(Modifier.height(if (onBack != null) 8.dp else 16.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (onBack == null) {
-                                    Text(
-                                        "Уведомления", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                                        color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp
-                                    )
-                                }
-                                if (unreadCount > 0) {
-                                    Spacer(Modifier.width(8.dp))
-                                    Badge(containerColor = DarkTheme.Accent) {
-                                        Text("$unreadCount", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    }
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                Spacer(Modifier.height(if (onBack != null) 8.dp else 16.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (onBack == null) {
+                                Text(
+                                    "Уведомления", fontSize = 24.sp, fontWeight = FontWeight.Bold,
+                                    color = DarkTheme.TextPrimary, letterSpacing = (-0.5).sp
+                                )
+                            }
+                            if (unreadCount > 0) {
+                                Spacer(Modifier.width(8.dp))
+                                Badge(containerColor = DarkTheme.Accent) {
+                                    Text("$unreadCount", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
-                            Spacer(Modifier.height(4.dp))
-                            Text(user.displayName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
                         }
-
-                        if (unreadCount > 0) {
-                            TextButton(onClick = { vm.markAllAsRead(user.id) }) {
-                                Text("Прочитать все", fontSize = 13.sp, color = DarkTheme.Accent, fontWeight = FontWeight.SemiBold)
-                            }
-                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(user.displayName, fontSize = 14.sp, color = DarkTheme.TextSecondary)
                     }
 
-                    Spacer(Modifier.height(12.dp))
-
-                    // Filter chips
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = !showOnlyUnread,
-                            onClick = { if (showOnlyUnread) vm.toggleFilter() },
-                            label = { Text("Все", fontSize = 13.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = DarkTheme.Accent,
-                                selectedLabelColor = Color.White,
-                                containerColor = DarkTheme.CardBg,
-                                labelColor = DarkTheme.TextSecondary
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                borderColor = DarkTheme.CardBorder.copy(alpha = 0.5f),
-                                selectedBorderColor = Color.Transparent,
-                                enabled = true,
-                                selected = !showOnlyUnread
-                            )
-                        )
-                        FilterChip(
-                            selected = showOnlyUnread,
-                            onClick = { if (!showOnlyUnread) vm.toggleFilter() },
-                            label = { Text("Непрочитанные", fontSize = 13.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = DarkTheme.Accent,
-                                selectedLabelColor = Color.White,
-                                containerColor = DarkTheme.CardBg,
-                                labelColor = DarkTheme.TextSecondary
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                borderColor = DarkTheme.CardBorder.copy(alpha = 0.5f),
-                                selectedBorderColor = Color.Transparent,
-                                enabled = true,
-                                selected = showOnlyUnread
-                            )
-                        )
+                    if (unreadCount > 0) {
+                        TextButton(onClick = { vm.markAllAsRead(user.id) }) {
+                            Text("Прочитать все", fontSize = 13.sp, color = DarkTheme.Accent, fontWeight = FontWeight.SemiBold)
+                        }
                     }
-
-                    Spacer(Modifier.height(12.dp))
                 }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Filter chips
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !showOnlyUnread,
+                        onClick = { if (showOnlyUnread) vm.toggleFilter() },
+                        label = { Text("Все", fontSize = 13.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTheme.Accent,
+                            selectedLabelColor = Color.White,
+                            containerColor = DarkTheme.CardBg,
+                            labelColor = DarkTheme.TextSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = DarkTheme.CardBorder.copy(alpha = 0.5f),
+                            selectedBorderColor = Color.Transparent,
+                            enabled = true,
+                            selected = !showOnlyUnread
+                        )
+                    )
+                    FilterChip(
+                        selected = showOnlyUnread,
+                        onClick = { if (!showOnlyUnread) vm.toggleFilter() },
+                        label = { Text("Непрочитанные", fontSize = 13.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTheme.Accent,
+                            selectedLabelColor = Color.White,
+                            containerColor = DarkTheme.CardBg,
+                            labelColor = DarkTheme.TextSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = DarkTheme.CardBorder.copy(alpha = 0.5f),
+                            selectedBorderColor = Color.Transparent,
+                            enabled = true,
+                            selected = showOnlyUnread
+                        )
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
             }
+            
 
             // Notification list with swipe-to-dismiss
-            FadeIn(visible, 200) {
-                if (filtered.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            if (showOnlyUnread) "Нет непрочитанных" else "Нет уведомлений",
-                            "Новые уведомления появятся здесь"
+            if (filtered.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    EmptyState(
+                        if (showOnlyUnread) "Нет непрочитанных" else "Нет уведомлений",
+                        "Новые уведомления появятся здесь"
+                    )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        items = filtered,
+                        key = { it.id }
+                    ) { notification ->
+                        SwipeToDismissNotification(
+                            notification = notification,
+                            onDismiss = { vm.deleteNotification(notification.id, user.id) },
+                            onClick = {
+                                if (!notification.read) {
+                                    vm.markAsRead(notification.id, user.id)
+                                }
+                            }
                         )
                     }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(
-                            items = filtered,
-                            key = { it.id }
-                        ) { notification ->
-                            SwipeToDismissNotification(
-                                notification = notification,
-                                onDismiss = { vm.deleteNotification(notification.id, user.id) },
-                                onClick = {
-                                    if (!notification.read) {
-                                        vm.markAsRead(notification.id, user.id)
-                                    }
-                                }
-                            )
-                        }
-                        item { Spacer(Modifier.height(32.dp)) }
-                    }
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
             }
+            
         }
     }
 }

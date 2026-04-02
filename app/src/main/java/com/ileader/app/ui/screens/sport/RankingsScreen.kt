@@ -66,8 +66,6 @@ fun RankingsScreen(
 
     LaunchedEffect(Unit) { viewModel.init(userId) }
 
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Bg),
@@ -86,49 +84,47 @@ fun RankingsScreen(
 
         // ── Sport Filter Tabs ──
         item {
-            FadeIn(started, 100) {
-                SportFilterTabs(
-                    sports = s.sports,
-                    selectedSportId = s.selectedSportId,
-                    onSelectSport = { viewModel.selectSport(it) }
-                )
-            }
+            SportFilterTabs(
+                sports = s.sports,
+                selectedSportId = s.selectedSportId,
+                onSelectSport = { viewModel.selectSport(it) }
+            )
+            
         }
 
         // ── Rankings Table ──
         item {
-            FadeIn(started, 200) {
-                when (val entries = s.entries) {
-                    is UiState.Loading -> Box(
-                        Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Accent, strokeWidth = 2.dp)
-                    }
-                    is UiState.Error -> Box(
-                        Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        EmptyState(title = "Ошибка", subtitle = entries.message)
-                    }
-                    is UiState.Success -> {
-                        if (entries.data.isEmpty()) {
-                            Box(
-                                Modifier.fillMaxWidth().padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                EmptyState(title = "Нет данных", subtitle = "Спортсмены появятся позже")
-                            }
-                        } else {
-                            RankingTable(
-                                entries = entries.data,
-                                isDark = isDark,
-                                onProfileClick = onProfileClick
-                            )
+            when (val entries = s.entries) {
+                is UiState.Loading -> Box(
+                    Modifier.fillMaxWidth().height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Accent, strokeWidth = 2.dp)
+                }
+                is UiState.Error -> Box(
+                    Modifier.fillMaxWidth().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(title = "Ошибка", subtitle = entries.message)
+                }
+                is UiState.Success -> {
+                    if (entries.data.isEmpty()) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            EmptyState(title = "Нет данных", subtitle = "Спортсмены появятся позже")
                         }
+                    } else {
+                        RankingTable(
+                            entries = entries.data,
+                            isDark = isDark,
+                            onProfileClick = onProfileClick
+                        )
                     }
                 }
             }
+            
         }
     }
 }

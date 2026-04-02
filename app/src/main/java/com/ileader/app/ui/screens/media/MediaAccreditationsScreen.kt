@@ -69,7 +69,6 @@ fun MediaAccreditationsScreen(
     val accreditationMap by vm.accreditationMap.collectAsState()
     val actionState by vm.actionState.collectAsState()
 
-    var started by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(AccFilter.ALL) }
     var showInviteCodeDialog by remember { mutableStateOf(false) }
     var showRequestDialog by remember { mutableStateOf(false) }
@@ -77,6 +76,7 @@ fun MediaAccreditationsScreen(
 
     val snackbar = LocalSnackbarHost.current
 
+    var started by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) {
         vm.loadAccreditations(user.id)
         vm.loadUpcomingTournaments()
@@ -117,21 +117,19 @@ fun MediaAccreditationsScreen(
     ) {
         // ── 1. Hero ──
         item {
-            FadeIn(visible = started, delayMs = 0) {
-                AccreditationHero(stats = stats, pendingCount = pending.size)
-            }
+            AccreditationHero(stats = stats, pendingCount = pending.size)
+            
         }
 
         // ── 2. Quick Actions ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 60) {
-                QuickActions(
-                    onBrowse = { showRequestDialog = true },
-                    onInviteCode = { showInviteCodeDialog = true },
-                    onInterviews = onInterviewsClick
-                )
-            }
+            QuickActions(
+                onBrowse = { showRequestDialog = true },
+                onInviteCode = { showInviteCodeDialog = true },
+                onInterviews = onInterviewsClick
+            )
+            
         }
 
         when (invites) {
@@ -170,45 +168,42 @@ fun MediaAccreditationsScreen(
                     if (outgoing.isNotEmpty()) {
                         item {
                             Spacer(Modifier.height(20.dp))
-                            FadeIn(visible = started, delayMs = 100) {
-                                SectionHeader(title = "Входящие приглашения", action = "${outgoing.size}")
-                            }
+                            SectionHeader(title = "Входящие приглашения", action = "${outgoing.size}")
+                            
                         }
                         items(outgoing, key = { it.id }) { invite ->
-                            FadeIn(visible = started, delayMs = 140) {
-                                IncomingInviteCard(
-                                    invite = invite,
-                                    expanded = expandedInviteId == invite.id,
-                                    onToggle = {
-                                        expandedInviteId = if (expandedInviteId == invite.id) null else invite.id
-                                    },
-                                    onAccept = { phone, msg ->
-                                        vm.acceptInvite(invite.id, user.id, phone, msg)
-                                    },
-                                    onDecline = { reason ->
-                                        vm.declineInvite(invite.id, user.id, reason)
-                                    },
-                                    onTournamentClick = { onTournamentClick(invite.tournamentId) }
-                                )
-                            }
+                            IncomingInviteCard(
+                                invite = invite,
+                                expanded = expandedInviteId == invite.id,
+                                onToggle = {
+                                    expandedInviteId = if (expandedInviteId == invite.id) null else invite.id
+                                },
+                                onAccept = { phone, msg ->
+                                    vm.acceptInvite(invite.id, user.id, phone, msg)
+                                },
+                                onDecline = { reason ->
+                                    vm.declineInvite(invite.id, user.id, reason)
+                                },
+                                onTournamentClick = { onTournamentClick(invite.tournamentId) }
+                            )
+                            
                         }
                     }
 
                     // ── 4. Filter chips ──
                     item {
                         Spacer(Modifier.height(16.dp))
-                        FadeIn(visible = started, delayMs = 120) {
-                            AccFilterChips(
-                                selected = selectedFilter,
-                                onSelect = { selectedFilter = it },
-                                counts = mapOf(
-                                    AccFilter.ALL to allInvites.size,
-                                    AccFilter.PENDING to pending.size,
-                                    AccFilter.ACCEPTED to accepted.size,
-                                    AccFilter.DECLINED to declined.size
-                                )
+                        AccFilterChips(
+                            selected = selectedFilter,
+                            onSelect = { selectedFilter = it },
+                            counts = mapOf(
+                                AccFilter.ALL to allInvites.size,
+                                AccFilter.PENDING to pending.size,
+                                AccFilter.ACCEPTED to accepted.size,
+                                AccFilter.DECLINED to declined.size
                             )
-                        }
+                        )
+                        
                     }
 
                     // ── 5. All accreditations ──
@@ -228,13 +223,12 @@ fun MediaAccreditationsScreen(
                     } else {
                         itemsIndexed(filtered, key = { _, it -> it.id }) { index, invite ->
                             val delay = (180 + index * 50).coerceAtMost(500)
-                            FadeIn(visible = started, delayMs = delay) {
-                                AccreditationCard(
-                                    invite = invite,
-                                    onClick = { onTournamentClick(invite.tournamentId) },
-                                    onCancel = { vm.cancelAccreditation(user.id, invite.tournamentId) }
-                                )
-                            }
+                            AccreditationCard(
+                                invite = invite,
+                                onClick = { onTournamentClick(invite.tournamentId) },
+                                onCancel = { vm.cancelAccreditation(user.id, invite.tournamentId) }
+                            )
+                            
                         }
                     }
                 }

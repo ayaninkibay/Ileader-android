@@ -59,12 +59,12 @@ fun MediaInterviewsScreen(
     val stats by vm.interviewStats.collectAsState()
     val actionState by vm.actionState.collectAsState()
 
-    var started by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(InterviewFilter.ALL) }
     var deleteConfirmId by remember { mutableStateOf<String?>(null) }
 
     val snackbar = LocalSnackbarHost.current
 
+    var started by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) {
         vm.loadInterviews(user.id)
         started = true
@@ -109,47 +109,43 @@ fun MediaInterviewsScreen(
     ) {
         // ── 1. Hero ──
         item {
-            FadeIn(visible = started, delayMs = 0) {
-                InterviewHero(stats = stats, onBack = onBack)
-            }
+            InterviewHero(stats = stats, onBack = onBack)
+            
         }
 
         // ── 2. Nearest interview countdown ──
         if (nearest != null) {
             item {
                 Spacer(Modifier.height(16.dp))
-                FadeIn(visible = started, delayMs = 60) {
-                    NextInterviewCard(
-                        interview = nearest,
-                        onClick = { onInterviewClick(nearest.id) }
-                    )
-                }
+                NextInterviewCard(
+                    interview = nearest,
+                    onClick = { onInterviewClick(nearest.id) }
+                )
+                
             }
         }
 
         // ── 3. Create button ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 100) {
-                CreateInterviewButton(onClick = onCreateInterview)
-            }
+            CreateInterviewButton(onClick = onCreateInterview)
+            
         }
 
         // ── 4. Filter chips ──
         item {
             Spacer(Modifier.height(16.dp))
-            FadeIn(visible = started, delayMs = 120) {
-                InterviewFilterChips(
-                    selected = selectedFilter,
-                    onSelect = { selectedFilter = it },
-                    counts = mapOf(
-                        InterviewFilter.ALL to allInterviews.size,
-                        InterviewFilter.SCHEDULED to scheduled.size,
-                        InterviewFilter.COMPLETED to completed.size,
-                        InterviewFilter.PUBLISHED to published.size
-                    )
+            InterviewFilterChips(
+                selected = selectedFilter,
+                onSelect = { selectedFilter = it },
+                counts = mapOf(
+                    InterviewFilter.ALL to allInterviews.size,
+                    InterviewFilter.SCHEDULED to scheduled.size,
+                    InterviewFilter.COMPLETED to completed.size,
+                    InterviewFilter.PUBLISHED to published.size
                 )
-            }
+            )
+            
         }
 
         when (interviews) {
@@ -187,13 +183,12 @@ fun MediaInterviewsScreen(
                     item { Spacer(Modifier.height(8.dp)) }
                     itemsIndexed(filtered, key = { _, it -> it.id }) { index, interview ->
                         val delay = (160 + index * 50).coerceAtMost(500)
-                        FadeIn(visible = started, delayMs = delay) {
-                            InterviewCard(
-                                interview = interview,
-                                onClick = { onInterviewClick(interview.id) },
-                                onDelete = { deleteConfirmId = interview.id }
-                            )
-                        }
+                        InterviewCard(
+                            interview = interview,
+                            onClick = { onInterviewClick(interview.id) },
+                            onDelete = { deleteConfirmId = interview.id }
+                        )
+                        
                     }
                 }
             }

@@ -92,186 +92,179 @@ fun CourseDetailScreen(
                         }
                     }
                 } else {
-                    FadeIn(visible, 0) {
-                        BackHeader(title = "Курс", onBack = onBack)
-                    }
+                    BackHeader(title = "Курс", onBack = onBack)
+                    
                 }
 
                 Column(Modifier.padding(horizontal = 20.dp)) {
                     Spacer(Modifier.height(16.dp))
 
                     // Sport + Price
-                    FadeIn(visible, 0) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (course.sports?.name != null) {
-                                StatusBadge(
-                                    text = course.sports.name,
-                                    color = TextSecondary
-                                )
-                            }
-                            Text(
-                                text = if (course.isFree) "Бесплатно" else "${course.price?.toInt() ?: 0} ${course.currency ?: "KZT"}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (course.isFree) Color(0xFF22C55E) else Accent
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (course.sports?.name != null) {
+                            StatusBadge(
+                                text = course.sports.name,
+                                color = TextSecondary
                             )
                         }
+                        Text(
+                            text = if (course.isFree) "Бесплатно" else "${course.price?.toInt() ?: 0} ${course.currency ?: "KZT"}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (course.isFree) Color(0xFF22C55E) else Accent
+                        )
                     }
+                    
 
                     Spacer(Modifier.height(12.dp))
 
                     // Title
-                    FadeIn(visible, 100) {
-                        Text(
-                            text = course.title,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            letterSpacing = (-0.5).sp
-                        )
-                    }
+                    Text(
+                        text = course.title,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        letterSpacing = (-0.5).sp
+                    )
+                    
 
                     // Author
                     if (course.profiles?.name != null) {
                         Spacer(Modifier.height(8.dp))
-                        FadeIn(visible, 150) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = TextMuted
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    "Автор: ${course.profiles.name}",
-                                    fontSize = 14.sp,
-                                    color = TextSecondary
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = TextMuted
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Автор: ${course.profiles.name}",
+                                fontSize = 14.sp,
+                                color = TextSecondary
+                            )
                         }
+                        
                     }
 
                     Spacer(Modifier.height(16.dp))
 
                     // Stats row
-                    FadeIn(visible, 200) {
-                        DarkCard {
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                StatItem(
-                                    icon = Icons.Default.MenuBook,
-                                    value = "${data.lessonsCount}",
-                                    label = "Уроков"
-                                )
-                                StatItem(
-                                    icon = Icons.Default.People,
-                                    value = "${data.studentsCount}",
-                                    label = "Студентов"
-                                )
-                                StatItem(
-                                    icon = Icons.Default.Schedule,
-                                    value = formatTotalDuration(data.lessons),
-                                    label = "Длительность"
-                                )
-                            }
+                    DarkCard {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatItem(
+                                icon = Icons.Default.MenuBook,
+                                value = "${data.lessonsCount}",
+                                label = "Уроков"
+                            )
+                            StatItem(
+                                icon = Icons.Default.People,
+                                value = "${data.studentsCount}",
+                                label = "Студентов"
+                            )
+                            StatItem(
+                                icon = Icons.Default.Schedule,
+                                value = formatTotalDuration(data.lessons),
+                                label = "Длительность"
+                            )
                         }
                     }
+                    
 
                     // Description
                     if (!course.description.isNullOrBlank()) {
                         Spacer(Modifier.height(20.dp))
-                        FadeIn(visible, 250) {
-                            Column {
-                                SectionHeader(title = "Описание")
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = course.description,
-                                    fontSize = 14.sp,
-                                    color = TextSecondary,
-                                    lineHeight = 22.sp
-                                )
-                            }
+                        Column {
+                            SectionHeader(title = "Описание")
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = course.description,
+                                fontSize = 14.sp,
+                                color = TextSecondary,
+                                lineHeight = 22.sp
+                            )
                         }
+                        
                     }
 
                     Spacer(Modifier.height(20.dp))
 
                     // Enroll button
-                    FadeIn(visible, 300) {
-                        if (data.hasAccess) {
-                            DarkCard {
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = Color(0xFF22C55E),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        "У вас есть доступ к этому курсу",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFF22C55E)
-                                    )
-                                }
-                            }
-                        } else if (course.isFree) {
-                            Button(
-                                onClick = { viewModel.enroll(user.id, courseId) },
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Accent),
-                                enabled = enrollState !is UiState.Loading
+                    if (data.hasAccess) {
+                        DarkCard {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
                             ) {
-                                if (enrollState is UiState.Loading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        "Записаться бесплатно",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        } else {
-                            Button(
-                                onClick = { /* Paid courses — not implemented in mobile */ },
-                                modifier = Modifier.fillMaxWidth().height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Accent)
-                            ) {
-                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF22C55E),
+                                    modifier = Modifier.size(20.dp)
+                                )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "Получить доступ — ${course.price?.toInt() ?: 0} ${course.currency ?: "KZT"}",
+                                    "У вас есть доступ к этому курсу",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF22C55E)
+                                )
+                            }
+                        }
+                    } else if (course.isFree) {
+                        Button(
+                            onClick = { viewModel.enroll(user.id, courseId) },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                            enabled = enrollState !is UiState.Loading
+                        ) {
+                            if (enrollState is UiState.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Записаться бесплатно",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
+                    } else {
+                        Button(
+                            onClick = { /* Paid courses — not implemented in mobile */ },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Accent)
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Получить доступ — ${course.price?.toInt() ?: 0} ${course.currency ?: "KZT"}",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
+                    
 
                     // Show enroll error
                     if (enrollState is UiState.Error) {
@@ -286,30 +279,29 @@ fun CourseDetailScreen(
                     Spacer(Modifier.height(24.dp))
 
                     // Lessons list
-                    FadeIn(visible, 400) {
-                        Column {
-                            SectionHeader(title = "Уроки (${data.lessons.size})")
-                            Spacer(Modifier.height(12.dp))
+                    Column {
+                        SectionHeader(title = "Уроки (${data.lessons.size})")
+                        Spacer(Modifier.height(12.dp))
 
-                            if (data.lessons.isEmpty()) {
-                                EmptyState(
-                                    icon = Icons.Default.MenuBook,
-                                    title = "Уроки пока не добавлены",
-                                    subtitle = "Автор скоро добавит учебные материалы"
-                                )
-                            } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    data.lessons.forEachIndexed { index, lesson ->
-                                        LessonCard(
-                                            lesson = lesson,
-                                            index = index + 1,
-                                            hasAccess = data.hasAccess
-                                        )
-                                    }
+                        if (data.lessons.isEmpty()) {
+                            EmptyState(
+                                icon = Icons.Default.MenuBook,
+                                title = "Уроки пока не добавлены",
+                                subtitle = "Автор скоро добавит учебные материалы"
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                data.lessons.forEachIndexed { index, lesson ->
+                                    LessonCard(
+                                        lesson = lesson,
+                                        index = index + 1,
+                                        hasAccess = data.hasAccess
+                                    )
                                 }
                             }
                         }
                     }
+                    
 
                     Spacer(Modifier.height(32.dp))
                 }

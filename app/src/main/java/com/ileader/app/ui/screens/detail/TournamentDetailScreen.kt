@@ -120,8 +120,6 @@ private fun TournamentContent(
     onProfileClick: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
 
     // Hoist colors for non-composable scopes
     val accentColor = Accent
@@ -134,429 +132,415 @@ private fun TournamentContent(
                 .verticalScroll(rememberScrollState())
         ) {
             // ── Hero Header with photo ──
-            FadeIn(visible = started, delayMs = 0) {
-                val sportName = tournament.sports?.name ?: ""
-                val heroColor = if (sportName.isNotEmpty()) sportColor(sportName) else accentColor
-                val heroImage = tournament.imageUrl
-                    ?: tournament.sports?.let { SportViewModel.getFallbackImage(it) }
+            val sportName = tournament.sports?.name ?: ""
+            val heroColor = if (sportName.isNotEmpty()) sportColor(sportName) else accentColor
+            val heroImage = tournament.imageUrl
+                ?: tournament.sports?.let { SportViewModel.getFallbackImage(it) }
 
-                Box(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+            ) {
+                // Background: photo or sport gradient
+                if (heroImage != null) {
+                    AsyncImage(
+                        model = heroImage,
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Box(
+                        Modifier.matchParentSize().background(
+                            Brush.verticalGradient(
+                                listOf(Color.Black.copy(alpha = 0.4f), Color.Black.copy(alpha = 0.7f))
+                            )
+                        )
+                    )
+                } else {
+                    Box(
+                        Modifier.matchParentSize().background(
+                            Brush.linearGradient(
+                                listOf(heroColor.copy(alpha = 0.9f), heroColor.copy(alpha = 0.5f))
+                            )
+                        )
+                    )
+                }
+
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                        .statusBarsPadding()
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 12.dp, bottom = 28.dp)
                 ) {
-                    // Background: photo or sport gradient
-                    if (heroImage != null) {
-                        AsyncImage(
-                            model = heroImage,
-                            contentDescription = null,
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                    // Top row: back + share
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Box(
-                            Modifier.matchParentSize().background(
-                                Brush.verticalGradient(
-                                    listOf(Color.Black.copy(alpha = 0.4f), Color.Black.copy(alpha = 0.7f))
-                                )
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.3f))
+                                .clickable { onBack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack, "Назад",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
+                        }
+                        Spacer(Modifier.weight(1f))
+
+                        // Favorite button
+                        val favContext = androidx.compose.ui.platform.LocalContext.current
+                        val favPref = remember { com.ileader.app.data.preferences.FavoritesPreference(favContext) }
+                        val favIds by favPref.favoriteTournamentIds.collectAsState(initial = emptyList())
+                        val isFav = tournament.id in favIds
+                        val favScale by animateFloatAsState(
+                            targetValue = if (isFav) 1f else 0.9f,
+                            animationSpec = tween(200), label = "favScale"
                         )
-                    } else {
+                        val scope = rememberCoroutineScope()
+
                         Box(
-                            Modifier.matchParentSize().background(
-                                Brush.linearGradient(
-                                    listOf(heroColor.copy(alpha = 0.9f), heroColor.copy(alpha = 0.5f))
-                                )
+                            modifier = Modifier
+                                .size(40.dp)
+                                .scale(favScale)
+                                .clip(CircleShape)
+                                .background(if (isFav) Accent.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.3f))
+                                .clickable { scope.launch { favPref.toggleFavorite(tournament.id) } },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = if (isFav) "Убрать из избранного" else "В избранное",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
-                        )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        // Share button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Share, null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
-                    Column(
-                        modifier = Modifier
-                            .statusBarsPadding()
-                            .padding(horizontal = 20.dp)
-                            .padding(top = 12.dp, bottom = 28.dp)
+                    Spacer(Modifier.height(20.dp))
+
+                    // Status + category pills
+                    val pillModifier = @Composable { label: String, bg: Color ->
+                        Surface(shape = RoundedCornerShape(50), color = bg) {
+                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        }
+                    }
+
+                    @Composable
+                    fun HeroPill(text: String, bg: Color = Color.White.copy(alpha = 0.15f)) {
+                        Surface(shape = RoundedCornerShape(50), color = bg) {
+                            Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                        }
+                    }
+
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // Top row: back + share
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.3f))
-                                    .clickable { onBack() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.ArrowBack, "Назад",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                        // Status badge (LIVE pulsing for in_progress)
+                        tournament.status?.let { status ->
+                            val statusBg = when (status) {
+                                "in_progress" -> accentColor.copy(0.9f)
+                                "check_in" -> Color(0xFF7C3AED).copy(0.8f)
+                                "completed" -> Color(0xFF22C55E).copy(0.7f)
+                                else -> Color.White.copy(alpha = 0.2f)
                             }
-                            Spacer(Modifier.weight(1f))
+                            HeroPill(getStatusLabel(status), statusBg)
+                        }
+                        // Sport
+                        tournament.sports?.name?.let { sportName ->
+                            Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.15f)) {
+                                Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(sportIcon(sportName), null, tint = Color.White.copy(0.9f), modifier = Modifier.size(13.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(sportName, fontSize = 11.sp, color = Color.White.copy(0.9f), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                        // Age category
+                        tournament.ageCategory?.let { age ->
+                            val label = when (age) { "children" -> "Дети"; "youth" -> "Юноши"; "adult" -> "Взрослые"; else -> age }
+                            HeroPill(label)
+                        }
+                        // Skill level
+                        tournament.skillLevel?.let { skill ->
+                            val label = when (skill) { "beginner" -> "Начинающие"; "intermediate" -> "Средний"; "pro" -> "Профи"; else -> skill }
+                            HeroPill(label)
+                        }
+                        // Gender
+                        tournament.genderCategory?.let { gender ->
+                            val label = when (gender) { "male" -> "Мужчины"; "female" -> "Женщины"; "mixed" -> "Смешанный"; else -> gender }
+                            HeroPill(label)
+                        }
+                        // Format
+                        tournament.format?.let { fmt ->
+                            val label = when (fmt) {
+                                "single_elimination" -> "Single Elim"
+                                "double_elimination" -> "Double Elim"
+                                "round_robin" -> "Round Robin"
+                                "groups_knockout" -> "Группы + Плей-офф"
+                                "swiss" -> "Швейцарская"
+                                else -> fmt
+                            }
+                            HeroPill(label)
+                        }
+                        // Private badge
+                        if (tournament.visibility == "private") {
+                            Surface(shape = RoundedCornerShape(50), color = Color.White.copy(0.2f)) {
+                                Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Outlined.Lock, null, tint = Color.White.copy(0.8f), modifier = Modifier.size(12.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Приватный", fontSize = 11.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
 
-                            // Favorite button
-                            val favContext = androidx.compose.ui.platform.LocalContext.current
-                            val favPref = remember { com.ileader.app.data.preferences.FavoritesPreference(favContext) }
-                            val favIds by favPref.favoriteTournamentIds.collectAsState(initial = emptyList())
-                            val isFav = tournament.id in favIds
-                            val favScale by animateFloatAsState(
-                                targetValue = if (isFav) 1f else 0.9f,
-                                animationSpec = tween(200), label = "favScale"
+                    Spacer(Modifier.height(16.dp))
+
+                    // Tournament name
+                    Text(
+                        text = tournament.name,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        lineHeight = 32.sp,
+                        letterSpacing = (-0.5).sp
+                    )
+
+                    // Organizer
+                    tournament.profiles?.name?.let { org ->
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Outlined.Business, null,
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
                             )
-                            val scope = rememberCoroutineScope()
-
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .scale(favScale)
-                                    .clip(CircleShape)
-                                    .background(if (isFav) Accent.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.3f))
-                                    .clickable { scope.launch { favPref.toggleFavorite(tournament.id) } },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    contentDescription = if (isFav) "Убрать из избранного" else "В избранное",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Spacer(Modifier.width(8.dp))
-
-                            // Share button
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Black.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Share, null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(20.dp))
-
-                        // Status + category pills
-                        val pillModifier = @Composable { label: String, bg: Color ->
-                            Surface(shape = RoundedCornerShape(50), color = bg) {
-                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                            }
-                        }
-
-                        @Composable
-                        fun HeroPill(text: String, bg: Color = Color.White.copy(alpha = 0.15f)) {
-                            Surface(shape = RoundedCornerShape(50), color = bg) {
-                                Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                            }
-                        }
-
-                        @OptIn(ExperimentalLayoutApi::class)
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            // Status badge (LIVE pulsing for in_progress)
-                            tournament.status?.let { status ->
-                                val statusBg = when (status) {
-                                    "in_progress" -> accentColor.copy(0.9f)
-                                    "check_in" -> Color(0xFF7C3AED).copy(0.8f)
-                                    "completed" -> Color(0xFF22C55E).copy(0.7f)
-                                    else -> Color.White.copy(alpha = 0.2f)
-                                }
-                                HeroPill(getStatusLabel(status), statusBg)
-                            }
-                            // Sport
-                            tournament.sports?.name?.let { sportName ->
-                                Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.15f)) {
-                                    Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(sportIcon(sportName), null, tint = Color.White.copy(0.9f), modifier = Modifier.size(13.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(sportName, fontSize = 11.sp, color = Color.White.copy(0.9f), fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                            // Age category
-                            tournament.ageCategory?.let { age ->
-                                val label = when (age) { "children" -> "Дети"; "youth" -> "Юноши"; "adult" -> "Взрослые"; else -> age }
-                                HeroPill(label)
-                            }
-                            // Skill level
-                            tournament.skillLevel?.let { skill ->
-                                val label = when (skill) { "beginner" -> "Начинающие"; "intermediate" -> "Средний"; "pro" -> "Профи"; else -> skill }
-                                HeroPill(label)
-                            }
-                            // Gender
-                            tournament.genderCategory?.let { gender ->
-                                val label = when (gender) { "male" -> "Мужчины"; "female" -> "Женщины"; "mixed" -> "Смешанный"; else -> gender }
-                                HeroPill(label)
-                            }
-                            // Format
-                            tournament.format?.let { fmt ->
-                                val label = when (fmt) {
-                                    "single_elimination" -> "Single Elim"
-                                    "double_elimination" -> "Double Elim"
-                                    "round_robin" -> "Round Robin"
-                                    "groups_knockout" -> "Группы + Плей-офф"
-                                    "swiss" -> "Швейцарская"
-                                    else -> fmt
-                                }
-                                HeroPill(label)
-                            }
-                            // Private badge
-                            if (tournament.visibility == "private") {
-                                Surface(shape = RoundedCornerShape(50), color = Color.White.copy(0.2f)) {
-                                    Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Outlined.Lock, null, tint = Color.White.copy(0.8f), modifier = Modifier.size(12.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("Приватный", fontSize = 11.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.SemiBold)
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // Tournament name
-                        Text(
-                            text = tournament.name,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            lineHeight = 32.sp,
-                            letterSpacing = (-0.5).sp
-                        )
-
-                        // Organizer
-                        tournament.profiles?.name?.let { org ->
-                            Spacer(Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Outlined.Business, null,
-                                    tint = Color.White.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = org,
-                                    fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.8f)
-                                )
-                            }
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = org,
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
                         }
                     }
                 }
             }
+            
 
             // ── Quick Info Cards ──
-            FadeIn(visible = started, delayMs = 150) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    QuickInfoCard(
-                        icon = Icons.Default.CalendarMonth,
-                        label = "Дата",
-                        value = formatDateShort(tournament.startDate),
-                        modifier = Modifier.width(110.dp)
-                    )
-                    QuickInfoCard(
-                        icon = Icons.Default.LocationOn,
-                        label = "Место",
-                        value = tournament.locations?.name ?: "—",
-                        modifier = Modifier.width(110.dp)
-                    )
-                    QuickInfoCard(
-                        icon = Icons.Default.People,
-                        label = "Участники",
-                        value = "${data.participants.size}/${tournament.maxParticipants ?: "∞"}",
-                        modifier = Modifier.width(110.dp)
-                    )
-                    QuickInfoCard(
-                        icon = Icons.Default.EmojiEvents,
-                        label = "Приз",
-                        value = if (!tournament.prize.isNullOrEmpty()) tournament.prize else "—",
-                        modifier = Modifier.width(110.dp)
-                    )
-                    QuickInfoCard(
-                        icon = Icons.Default.AccountTree,
-                        label = "Формат",
-                        value = formatShortLabel(tournament.format),
-                        modifier = Modifier.width(110.dp)
-                    )
-                    tournament.entryFee?.let { fee ->
-                        if (fee > 0) {
-                            QuickInfoCard(
-                                icon = Icons.Default.CreditCard,
-                                label = "Взнос",
-                                value = "${fee.toInt()} ₸",
-                                modifier = Modifier.width(110.dp)
-                            )
-                        }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickInfoCard(
+                    icon = Icons.Default.CalendarMonth,
+                    label = "Дата",
+                    value = formatDateShort(tournament.startDate),
+                    modifier = Modifier.width(110.dp)
+                )
+                QuickInfoCard(
+                    icon = Icons.Default.LocationOn,
+                    label = "Место",
+                    value = tournament.locations?.name ?: "—",
+                    modifier = Modifier.width(110.dp)
+                )
+                QuickInfoCard(
+                    icon = Icons.Default.People,
+                    label = "Участники",
+                    value = "${data.participants.size}/${tournament.maxParticipants ?: "∞"}",
+                    modifier = Modifier.width(110.dp)
+                )
+                QuickInfoCard(
+                    icon = Icons.Default.EmojiEvents,
+                    label = "Приз",
+                    value = if (!tournament.prize.isNullOrEmpty()) tournament.prize else "—",
+                    modifier = Modifier.width(110.dp)
+                )
+                QuickInfoCard(
+                    icon = Icons.Default.AccountTree,
+                    label = "Формат",
+                    value = formatShortLabel(tournament.format),
+                    modifier = Modifier.width(110.dp)
+                )
+                tournament.entryFee?.let { fee ->
+                    if (fee > 0) {
+                        QuickInfoCard(
+                            icon = Icons.Default.CreditCard,
+                            label = "Взнос",
+                            value = "${fee.toInt()} ₸",
+                            modifier = Modifier.width(110.dp)
+                        )
                     }
                 }
             }
+            
 
             // ── Organizer Info Card ──
             tournament.profiles?.name?.let { orgName ->
-                FadeIn(visible = started, delayMs = 200) {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = CardBg,
-                        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = CardBg,
+                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Box(
+                            Modifier.size(44.dp).background(accentColor.copy(0.1f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                Modifier.size(44.dp).background(accentColor.copy(0.1f), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Business, null, tint = accentColor, modifier = Modifier.size(22.dp))
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text("Организатор", fontSize = 11.sp, color = TextMuted)
-                                Text(orgName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                            }
-                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Business, null, tint = accentColor, modifier = Modifier.size(22.dp))
                         }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Организатор", fontSize = 11.sp, color = TextMuted)
+                            Text(orgName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                     }
                 }
+                
                 Spacer(Modifier.height(8.dp))
             }
 
             // ── Description ──
             if (!tournament.description.isNullOrEmpty()) {
-                FadeIn(visible = started, delayMs = 300) {
-                    SectionCard(title = "Описание") {
-                        Text(
-                            text = tournament.description,
-                            fontSize = 14.sp,
-                            color = TextSecondary,
-                            lineHeight = 21.sp
-                        )
-                    }
+                SectionCard(title = "Описание") {
+                    Text(
+                        text = tournament.description,
+                        fontSize = 14.sp,
+                        color = TextSecondary,
+                        lineHeight = 21.sp
+                    )
                 }
+                
             }
 
             // ── Categories ──
             if (!tournament.categories.isNullOrEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 350) {
-                    SectionCard(title = "Категории") {
-                        @OptIn(ExperimentalLayoutApi::class)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            tournament.categories.forEach { cat ->
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = AccentSoft
-                                ) {
-                                    Text(
-                                        text = cat,
-                                        fontSize = 12.sp,
-                                        color = Accent,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
+                SectionCard(title = "Категории") {
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        tournament.categories.forEach { cat ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = AccentSoft
+                            ) {
+                                Text(
+                                    text = cat,
+                                    fontSize = 12.sp,
+                                    color = Accent,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }
                 }
+                
             }
 
             // ── Requirements ──
             if (!tournament.requirements.isNullOrEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 400) {
-                    SectionCard(title = "Требования") {
-                        tournament.requirements.forEach { req ->
-                            Text(
-                                text = "• $req",
-                                fontSize = 13.sp,
-                                color = TextSecondary,
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
-                        }
+                SectionCard(title = "Требования") {
+                    tournament.requirements.forEach { req ->
+                        Text(
+                            text = "• $req",
+                            fontSize = 13.sp,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
                     }
                 }
+                
             }
 
             // ── Tournament Details (2-column grid) ──
             Spacer(Modifier.height(8.dp))
-            FadeIn(visible = started, delayMs = 420) {
-                TournamentDetailsSection(tournament)
-            }
+            TournamentDetailsSection(tournament)
+            
 
             // ── Location ──
             if (tournament.locations != null) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 470) {
-                    LocationSection(tournament.locations)
-                }
+                LocationSection(tournament.locations)
+                
             }
 
             // ── Prizes ──
             if (!tournament.prizes.isNullOrEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 520) {
-                    PrizesSection(tournament.prizes)
-                }
+                PrizesSection(tournament.prizes)
+                
             }
 
             // ── Schedule ──
             if (tournament.schedule != null) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 570) {
-                    ScheduleSection(tournament.schedule)
-                }
+                ScheduleSection(tournament.schedule)
+                
             }
 
             // ── Participants ──
             if (data.participants.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 620) {
-                    ParticipantsSection(data.participants, onProfileClick)
-                }
+                ParticipantsSection(data.participants, onProfileClick)
+                
             }
 
             // ── Podium (top 3) ──
             if (data.results.size >= 3 && tournament.status == "completed") {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 660) {
-                    PodiumSection(data.results.take(3), onProfileClick)
-                }
+                PodiumSection(data.results.take(3), onProfileClick)
+                
             }
 
             // ── Results ──
             if (data.results.isNotEmpty() && tournament.status == "completed") {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 700) {
-                    ResultsSection(data.results, onProfileClick)
-                }
+                ResultsSection(data.results, onProfileClick)
+                
             }
 
             // ── Bracket ──
             if (data.bracket.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 720) {
-                    BracketSection(data)
-                }
+                BracketSection(data)
+                
             }
 
             // Bottom spacing for action button

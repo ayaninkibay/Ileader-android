@@ -61,8 +61,6 @@ fun ArticleDetailScreen(
             }
             is UiState.Success -> {
                 val article = state.data
-                var started by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { started = true }
 
                 Column(
                     modifier = Modifier
@@ -163,155 +161,149 @@ fun ArticleDetailScreen(
                         Spacer(Modifier.height(20.dp))
 
                         // Title
-                        FadeIn(visible = started, delayMs = 0) {
-                            Text(
-                                text = article.title,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                lineHeight = 30.sp
-                            )
-                        }
+                        Text(
+                            text = article.title,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            lineHeight = 30.sp
+                        )
+                        
 
                         Spacer(Modifier.height(14.dp))
 
                         // Author + date card
-                        FadeIn(visible = started, delayMs = 100) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = CardBg,
-                                shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = CardBg,
+                            shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                // Author avatar
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Accent.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(36.dp)
                                 ) {
-                                    // Author avatar
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Accent.copy(alpha = 0.15f),
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                            Icon(Icons.Default.Person, null, tint = Accent, modifier = Modifier.size(20.dp))
-                                        }
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(Icons.Default.Person, null, tint = Accent, modifier = Modifier.size(20.dp))
                                     }
-                                    Spacer(Modifier.width(10.dp))
-                                    Column {
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = article.profiles?.name ?: "Автор",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextPrimary
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(12.dp), tint = TextMuted)
+                                        Spacer(Modifier.width(4.dp))
                                         Text(
-                                            text = article.profiles?.name ?: "Автор",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = TextPrimary
+                                            text = formatDateRu(article.publishedAt ?: article.createdAt),
+                                            fontSize = 12.sp,
+                                            color = TextMuted
                                         )
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(12.dp), tint = TextMuted)
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                text = formatDateRu(article.publishedAt ?: article.createdAt),
-                                                fontSize = 12.sp,
-                                                color = TextMuted
-                                            )
-                                        }
                                     }
-                                    Spacer(Modifier.weight(1f))
-                                    // Sport badge
-                                    article.sports?.let { sport ->
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = TextMuted.copy(alpha = 0.15f)
+                                }
+                                Spacer(Modifier.weight(1f))
+                                // Sport badge
+                                article.sports?.let { sport ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = TextMuted.copy(alpha = 0.15f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(sportIcon(sport.name), null, tint = TextSecondary, modifier = Modifier.size(13.dp))
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(sport.name, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
-                                            }
+                                            Icon(sportIcon(sport.name), null, tint = TextSecondary, modifier = Modifier.size(13.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(sport.name, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
                                         }
                                     }
                                 }
                             }
                         }
+                        
 
                         Spacer(Modifier.height(20.dp))
 
                         // Views + reading time
-                        FadeIn(visible = started, delayMs = 150) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                if (article.views > 0) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Outlined.Visibility, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("${article.views}", fontSize = 12.sp, color = TextMuted)
-                                    }
-                                }
-                                val wordCount = (article.content?.length ?: 0) / 5
-                                val readMinutes = (wordCount / 200).coerceAtLeast(1)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            if (article.views > 0) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Outlined.Schedule, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Outlined.Visibility, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                                     Spacer(Modifier.width(4.dp))
-                                    Text("$readMinutes мин. чтения", fontSize = 12.sp, color = TextMuted)
+                                    Text("${article.views}", fontSize = 12.sp, color = TextMuted)
                                 }
                             }
+                            val wordCount = (article.content?.length ?: 0) / 5
+                            val readMinutes = (wordCount / 200).coerceAtLeast(1)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Schedule, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text("$readMinutes мин. чтения", fontSize = 12.sp, color = TextMuted)
+                            }
                         }
+                        
 
                         Spacer(Modifier.height(16.dp))
 
                         // Excerpt (if any)
                         if (!article.excerpt.isNullOrEmpty()) {
-                            FadeIn(visible = started, delayMs = 180) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = AccentSoft.copy(alpha = 0.5f)
-                                ) {
-                                    Text(
-                                        article.excerpt,
-                                        modifier = Modifier.padding(16.dp),
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextPrimary,
-                                        lineHeight = 22.sp
-                                    )
-                                }
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = AccentSoft.copy(alpha = 0.5f)
+                            ) {
+                                Text(
+                                    article.excerpt,
+                                    modifier = Modifier.padding(16.dp),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                    lineHeight = 22.sp
+                                )
                             }
+                            
                             Spacer(Modifier.height(16.dp))
                         }
 
                         // Article content with simple markdown rendering
                         if (!article.content.isNullOrEmpty()) {
-                            FadeIn(visible = started, delayMs = 200) {
-                                RenderArticleContent(article.content)
-                            }
+                            RenderArticleContent(article.content)
+                            
                         }
 
                         // Tags
                         if (!article.tags.isNullOrEmpty()) {
                             Spacer(Modifier.height(20.dp))
-                            FadeIn(visible = started, delayMs = 250) {
-                                @OptIn(ExperimentalLayoutApi::class)
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    article.tags.forEach { tag ->
-                                        Surface(
-                                            shape = RoundedCornerShape(50),
-                                            color = TextMuted.copy(alpha = 0.1f)
-                                        ) {
-                                            Text(
-                                                "#$tag",
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                                fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium
-                                            )
-                                        }
+                            @OptIn(ExperimentalLayoutApi::class)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                article.tags.forEach { tag ->
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = TextMuted.copy(alpha = 0.1f)
+                                    ) {
+                                        Text(
+                                            "#$tag",
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                            fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium
+                                        )
                                     }
                                 }
                             }
+                            
                         }
 
                         Spacer(Modifier.height(100.dp))
