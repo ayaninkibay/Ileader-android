@@ -651,3 +651,51 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
         }
     }
 }
+
+// ═══════════════════════════════════════════════════
+// Team Mini Card
+// ═══════════════════════════════════════════════════
+
+private data class MockTeam(
+    val name: String, val sportName: String, val city: String, val members: Int
+)
+
+@Composable
+private fun TeamMiniCard(team: MockTeam) {
+    val isDark = DarkTheme.isDark
+    val sColor = sportColor(team.sportName)
+    Surface(
+        shape = RoundedCornerShape(16.dp), color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp,
+        modifier = Modifier.width(160.dp).height(160.dp)
+    ) {
+        Column(
+            Modifier.padding(14.dp).fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                Modifier.size(48.dp).clip(CircleShape).background(sColor.copy(0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(team.name.take(1), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = sColor)
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(team.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(sportIcon(team.sportName), null, tint = TextMuted, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(team.sportName, fontSize = 11.sp, color = TextMuted)
+            }
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(team.city, fontSize = 11.sp, color = TextMuted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(3.dp))
+                    Text("${team.members}", fontSize = 11.sp, color = TextMuted)
+                }
+            }
+        }
+    }
+}

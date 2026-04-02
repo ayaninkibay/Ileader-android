@@ -86,6 +86,7 @@ fun ProfileScreen(
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showSportSheet by remember { mutableStateOf(false) }
     var showPrivacySheet by remember { mutableStateOf(false) }
+    var showLegalSheet by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
 
     LaunchedEffect(user.id) { vm.load(user.id, user.role) }
@@ -117,12 +118,12 @@ fun ProfileScreen(
                     Box(modifier = Modifier.fillMaxWidth()) {
                         AsyncImage(
                             model = bannerUrl, contentDescription = null,
-                            modifier = Modifier.fillMaxWidth().height(320.dp)
+                            modifier = Modifier.fillMaxWidth().height(360.dp)
                                 .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
                             contentScale = ContentScale.Crop
                         )
                         Box(
-                            Modifier.fillMaxWidth().height(320.dp)
+                            Modifier.fillMaxWidth().height(360.dp)
                                 .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                                 .background(Brush.verticalGradient(listOf(Color.Black.copy(0.3f), Color.Black.copy(0.75f))))
                         )
@@ -130,7 +131,7 @@ fun ProfileScreen(
                             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White.copy(0.15f)).clickable { showSportSheet = true }, contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White.copy(0.15f)).clickable { showPrivacySheet = true }, contentAlignment = Alignment.Center) {
                                 Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                             Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable { onNotifications() }, contentAlignment = Alignment.Center) {
@@ -222,6 +223,31 @@ fun ProfileScreen(
                 }
 
                 // ═══════════════════════════════════════
+                // EDIT PROFILE BUTTON
+                // ═══════════════════════════════════════
+                item {
+                    Spacer(Modifier.height(14.dp))
+                    FadeIn(visible = started, delayMs = 250) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onEditProfile),
+                            shape = RoundedCornerShape(14.dp),
+                            color = CardBg,
+                            shadowElevation = if (isDark) 0.dp else 2.dp
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Edit, null, tint = Accent, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Редактировать профиль", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════
                 // GOALS (athlete only)
                 // ═══════════════════════════════════════
                 if (user.role == UserRole.ATHLETE && goalsState != null) {
@@ -259,41 +285,6 @@ fun ProfileScreen(
                 }
 
                 // ═══════════════════════════════════════
-                // MY TOURNAMENTS — horizontal carousel
-                // ═══════════════════════════════════════
-                item {
-                    Spacer(Modifier.height(20.dp))
-                    FadeIn(visible = started, delayMs = 350) {
-                        Column {
-                            Row(Modifier.padding(horizontal = 16.dp)) {
-                                SectionHeader("Мои турниры")
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            when (val ts = myTournaments) {
-                                is UiState.Success -> {
-                                    if (ts.data.isEmpty()) {
-                                        EmptyCard("Вы ещё не участвовали в турнирах", Icons.Default.EmojiEvents)
-                                    } else {
-                                        LazyRow(
-                                            contentPadding = PaddingValues(horizontal = 16.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            items(ts.data, key = { it.id }) { t ->
-                                                TournamentCard(t) { onTournamentClick(t.id) }
-                                            }
-                                        }
-                                    }
-                                }
-                                is UiState.Error -> EmptyCard(ts.message, Icons.Default.Error)
-                                is UiState.Loading -> Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
-                                    CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ═══════════════════════════════════════
                 // RESULTS
                 // ═══════════════════════════════════════
                 item {
@@ -322,7 +313,10 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 // RATING BY SPORT
                 // ═══════════════════════════════════════
-                if (stats.isNotEmpty()) {
+                // Filter stats to only user's sports
+                val userSportIds = userSports.mapNotNull { it.sportId }
+                val filteredStats = stats.filter { it.sportId in userSportIds || userSportIds.isEmpty() }
+                if (filteredStats.isNotEmpty()) {
                     item {
                         Spacer(Modifier.height(20.dp))
                         FadeIn(visible = started, delayMs = 450) {
@@ -335,7 +329,7 @@ fun ProfileScreen(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    items(stats) { sportStat ->
+                                    items(filteredStats) { sportStat ->
                                         SportRatingCard(sportStat)
                                     }
                                 }
@@ -362,24 +356,32 @@ fun ProfileScreen(
                 }
 
                 // ═══════════════════════════════════════
-                // BOTTOM ACTIONS — compact row
+                // BOTTOM: Privacy + Sign out
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(24.dp))
                     FadeIn(visible = started, delayMs = 550) {
                         Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Edit + Settings row
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                CompactActionButton(Icons.Default.Edit, "Редактировать профиль", onEditProfile, Modifier.weight(1f))
-                                CompactActionButton(Icons.Default.Settings, "Настройки", { showPrivacySheet = true }, Modifier.weight(1f))
+                            // Privacy & Terms
+                            Surface(
+                                Modifier.fillMaxWidth().clickable { showLegalSheet = true },
+                                shape = RoundedCornerShape(14.dp), color = CardBg,
+                                shadowElevation = if (isDark) 0.dp else 2.dp
+                            ) {
+                                Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Shield, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("Конфиденциальность и условия", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
+                                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                }
                             }
                             // Sign out
                             Surface(
                                 Modifier.fillMaxWidth().clickable { showSignOutDialog = true },
-                                RoundedCornerShape(14.dp), CardBg,
+                                shape = RoundedCornerShape(14.dp), color = CardBg,
                                 shadowElevation = if (isDark) 0.dp else 2.dp
                             ) {
-                                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(10.dp))
                                     Text("Выйти", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error)
@@ -404,6 +406,7 @@ fun ProfileScreen(
     }
     if (showSportSheet) SportSelectionSheet(user.id) { showSportSheet = false }
     if (showPrivacySheet) SettingsSheet { showPrivacySheet = false }
+    if (showLegalSheet) LegalSheet { showLegalSheet = false }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -766,6 +769,47 @@ private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LegalSheet(onDismiss: () -> Unit) {
+    var pages by remember { mutableStateOf<List<LegalPageDto>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        try { pages = ViewerRepository().getLegalPages().filter { it.enabled } } catch (_: Exception) {}
+        loading = false
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = CardBg,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().fillMaxHeight(0.85f).padding(horizontal = 20.dp).verticalScroll(rememberScrollState())
+        ) {
+            Text("Конфиденциальность и условия", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(16.dp))
+            if (loading) {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                }
+            } else if (pages.isEmpty()) {
+                Text("Содержимое будет добавлено позже.", fontSize = 14.sp, color = TextMuted)
+            } else {
+                pages.forEach { page ->
+                    Text(page.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Spacer(Modifier.height(8.dp))
+                    RenderLegalContent(page.content)
+                    Spacer(Modifier.height(24.dp))
+                }
+            }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
