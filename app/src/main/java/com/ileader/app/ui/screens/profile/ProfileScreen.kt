@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -72,7 +73,8 @@ fun ProfileScreen(
     onGoalClick: (AthleteGoal) -> Unit = {},
     onGoalCreate: () -> Unit = {},
     onSettings: () -> Unit = {},
-    onTournamentClick: (String) -> Unit = {}
+    onTournamentClick: (String) -> Unit = {},
+    onArticles: () -> Unit = {}
 ) {
     val vm: ProfileViewModel = viewModel()
     val profileState by vm.profile.collectAsState()
@@ -131,18 +133,18 @@ fun ProfileScreen(
                             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White.copy(0.15f)).clickable { showPrivacySheet = true }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(0.3f)).clickable { showPrivacySheet = true }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Settings, null, tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
                             }
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable { onNotifications() }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Notifications, null, tint = ILeaderColors.DarkRed, modifier = Modifier.size(20.dp))
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(0.3f)).clickable { onNotifications() }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Notifications, null, tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
                             }
                         }
                         Column(
                             Modifier.fillMaxWidth().statusBarsPadding().padding(top = 80.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            GlowAvatar(profile.avatarUrl, (profile.name ?: user.name).take(2).uppercase(), started)
+                            ProfileAvatar(profile.avatarUrl, (profile.name ?: user.name).take(2).uppercase(), primarySportName)
                             Spacer(Modifier.height(12.dp))
                             Text(profile.name ?: user.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
                             Spacer(Modifier.height(4.dp))
@@ -356,74 +358,62 @@ fun ProfileScreen(
                 }
 
                 // ═══════════════════════════════════════
-                // MY TICKETS button (viewer only)
+                // NAVIGATION MENU
                 // ═══════════════════════════════════════
-                if (user.role == UserRole.USER) item {
-                    Spacer(Modifier.height(20.dp))
+                item {
+                    Spacer(Modifier.height(24.dp))
                     FadeIn(visible = started, delayMs = 520) {
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                                .clickable(onClick = onTickets),
-                            shape = RoundedCornerShape(14.dp),
-                            color = CardBg,
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp), color = CardBg,
                             shadowElevation = if (isDark) 0.dp else 2.dp
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Accent.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.ConfirmationNumber, null, tint = Accent, modifier = Modifier.size(20.dp))
+                            Column {
+                                // My Tickets (viewer only)
+                                if (user.role == UserRole.USER) {
+                                    MenuRow(icon = Icons.Default.ConfirmationNumber, label = "Мои билеты", onClick = onTickets)
+                                    MenuDivider()
                                 }
-                                Spacer(Modifier.width(12.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text("Мои билеты", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                    Text("Зрительские регистрации", fontSize = 12.sp, color = TextMuted)
+                                // My Articles (media only)
+                                if (user.role == UserRole.MEDIA) {
+                                    MenuRow(icon = Icons.AutoMirrored.Filled.Article, label = "Мои статьи", onClick = onArticles)
+                                    MenuDivider()
                                 }
-                                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                                // Notifications
+                                MenuRow(icon = Icons.Default.Notifications, label = "Уведомления", onClick = onNotifications)
+                                MenuDivider()
+                                // Settings
+                                MenuRow(icon = Icons.Default.Settings, label = "Настройки", onClick = { showPrivacySheet = true })
                             }
                         }
                     }
                 }
 
                 // ═══════════════════════════════════════
-                // BOTTOM: Privacy + Sign out
+                // LEGAL + SIGN OUT
                 // ═══════════════════════════════════════
                 item {
-                    Spacer(Modifier.height(24.dp))
-                    FadeIn(visible = started, delayMs = 550) {
-                        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Privacy & Terms
-                            Surface(
-                                Modifier.fillMaxWidth().clickable { showLegalSheet = true },
-                                shape = RoundedCornerShape(14.dp), color = CardBg,
-                                shadowElevation = if (isDark) 0.dp else 2.dp
-                            ) {
-                                Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Shield, null, tint = TextMuted, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(10.dp))
-                                    Text("Конфиденциальность и условия", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
-                                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                }
-                            }
-                            // Sign out
-                            Surface(
-                                Modifier.fillMaxWidth().clickable { showSignOutDialog = true },
-                                shape = RoundedCornerShape(14.dp), color = CardBg,
-                                shadowElevation = if (isDark) 0.dp else 2.dp
-                            ) {
-                                Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(18.dp))
-                                    Spacer(Modifier.width(10.dp))
-                                    Text("Выйти", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error)
+                    Spacer(Modifier.height(12.dp))
+                    FadeIn(visible = started, delayMs = 560) {
+                        Surface(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp), color = CardBg,
+                            shadowElevation = if (isDark) 0.dp else 2.dp
+                        ) {
+                            Column {
+                                MenuRow(icon = Icons.Default.Shield, label = "Конфиденциальность", onClick = { showLegalSheet = true })
+                                MenuDivider()
+                                MenuRow(icon = Icons.Default.Info, label = "О приложении", onClick = { showLegalSheet = true })
+                                MenuDivider()
+                                // Sign out (red)
+                                Row(
+                                    Modifier.fillMaxWidth().clickable { showSignOutDialog = true }
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(14.dp))
+                                    Text("Выйти", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error)
                                 }
                             }
                         }
@@ -449,28 +439,33 @@ fun ProfileScreen(
 }
 
 // ═══════════════════════════════════════════════════════════
-// GLOW AVATAR
+// STATIC AVATAR with gradient border
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun GlowAvatar(avatarUrl: String?, initials: String, started: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "glow")
-    val angle by infiniteTransition.animateFloat(0f, 360f, infiniteRepeatable(tween(3000, easing = LinearEasing)), label = "glowAngle")
-    val scale by animateFloatAsState(if (started) 1f else 0.6f, tween(600, 100, EaseOutBack), label = "as")
-    val alpha by animateFloatAsState(if (started) 1f else 0f, tween(500, 100), label = "aa")
-    val glowColors = listOf(ILeaderColors.PrimaryRed, Color(0xFFFF6B6B), Color(0xFFFF8A65), ILeaderColors.PrimaryRed)
+private fun ProfileAvatar(avatarUrl: String?, initials: String, sportName: String) {
+    val sColor = sportColor(sportName)
+    val borderColors = listOf(sColor, sColor.copy(0.5f), Accent, sColor)
 
-    Box(modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }, contentAlignment = Alignment.Center) {
-        Box(Modifier.size(116.dp).drawBehind {
-            drawCircle(Brush.sweepGradient(glowColors, Offset(size.width / 2, size.height / 2)), size.width / 2, style = Stroke(4.dp.toPx()))
-        })
-        Box(Modifier.size(110.dp).clip(CircleShape).background(Bg))
-        Box(modifier = Modifier.size(104.dp).clip(CircleShape).background(CardBg), contentAlignment = Alignment.Center) {
+    Box(contentAlignment = Alignment.Center) {
+        // Gradient border ring
+        Box(
+            Modifier
+                .size(112.dp)
+                .background(Brush.sweepGradient(borderColors), CircleShape)
+        )
+        // Background gap
+        Box(Modifier.size(106.dp).clip(CircleShape).background(Bg))
+        // Avatar
+        Box(
+            modifier = Modifier.size(100.dp).clip(CircleShape).background(CardBg),
+            contentAlignment = Alignment.Center
+        ) {
             if (avatarUrl != null) {
-                AsyncImage(avatarUrl, null, Modifier.size(104.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                AsyncImage(avatarUrl, null, Modifier.size(100.dp).clip(CircleShape), contentScale = ContentScale.Crop)
             } else {
-                Box(Modifier.size(104.dp).clip(CircleShape).background(Accent), contentAlignment = Alignment.Center) {
-                    Text(initials, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Box(Modifier.size(100.dp).clip(CircleShape).background(Accent), contentAlignment = Alignment.Center) {
+                    Text(initials, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -485,7 +480,7 @@ private fun GlowAvatar(avatarUrl: String?, initials: String, started: Boolean) {
 private fun AnimatedStatItem(icon: ImageVector, targetValue: Int, label: String, started: Boolean, modifier: Modifier = Modifier) {
     val v by animateFloatAsState(if (started) targetValue.toFloat() else 0f, tween(900, 400, FastOutSlowInEasing), label = "s_$label")
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(20.dp))
         Spacer(Modifier.height(6.dp))
         Text("${v.roundToInt()}", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(label, fontSize = 11.sp, color = TextMuted)
@@ -667,6 +662,34 @@ private fun TeamCard(membership: TeamMembershipDto) {
             }
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MENU ROW (iOS-style, grey icons)
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+private fun MenuRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(14.dp))
+        Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+    }
+}
+
+@Composable
+private fun MenuDivider() {
+    HorizontalDivider(
+        color = Border.copy(0.2f), thickness = 0.5.dp,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
 }
 
 // ═══════════════════════════════════════════════════════════

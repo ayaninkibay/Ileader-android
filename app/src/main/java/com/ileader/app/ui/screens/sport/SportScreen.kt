@@ -59,6 +59,7 @@ fun SportScreen(
     onProfileClick: (String) -> Unit,
     onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
     onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
+    onRankingsClick: () -> Unit = {},
     viewModel: SportViewModel = viewModel()
 ) {
     val s = viewModel.state
@@ -211,7 +212,7 @@ fun SportScreen(
 
         // ── Спортсмены ──
         item {
-            SectionTitle(title = "Спортсмены", action = "Все", onAction = {})
+            SectionTitle(title = "Спортсмены", action = "Все", onAction = onRankingsClick)
             SportSection(state = s.people) { list ->
                 val athletes = list.take(10)
                 LazyRow(

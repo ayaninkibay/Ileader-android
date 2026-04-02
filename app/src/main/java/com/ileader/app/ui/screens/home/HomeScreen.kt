@@ -60,6 +60,7 @@ fun HomeScreen(
     onArticleClick: (String) -> Unit,
     onTournamentClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
+    onRankingsClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -183,7 +184,7 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(20.dp))
             FadeIn(visible = started, delayMs = 120) {
-                RatingPromoCard()
+                RatingPromoCard(onClick = onRankingsClick)
             }
         }
 
@@ -565,11 +566,12 @@ private fun pluralTournament(count: Int): String {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun RatingPromoCard() {
+private fun RatingPromoCard(onClick: () -> Unit = {}) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = Color.Transparent
     ) {

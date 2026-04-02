@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -64,6 +68,7 @@ fun TournamentDetailScreen(
     user: User,
     onBack: () -> Unit,
     onEditTournament: (String) -> Unit = {},
+    onProfileClick: (String) -> Unit = {},
     viewModel: TournamentDetailViewModel = viewModel()
 ) {
     LaunchedEffect(tournamentId) {
@@ -95,7 +100,8 @@ fun TournamentDetailScreen(
                     user = user,
                     viewModel = viewModel,
                     onBack = onBack,
-                    onEditTournament = onEditTournament
+                    onEditTournament = onEditTournament,
+                    onProfileClick = onProfileClick
                 )
             }
         }
@@ -108,7 +114,8 @@ private fun TournamentContent(
     user: User,
     viewModel: TournamentDetailViewModel,
     onBack: () -> Unit,
-    onEditTournament: (String) -> Unit = {}
+    onEditTournament: (String) -> Unit = {},
+    onProfileClick: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
     var started by remember { mutableStateOf(false) }
@@ -236,37 +243,81 @@ private fun TournamentContent(
 
                         Spacer(Modifier.height(20.dp))
 
-                        // Status + sport pills
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        // Status + category pills
+                        val pillModifier = @Composable { label: String, bg: Color ->
+                            Surface(shape = RoundedCornerShape(50), color = bg) {
+                                Text(label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                            }
+                        }
+
+                        @Composable
+                        fun HeroPill(text: String, bg: Color = Color.White.copy(alpha = 0.15f)) {
+                            Surface(shape = RoundedCornerShape(50), color = bg) {
+                                Text(text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+                            }
+                        }
+
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            // Status badge (LIVE pulsing for in_progress)
                             tournament.status?.let { status ->
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = Color.White.copy(alpha = 0.2f)
-                                ) {
-                                    Text(
-                                        text = getStatusLabel(status),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                                    )
+                                val statusBg = when (status) {
+                                    "in_progress" -> accentColor.copy(0.9f)
+                                    "check_in" -> Color(0xFF7C3AED).copy(0.8f)
+                                    "completed" -> Color(0xFF22C55E).copy(0.7f)
+                                    else -> Color.White.copy(alpha = 0.2f)
+                                }
+                                HeroPill(getStatusLabel(status), statusBg)
+                            }
+                            // Sport
+                            tournament.sports?.name?.let { sportName ->
+                                Surface(shape = RoundedCornerShape(50), color = Color.White.copy(alpha = 0.15f)) {
+                                    Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(sportIcon(sportName), null, tint = Color.White.copy(0.9f), modifier = Modifier.size(13.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(sportName, fontSize = 11.sp, color = Color.White.copy(0.9f), fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
-                            tournament.sports?.name?.let { sportName ->
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = Color.White.copy(alpha = 0.15f)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(sportIcon(sportName), null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(14.dp))
+                            // Age category
+                            tournament.ageCategory?.let { age ->
+                                val label = when (age) { "children" -> "Дети"; "youth" -> "Юноши"; "adult" -> "Взрослые"; else -> age }
+                                HeroPill(label)
+                            }
+                            // Skill level
+                            tournament.skillLevel?.let { skill ->
+                                val label = when (skill) { "beginner" -> "Начинающие"; "intermediate" -> "Средний"; "pro" -> "Профи"; else -> skill }
+                                HeroPill(label)
+                            }
+                            // Gender
+                            tournament.genderCategory?.let { gender ->
+                                val label = when (gender) { "male" -> "Мужчины"; "female" -> "Женщины"; "mixed" -> "Смешанный"; else -> gender }
+                                HeroPill(label)
+                            }
+                            // Format
+                            tournament.format?.let { fmt ->
+                                val label = when (fmt) {
+                                    "single_elimination" -> "Single Elim"
+                                    "double_elimination" -> "Double Elim"
+                                    "round_robin" -> "Round Robin"
+                                    "groups_knockout" -> "Группы + Плей-офф"
+                                    "swiss" -> "Швейцарская"
+                                    else -> fmt
+                                }
+                                HeroPill(label)
+                            }
+                            // Private badge
+                            if (tournament.visibility == "private") {
+                                Surface(shape = RoundedCornerShape(50), color = Color.White.copy(0.2f)) {
+                                    Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Lock, null, tint = Color.White.copy(0.8f), modifier = Modifier.size(12.dp))
                                         Spacer(Modifier.width(4.dp))
-                                        Text(sportName, fontSize = 12.sp, color = Color.White.copy(alpha = 0.9f))
+                                        Text("Приватный", fontSize = 11.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
@@ -437,15 +488,23 @@ private fun TournamentContent(
             if (data.participants.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 FadeIn(visible = started, delayMs = 620) {
-                    ParticipantsSection(data.participants)
+                    ParticipantsSection(data.participants, onProfileClick)
+                }
+            }
+
+            // ── Podium (top 3) ──
+            if (data.results.size >= 3 && tournament.status == "completed") {
+                Spacer(Modifier.height(8.dp))
+                FadeIn(visible = started, delayMs = 660) {
+                    PodiumSection(data.results.take(3), onProfileClick)
                 }
             }
 
             // ── Results ──
             if (data.results.isNotEmpty() && tournament.status == "completed") {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 670) {
-                    ResultsSection(data.results)
+                FadeIn(visible = started, delayMs = 700) {
+                    ResultsSection(data.results, onProfileClick)
                 }
             }
 
@@ -477,13 +536,15 @@ private fun TournamentContent(
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun ParticipantsSection(participants: List<ParticipantDto>) {
+private fun ParticipantsSection(participants: List<ParticipantDto>, onProfileClick: (String) -> Unit = {}) {
     SectionCard(title = "Участники (${participants.size})") {
         participants.take(10).forEach { p ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { p.athleteId?.let { onProfileClick(it) } }
                     .padding(vertical = 4.dp)
             ) {
                 // Avatar
@@ -578,14 +639,117 @@ private fun ParticipantsSection(participants: List<ParticipantDto>) {
 }
 
 @Composable
-private fun ResultsSection(results: List<ResultDto>) {
+private fun PodiumSection(topResults: List<ResultDto>, onProfileClick: (String) -> Unit = {}) {
+    SectionCard(title = "Победители") {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // 2nd place (left)
+            if (topResults.size >= 2) {
+                PodiumPlace(
+                    result = topResults[1],
+                    position = 2,
+                    height = 80.dp,
+                    color = Color(0xFF94A3B8),
+                    bgColor = Color(0xFFF1F5F9),
+                    label = "Серебро",
+                    onProfileClick = onProfileClick
+                )
+            }
+            // 1st place (center, tallest)
+            if (topResults.isNotEmpty()) {
+                PodiumPlace(
+                    result = topResults[0],
+                    position = 1,
+                    height = 100.dp,
+                    color = Color(0xFFCA8A04),
+                    bgColor = Color(0xFFFEF9C3),
+                    label = "Золото",
+                    onProfileClick = onProfileClick
+                )
+            }
+            // 3rd place (right)
+            if (topResults.size >= 3) {
+                PodiumPlace(
+                    result = topResults[2],
+                    position = 3,
+                    height = 64.dp,
+                    color = Color(0xFFB45309),
+                    bgColor = Color(0xFFFEF3C7),
+                    label = "Бронза",
+                    onProfileClick = onProfileClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PodiumPlace(
+    result: ResultDto,
+    position: Int,
+    height: androidx.compose.ui.unit.Dp,
+    color: Color,
+    bgColor: Color,
+    label: String,
+    onProfileClick: (String) -> Unit
+) {
+    val isDark = DarkTheme.isDark
+    val actualBg = if (isDark) color.copy(alpha = 0.15f) else bgColor
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(100.dp)
+            .clickable { result.athleteId?.let { onProfileClick(it) } }
+    ) {
+        // Avatar
+        val avatarUrl = result.profiles?.avatarUrl
+        val name = result.profiles?.name ?: "—"
+        Box(
+            modifier = Modifier
+                .size(if (position == 1) 56.dp else 44.dp)
+                .clip(CircleShape)
+                .background(color.copy(0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (avatarUrl != null) {
+                AsyncImage(avatarUrl, null, Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+            } else {
+                Text(name.take(1).uppercase(), fontSize = if (position == 1) 20.sp else 16.sp, fontWeight = FontWeight.Bold, color = color)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, fontSize = 10.sp, color = color, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
+        // Podium block
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height)
+                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                .background(actualBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("$position", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = color)
+        }
+    }
+}
+
+@Composable
+private fun ResultsSection(results: List<ResultDto>, onProfileClick: (String) -> Unit = {}) {
     SectionCard(title = "Результаты") {
         results.forEach { r ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { r.athleteId?.let { onProfileClick(it) } }
+                    .padding(vertical = 6.dp)
             ) {
                 val posEmoji = when (r.position) {
                     1 -> "\uD83E\uDD47"
@@ -606,11 +770,15 @@ private fun ResultsSection(results: List<ResultDto>) {
                     modifier = Modifier.weight(1f)
                 )
                 r.points?.let { pts ->
-                    Text(
-                        text = "$pts очк.",
-                        fontSize = 12.sp,
-                        color = Accent
-                    )
+                    Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.12f)) {
+                        Text(
+                            text = "$pts очк.",
+                            fontSize = 12.sp,
+                            color = Accent,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         }

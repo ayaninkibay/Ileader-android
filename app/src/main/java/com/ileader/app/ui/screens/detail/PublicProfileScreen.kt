@@ -1,5 +1,8 @@
 package com.ileader.app.ui.screens.detail
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,11 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -32,8 +34,10 @@ import coil.compose.AsyncImage
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ResultDto
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.PublicProfileData
 import com.ileader.app.ui.viewmodels.PublicProfileViewModel
+import kotlin.math.roundToInt
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -42,7 +46,7 @@ private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
 private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
-private val Border: Color @Composable get() = com.ileader.app.ui.theme.LocalAppColors.current.border
+private val Border: Color @Composable get() = LocalAppColors.current.border
 
 @Composable
 fun PublicProfileScreen(
@@ -76,81 +80,80 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
 
+    val isDark = DarkTheme.isDark
+    val primarySportName = data.sports.firstOrNull()?.sports?.name ?: "картинг"
+    val sColor = sportColor(primarySportName)
+    val bannerUrl = sportImageUrl(primarySportName)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Bg)
             .verticalScroll(rememberScrollState())
     ) {
-        // ── Gradient header with avatar ──
+        // ══════════════════════════════════════
+        // HERO with sport background
+        // ══════════════════════════════════════
         Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            listOf(Color(0xFFE53535), Color(0xFFFF6B6B))
-                        ),
-                        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-                    )
-            )
+            // Background image or gradient
+            if (bannerUrl != null) {
+                AsyncImage(
+                    model = bannerUrl, contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(200.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Box(
+                    Modifier.fillMaxWidth().height(200.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                        .background(Brush.verticalGradient(listOf(Color.Black.copy(0.3f), Color.Black.copy(0.7f))))
+                )
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().height(200.dp)
+                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                        .background(Brush.horizontalGradient(listOf(sColor.copy(0.9f), sColor.copy(0.5f))))
+                )
+            }
 
             // Back button
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.statusBarsPadding().padding(4.dp)
+            Box(
+                Modifier.statusBarsPadding().padding(16.dp).size(40.dp)
+                    .clip(CircleShape).background(Color.Black.copy(0.3f))
+                    .then(Modifier.padding(0.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(shape = CircleShape, color = Color.White.copy(alpha = 0.2f)) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack, null,
-                        tint = Color.White,
-                        modifier = Modifier.padding(8.dp).size(20.dp)
-                    )
+                androidx.compose.material3.IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
 
-            // Avatar + name
+            // Avatar + name overlay
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(top = 50.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 60.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(96.dp)
-                        .clip(CircleShape)
-                        .background(CardBg)
-                        .border(3.dp, CardBg, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (!profile.avatarUrl.isNullOrEmpty()) {
-                        AsyncImage(
-                            model = profile.avatarUrl, contentDescription = null,
-                            modifier = Modifier.size(88.dp).clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.size(88.dp).clip(CircleShape).background(Accent),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                (profile.name ?: "?").take(1).uppercase(),
-                                fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White
-                            )
+                // Avatar with sport-color gradient border
+                val borderColors = listOf(sColor, sColor.copy(0.5f), Accent, sColor)
+                Box(contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(112.dp).background(Brush.sweepGradient(borderColors), CircleShape))
+                    Box(Modifier.size(106.dp).clip(CircleShape).background(Bg))
+                    Box(
+                        modifier = Modifier.size(100.dp).clip(CircleShape).background(CardBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (!profile.avatarUrl.isNullOrEmpty()) {
+                            AsyncImage(profile.avatarUrl, null, Modifier.size(100.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                        } else {
+                            Box(Modifier.size(100.dp).clip(CircleShape).background(Accent), contentAlignment = Alignment.Center) {
+                                Text((profile.name ?: "?").take(1).uppercase(), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
                     }
                 }
 
                 Spacer(Modifier.height(10.dp))
-
-                Text(
-                    profile.name ?: "Пользователь",
-                    fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary
-                )
+                Text(profile.name ?: "Пользователь", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Spacer(Modifier.height(4.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -158,6 +161,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 ) {
                     RoleBadge(role = user.role)
                     if (!profile.city.isNullOrEmpty()) {
+                        Text("·", fontSize = 14.sp, color = TextMuted)
                         Text(profile.city, fontSize = 13.sp, color = TextMuted)
                     }
                 }
@@ -166,59 +170,92 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
 
         Spacer(Modifier.height(16.dp))
 
-        // ── Stats ──
-        if (data.stats.isNotEmpty()) {
-            val s = data.stats.first()
+        // ══════════════════════════════════════
+        // SPORT CHIPS
+        // ══════════════════════════════════════
+        if (data.sports.isNotEmpty()) {
             FadeIn(visible = started, delayMs = 0) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                Row(
+                    Modifier.padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        StatColumn("Турниры", "${s.tournaments}")
-                        StatDivider()
-                        StatColumn("Победы", "${s.wins}")
-                        StatDivider()
-                        StatColumn("Рейтинг", "${s.rating}")
+                    data.sports.forEach { sport ->
+                        val name = sport.sports?.name ?: ""
+                        val emoji = sportEmoji(name)
+                        val color = sportColor(name)
+                        Surface(shape = RoundedCornerShape(50), color = color.copy(0.1f)) {
+                            Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(emoji, fontSize = 14.sp)
+                                Spacer(Modifier.width(6.dp))
+                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+                            }
+                        }
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
         }
 
-        // ── Sports ──
+        // ══════════════════════════════════════
+        // ANIMATED STATS
+        // ══════════════════════════════════════
+        if (data.stats.isNotEmpty()) {
+            val s = data.stats.first()
+            FadeIn(visible = started, delayMs = 50) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnimStat(Icons.Default.EmojiEvents, s.tournaments, "Турниры", started)
+                        Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                        AnimStat(Icons.Default.MilitaryTech, s.wins, "Победы", started)
+                        Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                        AnimStat(Icons.Default.Leaderboard, s.rating, "Рейтинг", started)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
+        // ══════════════════════════════════════
+        // SPORTS with ratings
+        // ══════════════════════════════════════
         if (data.sports.isNotEmpty()) {
             FadeIn(visible = started, delayMs = 100) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        SectionLabel("Виды спорта")
-                        Spacer(Modifier.height(8.dp))
+                        Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Spacer(Modifier.height(10.dp))
                         data.sports.forEach { sport ->
+                            val name = sport.sports?.name ?: ""
                             Row(
                                 Modifier.fillMaxWidth().padding(vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    Icon(sportIcon(sport.sports?.name ?: ""), null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(sport.sports?.name ?: "", fontSize = 14.sp, color = TextSecondary)
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = Accent.copy(alpha = 0.15f)
+                                Box(
+                                    Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
+                                        .background(sportColor(name).copy(0.1f)),
+                                    contentAlignment = Alignment.Center
                                 ) {
+                                    Text(sportEmoji(name), fontSize = 18.sp)
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Text(name, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
+                                Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.12f)) {
                                     Text(
                                         "${sport.rating}",
-                                        Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Accent
+                                        Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
                                     )
                                 }
                             }
@@ -229,16 +266,18 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             Spacer(Modifier.height(12.dp))
         }
 
-        // ── Bio ──
+        // ══════════════════════════════════════
+        // BIO
+        // ══════════════════════════════════════
         if (!profile.bio.isNullOrEmpty()) {
             FadeIn(visible = started, delayMs = 200) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        SectionLabel("О себе")
+                        Text("О себе", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         Spacer(Modifier.height(8.dp))
                         Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
                     }
@@ -247,23 +286,25 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             Spacer(Modifier.height(12.dp))
         }
 
-        // ── Results ──
+        // ══════════════════════════════════════
+        // RESULTS
+        // ══════════════════════════════════════
         if (data.results.isNotEmpty()) {
             FadeIn(visible = started, delayMs = 300) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null, tint = Accent, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            SectionLabel("Результаты")
+                            Text("Результаты", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         }
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(12.dp))
                         data.results.take(10).forEachIndexed { i, result ->
-                            if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = Border, modifier = Modifier.padding(vertical = 6.dp))
+                            if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.2f), modifier = Modifier.padding(vertical = 6.dp))
                             ResultRow(result)
                         }
                     }
@@ -272,36 +313,43 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             Spacer(Modifier.height(12.dp))
         }
 
-        // ── Team ──
+        // ══════════════════════════════════════
+        // TEAM
+        // ══════════════════════════════════════
         data.membership?.let { m ->
             FadeIn(visible = started, delayMs = 400) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = CardBg, shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Groups, null, tint = Accent, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
-                            SectionLabel("Команда")
+                            Text("Команда", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         }
                         Spacer(Modifier.height(10.dp))
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            val sportName = m.teams?.sports?.name ?: ""
+                            Box(
+                                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                                    .background(sportColor(sportName).copy(0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(sportEmoji(sportName), fontSize = 22.sp)
+                            }
+                            Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(m.teams?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                m.teams?.sports?.name?.let {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(sportIcon(it), null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(it, fontSize = 12.sp, color = TextMuted)
-                                    }
+                                if (sportName.isNotEmpty()) {
+                                    Text(sportName, fontSize = 12.sp, color = TextMuted)
                                 }
                             }
                             Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {
                                 Text(
                                     when (m.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Резерв"; else -> m.role ?: "" },
-                                    Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
                                 )
                             }
@@ -316,48 +364,80 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     }
 }
 
+// ══════════════════════════════════════════
+// Animated Stat
+// ══════════════════════════════════════════
+
 @Composable
-private fun StatColumn(label: String, value: String) {
+private fun AnimStat(icon: ImageVector, target: Int, label: String, started: Boolean) {
+    val v by animateFloatAsState(
+        if (started) target.toFloat() else 0f,
+        tween(800, 300, FastOutSlowInEasing), label = "ps_$label"
+    )
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-        Spacer(Modifier.height(2.dp))
-        Text(label, fontSize = 12.sp, color = TextMuted)
+        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.height(4.dp))
+        Text("${v.roundToInt()}", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+        Text(label, fontSize = 11.sp, color = TextMuted)
     }
 }
 
-@Composable
-private fun StatDivider() {
-    Box(Modifier.width(1.dp).height(36.dp).background(Border))
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-}
+// ══════════════════════════════════════════
+// Result Row
+// ══════════════════════════════════════════
 
 @Composable
 private fun ResultRow(result: ResultDto) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        val posEmoji = when (result.position) {
-            1 -> "\uD83E\uDD47"; 2 -> "\uD83E\uDD48"; 3 -> "\uD83E\uDD49"
-            else -> "${result.position}."
+        // Position badge
+        val posColor = when (result.position) { 1 -> Color(0xFFCA8A04); 2 -> Color(0xFF6B7280); 3 -> Color(0xFFB45309); else -> TextMuted }
+        val posBg = when (result.position) {
+            1 -> if (DarkTheme.isDark) Color(0xFFCA8A04).copy(0.15f) else Color(0xFFFEF9C3)
+            2 -> if (DarkTheme.isDark) Color(0xFF6B7280).copy(0.15f) else Color(0xFFF1F5F9)
+            3 -> if (DarkTheme.isDark) Color(0xFFB45309).copy(0.15f) else Color(0xFFFEF3C7)
+            else -> Color.Transparent
         }
-        Text(posEmoji, fontSize = 16.sp, modifier = Modifier.width(32.dp))
+        Box(
+            Modifier.size(32.dp).then(
+                if (result.position <= 3) Modifier.background(posBg, RoundedCornerShape(8.dp))
+                else Modifier
+            ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                if (result.position <= 3) "${result.position}" else "${result.position}.",
+                fontSize = if (result.position <= 3) 14.sp else 13.sp,
+                fontWeight = if (result.position <= 3) FontWeight.ExtraBold else FontWeight.Medium,
+                color = posColor
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+
+        // Tournament info
         Column(Modifier.weight(1f)) {
+            val sportName = result.tournaments?.sports?.name ?: ""
             Text(
                 result.tournaments?.name ?: "—", fontSize = 14.sp,
                 fontWeight = FontWeight.Medium, color = TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
-            result.tournaments?.startDate?.let {
-                Text(formatDateCompact(it), fontSize = 11.sp, color = TextMuted)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (sportName.isNotEmpty()) {
+                    Text("${sportEmoji(sportName)} $sportName", fontSize = 11.sp, color = TextMuted)
+                    Spacer(Modifier.width(6.dp))
+                }
+                result.tournaments?.startDate?.let {
+                    Text(formatDateCompact(it), fontSize = 11.sp, color = TextMuted)
+                }
             }
         }
+
+        // Points
         result.points?.let { pts ->
-            Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(alpha = 0.15f)) {
+            Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(alpha = 0.12f)) {
                 Text(
-                    "$pts очк.", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
+                    "$pts", Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
                 )
             }
         }

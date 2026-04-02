@@ -2,14 +2,15 @@ package com.ileader.app.ui.screens.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -235,21 +236,137 @@ fun ArticleDetailScreen(
 
                         Spacer(Modifier.height(20.dp))
 
-                        // Article content
+                        // Views + reading time
+                        FadeIn(visible = started, delayMs = 150) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                if (article.views > 0) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Visibility, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("${article.views}", fontSize = 12.sp, color = TextMuted)
+                                    }
+                                }
+                                val wordCount = (article.content?.length ?: 0) / 5
+                                val readMinutes = (wordCount / 200).coerceAtLeast(1)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Schedule, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("$readMinutes мин. чтения", fontSize = 12.sp, color = TextMuted)
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Excerpt (if any)
+                        if (!article.excerpt.isNullOrEmpty()) {
+                            FadeIn(visible = started, delayMs = 180) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = AccentSoft.copy(alpha = 0.5f)
+                                ) {
+                                    Text(
+                                        article.excerpt,
+                                        modifier = Modifier.padding(16.dp),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = TextPrimary,
+                                        lineHeight = 22.sp
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        // Article content with simple markdown rendering
                         if (!article.content.isNullOrEmpty()) {
                             FadeIn(visible = started, delayMs = 200) {
-                                Text(
-                                    text = article.content,
-                                    fontSize = 16.sp,
-                                    color = TextPrimary,
-                                    lineHeight = 26.sp
-                                )
+                                RenderArticleContent(article.content)
+                            }
+                        }
+
+                        // Tags
+                        if (!article.tags.isNullOrEmpty()) {
+                            Spacer(Modifier.height(20.dp))
+                            FadeIn(visible = started, delayMs = 250) {
+                                @OptIn(ExperimentalLayoutApi::class)
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    article.tags.forEach { tag ->
+                                        Surface(
+                                            shape = RoundedCornerShape(50),
+                                            color = TextMuted.copy(alpha = 0.1f)
+                                        ) {
+                                            Text(
+                                                "#$tag",
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
 
                         Spacer(Modifier.height(100.dp))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenderArticleContent(content: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        content.split("\n").forEach { line ->
+            val trimmed = line.trim()
+            when {
+                trimmed.isEmpty() -> Spacer(Modifier.height(8.dp))
+                trimmed.startsWith("## ") -> {
+                    Spacer(Modifier.height(12.dp))
+                    Text(trimmed.removePrefix("## "), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary, lineHeight = 26.sp)
+                    Spacer(Modifier.height(4.dp))
+                }
+                trimmed.startsWith("### ") -> {
+                    Spacer(Modifier.height(8.dp))
+                    Text(trimmed.removePrefix("### "), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, lineHeight = 24.sp)
+                    Spacer(Modifier.height(2.dp))
+                }
+                trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
+                    Row(Modifier.padding(start = 8.dp)) {
+                        Text("•", fontSize = 16.sp, color = TextSecondary, modifier = Modifier.width(16.dp))
+                        Text(
+                            trimmed.removePrefix("- ").removePrefix("* "),
+                            fontSize = 16.sp, color = TextPrimary, lineHeight = 26.sp
+                        )
+                    }
+                }
+                trimmed.startsWith("> ") -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = CardBg
+                    ) {
+                        Row(Modifier.padding(12.dp)) {
+                            Box(Modifier.width(3.dp).height(IntrinsicSize.Min).background(Accent, RoundedCornerShape(2.dp)))
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                trimmed.removePrefix("> "),
+                                fontSize = 15.sp, color = TextSecondary, lineHeight = 22.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                else -> Text(
+                    trimmed, fontSize = 16.sp, color = TextPrimary, lineHeight = 26.sp
+                )
             }
         }
     }

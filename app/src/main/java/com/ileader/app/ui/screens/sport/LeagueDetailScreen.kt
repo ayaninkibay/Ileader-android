@@ -91,7 +91,8 @@ fun LeagueDetailScreen(
     leagueName: String,
     sportName: String,
     imageUrl: String?,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onProfileClick: (String) -> Unit = {}
 ) {
     val isDark = DarkTheme.isDark
     var started by remember { mutableStateOf(false) }
@@ -158,11 +159,14 @@ fun LeagueDetailScreen(
             ) {
                 // Back
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(Color.White)
+                    Modifier.size(40.dp).clip(CircleShape)
+                        .background(if (imageUrl != null) Color.Black.copy(0.3f) else CardBg)
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.Black, modifier = Modifier.size(20.dp))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад",
+                        tint = if (imageUrl != null) Color.White else TextPrimary,
+                        modifier = Modifier.size(20.dp))
                 }
 
                 Spacer(Modifier.height(if (imageUrl != null) 80.dp else 20.dp))
@@ -237,10 +241,13 @@ fun LeagueDetailScreen(
                 val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(300), label = "r$index")
 
                 val rankBg = when (s.rank) {
-                    1 -> Color(0xFFFEF9C3); 2 -> Color(0xFFF3F4F6); 3 -> Color(0xFFFEF3C7); else -> Color.Transparent
+                    1 -> if (isDark) Color(0xFFCA8A04).copy(0.2f) else Color(0xFFFEF9C3)
+                    2 -> if (isDark) Color(0xFF6B7280).copy(0.2f) else Color(0xFFF1F5F9)
+                    3 -> if (isDark) Color(0xFFB45309).copy(0.2f) else Color(0xFFFEF3C7)
+                    else -> Color.Transparent
                 }
                 val rankColor = when (s.rank) {
-                    1 -> Color(0xFFCA8A04); 2 -> Color(0xFF6B7280); 3 -> Color(0xFFB45309); else -> TextMuted
+                    1 -> Color(0xFFCA8A04); 2 -> Color(0xFF94A3B8); 3 -> Color(0xFFB45309); else -> TextMuted
                 }
 
                 Row(
