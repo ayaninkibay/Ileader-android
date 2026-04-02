@@ -213,7 +213,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Accent.copy(alpha = 0.1f)
+                                    color = Accent.copy(alpha = 0.15f)
                                 ) {
                                     Text(
                                         "${sport.rating}",
@@ -354,7 +354,7 @@ private fun ResultRow(result: ResultDto) {
             }
         }
         result.points?.let { pts ->
-            Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(alpha = 0.1f)) {
+            Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(alpha = 0.15f)) {
                 Text(
                     "$pts очк.", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent

@@ -171,9 +171,9 @@ fun LeagueDetailScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     StatusPill("Идёт", ILeaderColors.Success)
                     Pill(sportName, if (imageUrl != null) Color.White.copy(0.9f) else TextSecondary,
-                        if (imageUrl != null) Color.White.copy(0.15f) else TextMuted.copy(0.1f))
+                        if (imageUrl != null) Color.White.copy(0.15f) else TextMuted.copy(0.15f))
                     Pill("Весна 2026", if (imageUrl != null) Color.White.copy(0.7f) else TextMuted,
-                        if (imageUrl != null) Color.White.copy(0.1f) else TextMuted.copy(0.08f))
+                        if (imageUrl != null) Color.White.copy(0.1f) else TextMuted.copy(0.15f))
                 }
 
                 Spacer(Modifier.height(10.dp))
@@ -311,7 +311,7 @@ fun LeagueDetailScreen(
                     val isTop3 = entry.place <= 3
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isTop3) Color(0xFFFEF9C3) else TextMuted.copy(0.08f),
+                        color = if (isTop3) Color(0xFFFEF9C3) else TextMuted.copy(0.15f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
                             if (isTop3) Color(0xFFFDE68A) else Border.copy(0.2f)
@@ -364,7 +364,7 @@ fun LeagueDetailScreen(
                         .fillMaxWidth()
                         .graphicsLayer { alpha = itemAlpha }
                         .then(
-                            if (isNext) Modifier.background(Accent.copy(0.04f), RoundedCornerShape(12.dp))
+                            if (isNext) Modifier.background(Accent.copy(0.15f), RoundedCornerShape(12.dp))
                             else Modifier
                         )
                         .padding(vertical = 12.dp, horizontal = 4.dp)

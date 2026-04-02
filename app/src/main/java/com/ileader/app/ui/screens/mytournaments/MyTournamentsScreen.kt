@@ -100,6 +100,11 @@ fun MyTournamentsScreen(
 ) {
     val vm: MyTournamentsViewModel = viewModel()
     val roleTournaments by vm.roleTournaments.collectAsState()
+    val favoriteTournaments by vm.favoriteTournaments.collectAsState()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val favoritesPref = remember { com.ileader.app.data.preferences.FavoritesPreference(context) }
+    val favoriteIds by favoritesPref.favoriteTournamentIds.collectAsState(initial = emptyList())
 
     var started by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(Filter.ALL) }
@@ -109,11 +114,35 @@ fun MyTournamentsScreen(
         started = true
     }
 
+    // Load favorites for USER
+    LaunchedEffect(favoriteIds) {
+        if (user.role == UserRole.USER && favoriteIds.isNotEmpty()) {
+            vm.loadFavorites(favoriteIds)
+        }
+    }
+
     val isDark = DarkTheme.isDark
 
-    // Pre-compute data outside LazyColumn
-    val state = roleTournaments
-    val all = if (state is UiState.Success) extractTournaments(user.role, state.data) else emptyList()
+    // For USER: use favorites; for others: use role tournaments
+    val isViewer = user.role == UserRole.USER
+    val effectiveState = if (isViewer) {
+        when {
+            favoriteIds.isEmpty() -> UiState.Success(emptyList<Any>())
+            favoriteTournaments is UiState.Success -> UiState.Success((favoriteTournaments as UiState.Success).data as List<Any>)
+            favoriteTournaments is UiState.Error -> UiState.Error((favoriteTournaments as UiState.Error).message)
+            else -> UiState.Loading
+        }
+    } else roleTournaments
+
+    val state = effectiveState
+    val all = if (state is UiState.Success) {
+        if (isViewer) {
+            @Suppress("UNCHECKED_CAST")
+            (state.data as? List<TournamentWithCountsDto>)?.map { t ->
+                TournamentCardData(t.id, t.name, t.sportName, t.startDate ?: "", t.locationName ?: "", t.status ?: "", t.imageUrl, t.participantCount)
+            } ?: emptyList()
+        } else extractTournaments(user.role, state.data)
+    } else emptyList()
     val active = all.filter { it.status in listOf("registration_open", "in_progress", "check_in") }
     val upcoming = all.filter { it.status in listOf("registration_closed", "draft") }
     val completed = all.filter { it.status in listOf("completed", "cancelled") }
@@ -172,7 +201,11 @@ fun MyTournamentsScreen(
                 if (all.isEmpty()) {
                     item {
                         Spacer(Modifier.height(40.dp))
-                        EmptyState(title = "Нет турниров", subtitle = "Вы пока не участвуете в турнирах")
+                        EmptyState(
+                            title = if (isViewer) "Нет избранных турниров" else "Нет турниров",
+                            subtitle = if (isViewer) "Нажмите ★ на турнире, чтобы добавить в избранное"
+                            else "Вы пока не участвуете в турнирах"
+                        )
                     }
                 } else {
                     // ── 2. Countdown (nearest tournament) ──
@@ -515,7 +548,7 @@ private fun OrganizerActionChip(
     Surface(
         modifier = modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = Accent.copy(alpha = 0.08f)
+        color = Accent.copy(alpha = 0.15f)
     ) {
         Row(
             modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),

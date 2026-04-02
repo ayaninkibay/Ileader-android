@@ -1,5 +1,7 @@
 package com.ileader.app.ui.screens.detail
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -185,6 +187,38 @@ private fun TournamentContent(
                                 )
                             }
                             Spacer(Modifier.weight(1f))
+
+                            // Favorite button
+                            val favContext = androidx.compose.ui.platform.LocalContext.current
+                            val favPref = remember { com.ileader.app.data.preferences.FavoritesPreference(favContext) }
+                            val favIds by favPref.favoriteTournamentIds.collectAsState(initial = emptyList())
+                            val isFav = tournament.id in favIds
+                            val favScale by animateFloatAsState(
+                                targetValue = if (isFav) 1f else 0.9f,
+                                animationSpec = tween(200), label = "favScale"
+                            )
+                            val scope = rememberCoroutineScope()
+
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .scale(favScale)
+                                    .clip(CircleShape)
+                                    .background(if (isFav) Accent.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.3f))
+                                    .clickable { scope.launch { favPref.toggleFavorite(tournament.id) } },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (isFav) "Убрать из избранного" else "В избранное",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Spacer(Modifier.width(8.dp))
+
+                            // Share button
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)

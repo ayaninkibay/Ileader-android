@@ -187,7 +187,7 @@ fun ArticleDetailScreen(
                                     // Author avatar
                                     Surface(
                                         shape = CircleShape,
-                                        color = Accent.copy(alpha = 0.1f),
+                                        color = Accent.copy(alpha = 0.15f),
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -217,7 +217,7 @@ fun ArticleDetailScreen(
                                     article.sports?.let { sport ->
                                         Surface(
                                             shape = RoundedCornerShape(8.dp),
-                                            color = TextMuted.copy(alpha = 0.1f)
+                                            color = TextMuted.copy(alpha = 0.15f)
                                         ) {
                                             Row(
                                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

@@ -356,6 +356,45 @@ fun ProfileScreen(
                 }
 
                 // ═══════════════════════════════════════
+                // MY TICKETS button (viewer only)
+                // ═══════════════════════════════════════
+                if (user.role == UserRole.USER) item {
+                    Spacer(Modifier.height(20.dp))
+                    FadeIn(visible = started, delayMs = 520) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .clickable(onClick = onTickets),
+                            shape = RoundedCornerShape(14.dp),
+                            color = CardBg,
+                            shadowElevation = if (isDark) 0.dp else 2.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Accent.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.ConfirmationNumber, null, tint = Accent, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Мои билеты", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                                    Text("Зрительские регистрации", fontSize = 12.sp, color = TextMuted)
+                                }
+                                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════
                 // BOTTOM: Privacy + Sign out
                 // ═══════════════════════════════════════
                 item {
@@ -536,7 +575,7 @@ private fun ResultCard(r: ResultDto) {
             // Position
             Box(
                 Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                    .background(if (r.position <= 3) Accent.copy(0.1f) else Border.copy(0.2f)),
+                    .background(if (r.position <= 3) Accent.copy(0.15f) else Border.copy(0.2f)),
                 Alignment.Center
             ) {
                 Text(posEmoji, fontSize = if (r.position <= 3) 20.sp else 14.sp, fontWeight = FontWeight.Bold,
@@ -623,7 +662,7 @@ private fun TeamCard(membership: TeamMembershipDto) {
                     if (team.city != null) Text(team.city, fontSize = 12.sp, color = TextMuted)
                 }
             }
-            Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.12f)) {
+            Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.18f)) {
                 Text(roleName, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
             }
         }
@@ -857,7 +896,7 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
             if (loading) { LoadingScreen() } else {
                 allSports.forEach { sport ->
                     val sel = selectedIds.contains(sport.id)
-                    Surface(Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable { if (sel) selectedIds.remove(sport.id) else if (selectedIds.size < 3) selectedIds.add(sport.id) }, RoundedCornerShape(12.dp), if (sel) Accent.copy(0.1f) else Color.Transparent) {
+                    Surface(Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable { if (sel) selectedIds.remove(sport.id) else if (selectedIds.size < 3) selectedIds.add(sport.id) }, RoundedCornerShape(12.dp), if (sel) Accent.copy(0.15f) else Color.Transparent) {
                         Text(sport.name, Modifier.padding(horizontal = 14.dp, vertical = 12.dp), fontSize = 15.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, color = if (sel) Accent else TextPrimary)
                     }
                 }

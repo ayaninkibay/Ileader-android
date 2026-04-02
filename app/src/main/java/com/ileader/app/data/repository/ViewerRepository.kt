@@ -71,6 +71,18 @@ class ViewerRepository {
             .decodeList<TournamentWithCountsDto>()
     }
 
+    suspend fun getTournamentsByIds(ids: List<String>): List<TournamentWithCountsDto> {
+        if (ids.isEmpty()) return emptyList()
+        return safeApiCall("ViewerRepo.getTournamentsByIds") {
+            client.from("v_tournament_with_counts")
+                .select {
+                    filter { isIn("id", ids) }
+                    order("start_date", Order.DESCENDING)
+                }
+                .decodeList<TournamentWithCountsDto>()
+        }
+    }
+
     // ══════════════════════════════════════════════════════════
     // TOURNAMENTS
     // ══════════════════════════════════════════════════════════

@@ -971,7 +971,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                         tournament.sportName?.let { sport ->
                             Surface(
                                 shape = RoundedCornerShape(50),
-                                color = TextMuted.copy(alpha = 0.1f)
+                                color = TextMuted.copy(alpha = 0.15f)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -1210,7 +1210,7 @@ private fun PersonCard(profile: CommunityProfileDto, onClick: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = Accent.copy(alpha = 0.1f)
+                    color = Accent.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),

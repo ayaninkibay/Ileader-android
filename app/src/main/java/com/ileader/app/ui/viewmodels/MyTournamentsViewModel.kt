@@ -25,9 +25,13 @@ import kotlinx.coroutines.launch
 
 class MyTournamentsViewModel : ViewModel() {
     private val helperRepo = HelperRepository()
+    private val viewerRepo = ViewerRepository()
 
     private val _roleTournaments = MutableStateFlow<UiState<List<Any>>>(UiState.Loading)
     val roleTournaments: StateFlow<UiState<List<Any>>> = _roleTournaments
+
+    private val _favoriteTournaments = MutableStateFlow<UiState<List<TournamentWithCountsDto>>>(UiState.Loading)
+    val favoriteTournaments: StateFlow<UiState<List<TournamentWithCountsDto>>> = _favoriteTournaments
 
     private val _goals = MutableStateFlow<UiState<List<AthleteGoal>>?>(null)
     val goals: StateFlow<UiState<List<AthleteGoal>>?> = _goals
@@ -101,6 +105,18 @@ class MyTournamentsViewModel : ViewModel() {
                 _helperAssignments.value = UiState.Success(helpers)
             } catch (e: Exception) {
                 _helperAssignments.value = UiState.Success(emptyList())
+            }
+        }
+    }
+
+    fun loadFavorites(ids: List<String>) {
+        viewModelScope.launch {
+            _favoriteTournaments.value = UiState.Loading
+            try {
+                val tournaments = viewerRepo.getTournamentsByIds(ids)
+                _favoriteTournaments.value = UiState.Success(tournaments)
+            } catch (e: Exception) {
+                _favoriteTournaments.value = UiState.Error(e.message ?: "Ошибка")
             }
         }
     }

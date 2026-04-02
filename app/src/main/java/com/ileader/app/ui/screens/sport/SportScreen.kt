@@ -533,7 +533,7 @@ private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
             }
             if (p.primaryRating > 0) {
                 Spacer(Modifier.height(4.dp))
-                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
+                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.15f)) {
                     Text("${p.primaryRating}", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
                 }
@@ -562,7 +562,7 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
                         contentScale = ContentScale.Crop)
                 } else {
                     Box(Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
-                        .background(TextMuted.copy(0.1f)), contentAlignment = Alignment.Center) {
+                        .background(TextMuted.copy(0.15f)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.Article, null, tint = TextMuted, modifier = Modifier.size(32.dp))
                     }
                 }
@@ -638,12 +638,12 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                         val done = i <= league.completedStages; val current = i == league.completedStages + 1
                         Box(
                             Modifier.size(if (current) 20.dp else 14.dp).clip(CircleShape)
-                                .background(when { done -> Accent; current -> Accent.copy(0.3f); else -> TextMuted.copy(0.12f) })
+                                .background(when { done -> Accent; current -> Accent.copy(0.3f); else -> TextMuted.copy(0.18f) })
                                 .then(if (current) Modifier.border(2.dp, Accent, CircleShape) else Modifier),
                             contentAlignment = Alignment.Center
                         ) { if (done) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp)) }
                         if (i < league.totalStages) Box(Modifier.weight(1f).height(2.dp).padding(horizontal = 2.dp)
-                            .background(if (i < league.completedStages + 1) Accent.copy(0.5f) else TextMuted.copy(0.12f), RoundedCornerShape(1.dp)))
+                            .background(if (i < league.completedStages + 1) Accent.copy(0.5f) else TextMuted.copy(0.18f), RoundedCornerShape(1.dp)))
                     }
                 }
                 Spacer(Modifier.height(14.dp))
@@ -655,7 +655,7 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                     league.leaders.forEachIndexed { idx, leader ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(when (idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }, fontSize = 14.sp, modifier = Modifier.width(24.dp))
-                            Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.12f)), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.18f)), contentAlignment = Alignment.Center) {
                                 Text(leader.name.take(1), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                             }
                             Spacer(Modifier.width(8.dp))
@@ -668,7 +668,7 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                 // Next stage
                 league.nextStageDate?.let { date ->
                     Spacer(Modifier.height(12.dp))
-                    Surface(shape = RoundedCornerShape(10.dp), color = Accent.copy(0.08f), modifier = Modifier.fillMaxWidth()) {
+                    Surface(shape = RoundedCornerShape(10.dp), color = Accent.copy(0.15f), modifier = Modifier.fillMaxWidth()) {
                         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
