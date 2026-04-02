@@ -108,18 +108,7 @@ fun sportEmoji(sportName: String) = when (sportName.lowercase().trim()) {
     else                                          -> "🏆"
 }
 
-fun sportColor(sportName: String): Color = when (sportName.lowercase().trim()) {
-    "картинг", "karting"                          -> Color(0xFFE53535) // Red
-    "стрельба", "shooting"                        -> Color(0xFFF97316) // Orange
-    "теннис", "tennis"                            -> Color(0xFF22C55E) // Green
-    "футбол", "football", "soccer"                -> Color(0xFF3B82F6) // Blue
-    "бокс", "boxing"                              -> Color(0xFFDC2626) // Dark red
-    "плавание", "swimming"                        -> Color(0xFF06B6D4) // Cyan
-    "лёгкая атлетика", "легкая атлетика",
-    "athletics", "track and field"                -> Color(0xFF8B5CF6) // Purple
-    "гребля", "rowing"                            -> Color(0xFF1D4ED8) // Dark blue
-    else                                          -> Color(0xFF6B7280) // Gray
-}
+fun sportColor(@Suppress("UNUSED_PARAMETER") sportName: String): Color = Color(0xFF6B7280)
 
 fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
     "картинг", "karting"                     -> Icons.Outlined.DirectionsCar
