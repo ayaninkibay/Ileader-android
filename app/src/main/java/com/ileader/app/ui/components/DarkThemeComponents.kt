@@ -151,8 +151,8 @@ fun DarkCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
         shape = RoundedCornerShape(16.dp),
         color = colors.cardBg,
         border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
-            0.5.dp,
-            colors.border.copy(alpha = 0.3f)
+            1.dp,
+            colors.border.copy(alpha = 0.5f)
         )
     ) {
         content()
@@ -174,8 +174,8 @@ fun DarkCardPadded(
         shape = RoundedCornerShape(16.dp),
         color = colors.cardBg,
         border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
-            0.5.dp,
-            colors.border.copy(alpha = 0.3f)
+            1.dp,
+            colors.border.copy(alpha = 0.5f)
         )
     ) {
         Column(Modifier.padding(padding)) {

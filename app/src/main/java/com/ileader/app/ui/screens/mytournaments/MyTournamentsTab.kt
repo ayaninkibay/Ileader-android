@@ -38,7 +38,8 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
             TournamentDetailScreen(
                 tournamentId = state.id,
                 user = user,
-                onBack = { navState = MyTournamentsNavState.List }
+                onBack = { navState = MyTournamentsNavState.List },
+                onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) }
             )
         }
         is MyTournamentsNavState.QrScanner -> {

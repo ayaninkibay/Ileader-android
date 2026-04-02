@@ -61,6 +61,7 @@ fun TournamentDetailScreen(
     tournamentId: String,
     user: User,
     onBack: () -> Unit,
+    onEditTournament: (String) -> Unit = {},
     viewModel: TournamentDetailViewModel = viewModel()
 ) {
     LaunchedEffect(tournamentId) {
@@ -91,7 +92,8 @@ fun TournamentDetailScreen(
                     data = data,
                     user = user,
                     viewModel = viewModel,
-                    onBack = onBack
+                    onBack = onBack,
+                    onEditTournament = onEditTournament
                 )
             }
         }
@@ -103,7 +105,8 @@ private fun TournamentContent(
     data: HomeTournamentDetailData,
     user: User,
     viewModel: TournamentDetailViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEditTournament: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
     var started by remember { mutableStateOf(false) }
@@ -429,6 +432,7 @@ private fun TournamentContent(
             user = user,
             data = data,
             viewModel = viewModel,
+            onEditTournament = onEditTournament,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -613,6 +617,7 @@ private fun ActionButton(
     user: User,
     data: HomeTournamentDetailData,
     viewModel: TournamentDetailViewModel,
+    onEditTournament: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val tournament = data.tournament
@@ -638,6 +643,7 @@ private fun ActionButton(
                         ButtonAction.REGISTER_PARTICIPANT -> viewModel.registerAsParticipant(tournament.id, user.id)
                         ButtonAction.UNREGISTER -> viewModel.unregister(tournament.id, user.id)
                         ButtonAction.REGISTER_SPECTATOR -> viewModel.registerAsSpectator(tournament.id, user.id)
+                        ButtonAction.EDIT -> onEditTournament(tournament.id)
                         else -> {}
                     }
                 },

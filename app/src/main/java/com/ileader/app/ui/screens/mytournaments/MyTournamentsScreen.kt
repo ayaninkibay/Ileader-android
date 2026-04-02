@@ -29,9 +29,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
@@ -219,7 +221,11 @@ fun MyTournamentsScreen(
                             FadeIn(visible = started, delayMs = delay) {
                                 CompactTournamentCard(
                                     data = t,
-                                    onClick = { onTournamentClick(t.id) }
+                                    onClick = { onTournamentClick(t.id) },
+                                    isOrganizer = user.role == UserRole.ORGANIZER,
+                                    onEdit = { onEditTournament(t.id) },
+                                    onQrScan = { onQrScan(t.id, t.name) },
+                                    onHelpers = { onHelperManagement(t.id, t.name) }
                                 )
                             }
                         }
@@ -403,7 +409,14 @@ private fun FilterChips(selected: Filter, onSelect: (Filter) -> Unit, counts: Ma
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun CompactTournamentCard(data: TournamentCardData, onClick: () -> Unit) {
+private fun CompactTournamentCard(
+    data: TournamentCardData,
+    onClick: () -> Unit,
+    isOrganizer: Boolean = false,
+    onEdit: () -> Unit = {},
+    onQrScan: () -> Unit = {},
+    onHelpers: () -> Unit = {}
+) {
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
     val sportBgColor = if (data.sportName != null) sportColor(data.sportName) else Accent
@@ -419,80 +432,99 @@ private fun CompactTournamentCard(data: TournamentCardData, onClick: () -> Unit)
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(0.3f)),
         shadowElevation = if (isDark) 0.dp else 2.dp
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Sport color strip + image
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            ) {
-                val imgUrl = data.imageUrl ?: data.sportName?.let {
-                    SportViewModel.getFallbackImage(SportDto(id = "", name = it))
-                }
-                if (imgUrl != null) {
-                    AsyncImage(
-                        model = imgUrl, contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(0.2f)))
-                } else {
-                    Box(
-                        Modifier.fillMaxSize().background(
-                            Brush.linearGradient(listOf(sportBgColor.copy(0.8f), sportBgColor.copy(0.4f)))
-                        )
-                    )
-                }
-                // Sport icon centered
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    data.sportName?.let {
-                        Icon(sportIcon(it), null, tint = Color.White.copy(0.9f), modifier = Modifier.size(22.dp))
+        Column {
+            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Sport image
+                Box(modifier = Modifier.size(64.dp).clip(RoundedCornerShape(12.dp))) {
+                    val imgUrl = data.imageUrl ?: data.sportName?.let {
+                        SportViewModel.getFallbackImage(SportDto(id = "", name = it))
+                    }
+                    if (imgUrl != null) {
+                        AsyncImage(model = imgUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(0.2f)))
+                    } else {
+                        Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sportBgColor.copy(0.8f), sportBgColor.copy(0.4f)))))
+                    }
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        data.sportName?.let { Icon(sportIcon(it), null, tint = Color.White.copy(0.9f), modifier = Modifier.size(22.dp)) }
                     }
                 }
-            }
 
-            Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(12.dp))
 
-            Column(Modifier.weight(1f)) {
-                // Title
-                Text(
-                    data.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                // Info row
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(3.dp))
-                        Text(formatDateShort(data.date), fontSize = 12.sp, color = TextMuted)
-                    }
-                    if (data.location.isNotEmpty()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
-                            Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(data.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(13.dp))
                             Spacer(Modifier.width(3.dp))
-                            Text(data.location, fontSize = 12.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(formatDateShort(data.date), fontSize = 12.sp, color = TextMuted)
+                        }
+                        if (data.location.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
+                                Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text(data.location, fontSize = 12.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(3.dp))
+                        Text("${data.participantCount} уч.", fontSize = 12.sp, color = TextMuted)
+                    }
                 }
-                Spacer(Modifier.height(4.dp))
-                // Participants
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(3.dp))
-                    Text("${data.participantCount} уч.", fontSize = 12.sp, color = TextMuted)
+
+                val statusColor = getStatusColor(data.status)
+                Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(0.15f)) {
+                    Text(getStatusLabel(data.status), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
                 }
             }
 
-            // Status pill
-            val statusColor = getStatusColor(data.status)
-            Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(0.15f)) {
-                Text(
-                    getStatusLabel(data.status),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor
-                )
+            // Organizer quick actions
+            if (isOrganizer) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OrganizerActionChip("Редактировать", Icons.Default.Edit, onClick = onEdit, modifier = Modifier.weight(1f))
+                    OrganizerActionChip("QR", Icons.Default.QrCodeScanner, onClick = onQrScan, modifier = Modifier.weight(1f))
+                    OrganizerActionChip("Помощники", Icons.Default.People, onClick = onHelpers, modifier = Modifier.weight(1f))
+                }
             }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Data model & helpers
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun OrganizerActionChip(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = Accent.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, tint = Accent, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = Accent, maxLines = 1)
         }
     }
 }

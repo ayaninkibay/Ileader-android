@@ -308,7 +308,7 @@ class ViewerRepository {
 
     suspend fun getPublicProfile(userId: String): ProfileDto {
         return client.from("profiles")
-            .select { filter { eq("id", userId) } }
+            .select(columns = Columns.raw("*, roles(*)")) { filter { eq("id", userId) } }
             .decodeSingle<ProfileDto>()
     }
 

@@ -58,6 +58,7 @@ fun SportScreen(
     onArticleClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
     onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
+    onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
     viewModel: SportViewModel = viewModel()
 ) {
     val s = viewModel.state
@@ -303,7 +304,10 @@ fun SportScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(mockTeams.size) { i -> TeamMiniCard(mockTeams[i]) }
+                items(mockTeams.size) { i ->
+                        val team = mockTeams[i]
+                        TeamMiniCard(team, onClick = { onTeamClick(team.name, team.sportName, team.city) })
+                    }
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -342,7 +346,7 @@ private fun SportHeroCard(
 
         // Gradient overlay
         Box(Modifier.fillMaxSize().background(
-            Brush.verticalGradient(listOf(Color.Black.copy(0.15f), Color.Black.copy(0.75f)))
+            Brush.verticalGradient(listOf(Color.Black.copy(0.25f), Color.Black.copy(0.75f)))
         ))
 
         // Content
@@ -517,7 +521,7 @@ private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp,
+        shadowElevation = if (isDark) 0.dp else 4.dp,
         modifier = Modifier.width(110.dp).clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -686,13 +690,13 @@ private data class MockTeam(
 )
 
 @Composable
-private fun TeamMiniCard(team: MockTeam) {
+private fun TeamMiniCard(team: MockTeam, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val sColor = sportColor(team.sportName)
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp,
-        modifier = Modifier.width(160.dp).height(160.dp)
+        shadowElevation = if (isDark) 0.dp else 4.dp,
+        modifier = Modifier.width(160.dp).height(160.dp).clickable(onClick = onClick)
     ) {
         Column(
             Modifier.padding(14.dp).fillMaxSize(),

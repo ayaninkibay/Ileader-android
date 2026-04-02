@@ -70,8 +70,8 @@ fun Modifier.coloredShadow(
 fun Modifier.cardShadow(
     isDark: Boolean = false
 ): Modifier = if (isDark) this else this.coloredShadow(
-    color = Color.Black.copy(alpha = 0.06f),
-    blurRadius = 8.dp,
+    color = Color.Black.copy(alpha = 0.08f),
+    blurRadius = 10.dp,
     offsetX = 0.dp,
     offsetY = 3.dp,
     cornerRadius = 16.dp
