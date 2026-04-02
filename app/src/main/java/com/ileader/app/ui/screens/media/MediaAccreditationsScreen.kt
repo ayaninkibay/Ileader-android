@@ -61,6 +61,7 @@ fun MediaAccreditationsScreen(
     user: User,
     onTournamentClick: (String) -> Unit,
     onBrowseTournaments: () -> Unit = {},
+    onInterviewsClick: () -> Unit = {},
     vm: MediaViewModel = viewModel()
 ) {
     val invites by vm.invites.collectAsState()
@@ -127,7 +128,8 @@ fun MediaAccreditationsScreen(
             FadeIn(visible = started, delayMs = 60) {
                 QuickActions(
                     onBrowse = { showRequestDialog = true },
-                    onInviteCode = { showInviteCodeDialog = true }
+                    onInviteCode = { showInviteCodeDialog = true },
+                    onInterviews = onInterviewsClick
                 )
             }
         }
@@ -343,26 +345,36 @@ private fun HeroPill(label: String, value: Int, bg: Color) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun QuickActions(onBrowse: () -> Unit, onInviteCode: () -> Unit) {
-    Row(
+private fun QuickActions(onBrowse: () -> Unit, onInviteCode: () -> Unit, onInterviews: () -> Unit) {
+    Column(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionCard(
+                icon = Icons.Default.Search,
+                title = "Запросить",
+                subtitle = "Выберите турнир",
+                color = MediaColor,
+                onClick = onBrowse,
+                modifier = Modifier.weight(1f)
+            )
+            ActionCard(
+                icon = Icons.Default.QrCode,
+                title = "Инвайт-код",
+                subtitle = "Ввести код",
+                color = Color(0xFF8B5CF6),
+                onClick = onInviteCode,
+                modifier = Modifier.weight(1f)
+            )
+        }
         ActionCard(
-            icon = Icons.Default.Search,
-            title = "Запросить",
-            subtitle = "Выберите турнир",
-            color = MediaColor,
-            onClick = onBrowse,
-            modifier = Modifier.weight(1f)
-        )
-        ActionCard(
-            icon = Icons.Default.QrCode,
-            title = "Инвайт-код",
-            subtitle = "Ввести код",
-            color = Color(0xFF8B5CF6),
-            onClick = onInviteCode,
-            modifier = Modifier.weight(1f)
+            icon = Icons.Default.Videocam,
+            title = "Видеоинтервью",
+            subtitle = "Интервью со спортсменами",
+            color = Color(0xFFE11D48),
+            onClick = onInterviews,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

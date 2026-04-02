@@ -323,6 +323,85 @@ class MediaRepository {
     }
 
     // ══════════════════════════════════════════════════════════
+    // INTERVIEWS
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getMyInterviews(mediaUserId: String): List<InterviewDto> {
+        return client.from("interviews")
+            .select(
+                Columns.raw("id, media_user_id, athlete_id, tournament_id, title, content, status, scheduled_date, time, location, topic, notes, created_at, updated_at, athlete:profiles!athlete_id(id, name, avatar_url, city), tournaments(id, name, start_date)")
+            ) {
+                filter { eq("media_user_id", mediaUserId) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<InterviewDto>()
+    }
+
+    suspend fun getInterviewById(interviewId: String): InterviewDto {
+        return client.from("interviews")
+            .select(
+                Columns.raw("id, media_user_id, athlete_id, tournament_id, title, content, status, scheduled_date, time, location, topic, notes, created_at, updated_at, athlete:profiles!athlete_id(id, name, avatar_url, city), tournaments(id, name, start_date)")
+            ) {
+                filter { eq("id", interviewId) }
+            }
+            .decodeSingle<InterviewDto>()
+    }
+
+    suspend fun createInterview(data: InterviewInsertDto): InterviewDto {
+        return client.from("interviews")
+            .insert(data) {
+                select(Columns.raw("id, media_user_id, athlete_id, tournament_id, title, content, status, scheduled_date, time, location, topic, notes, created_at, updated_at"))
+            }
+            .decodeSingle<InterviewDto>()
+    }
+
+    suspend fun updateInterview(interviewId: String, data: InterviewUpdateDto) {
+        client.from("interviews")
+            .update(data) {
+                filter { eq("id", interviewId) }
+            }
+    }
+
+    suspend fun deleteInterview(interviewId: String) {
+        client.from("interviews")
+            .delete {
+                filter { eq("id", interviewId) }
+            }
+    }
+
+    suspend fun getInterviewStats(mediaUserId: String): InterviewStatsDto {
+        val interviews = client.from("interviews")
+            .select(Columns.raw("id, status")) {
+                filter { eq("media_user_id", mediaUserId) }
+            }
+            .decodeList<InterviewDto>()
+        return InterviewStatsDto(
+            total = interviews.size,
+            scheduled = interviews.count { it.status == "scheduled" },
+            completed = interviews.count { it.status == "completed" },
+            published = interviews.count { it.status == "published" }
+        )
+    }
+
+    /**
+     * Search athletes by name for interview creation.
+     */
+    suspend fun searchAthletes(query: String): List<ProfileMinimalDto> {
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city")) {
+                filter {
+                    eq("role", "athlete")
+                    if (query.isNotBlank()) {
+                        ilike("name", "%$query%")
+                    }
+                }
+                order("name", Order.ASCENDING)
+                limit(20)
+            }
+            .decodeList<ProfileMinimalDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
     // TEAM
     // ══════════════════════════════════════════════════════════
 

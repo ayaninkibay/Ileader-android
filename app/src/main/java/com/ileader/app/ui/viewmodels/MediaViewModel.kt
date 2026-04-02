@@ -42,6 +42,20 @@ class MediaViewModel : ViewModel() {
     private val _currentArticle = MutableStateFlow<UiState<ArticleDto?>>(UiState.Success(null))
     val currentArticle: StateFlow<UiState<ArticleDto?>> = _currentArticle
 
+    // ── Interviews ──
+    private val _interviews = MutableStateFlow<UiState<List<InterviewDto>>>(UiState.Loading)
+    val interviews: StateFlow<UiState<List<InterviewDto>>> = _interviews
+
+    private val _interviewStats = MutableStateFlow(InterviewStatsDto())
+    val interviewStats: StateFlow<InterviewStatsDto> = _interviewStats
+
+    private val _currentInterview = MutableStateFlow<UiState<InterviewDto?>>(UiState.Success(null))
+    val currentInterview: StateFlow<UiState<InterviewDto?>> = _currentInterview
+
+    // ── Athlete search (for interview editor) ──
+    private val _athleteSearch = MutableStateFlow<List<ProfileMinimalDto>>(emptyList())
+    val athleteSearch: StateFlow<List<ProfileMinimalDto>> = _athleteSearch
+
     // ── Action state ──
     private val _actionState = MutableStateFlow<UiState<String>?>(null)
     val actionState: StateFlow<UiState<String>?> = _actionState
@@ -240,6 +254,97 @@ class MediaViewModel : ViewModel() {
                 loadArticles(userId)
             } catch (e: Exception) {
                 _actionState.value = UiState.Error(e.message ?: "Ошибка удаления статьи")
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // INTERVIEW LOAD
+    // ══════════════════════════════════════════════════════════
+
+    fun loadInterviews(userId: String) {
+        viewModelScope.launch {
+            _interviews.value = UiState.Loading
+
+            val listDeferred = async {
+                try {
+                    UiState.Success(repo.getMyInterviews(userId))
+                } catch (e: Exception) {
+                    UiState.Error(e.message ?: "Ошибка загрузки интервью")
+                }
+            }
+
+            val statsDeferred = async {
+                try { repo.getInterviewStats(userId) }
+                catch (_: Exception) { InterviewStatsDto() }
+            }
+
+            _interviews.value = listDeferred.await()
+            _interviewStats.value = statsDeferred.await()
+        }
+    }
+
+    fun loadInterview(interviewId: String) {
+        viewModelScope.launch {
+            _currentInterview.value = UiState.Loading
+            try {
+                val interview = repo.getInterviewById(interviewId)
+                _currentInterview.value = UiState.Success(interview)
+            } catch (e: Exception) {
+                _currentInterview.value = UiState.Error(e.message ?: "Ошибка загрузки интервью")
+            }
+        }
+    }
+
+    fun searchAthletes(query: String) {
+        viewModelScope.launch {
+            try {
+                _athleteSearch.value = repo.searchAthletes(query)
+            } catch (_: Exception) {
+                _athleteSearch.value = emptyList()
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // INTERVIEW ACTIONS
+    // ══════════════════════════════════════════════════════════
+
+    fun createInterview(userId: String, data: InterviewInsertDto) {
+        viewModelScope.launch {
+            _actionState.value = UiState.Loading
+            try {
+                repo.createInterview(data)
+                _actionState.value = UiState.Success("Интервью создано")
+                loadInterviews(userId)
+            } catch (e: Exception) {
+                _actionState.value = UiState.Error(e.message ?: "Ошибка создания интервью")
+            }
+        }
+    }
+
+    fun updateInterview(interviewId: String, userId: String, data: InterviewUpdateDto) {
+        viewModelScope.launch {
+            _actionState.value = UiState.Loading
+            try {
+                repo.updateInterview(interviewId, data)
+                _actionState.value = UiState.Success("Интервью обновлено")
+                loadInterviews(userId)
+            } catch (e: Exception) {
+                _actionState.value = UiState.Error(e.message ?: "Ошибка обновления интервью")
+            }
+        }
+    }
+
+    fun deleteInterview(interviewId: String, userId: String) {
+        viewModelScope.launch {
+            _actionState.value = UiState.Loading
+            try {
+                repo.deleteInterview(interviewId)
+                _actionState.value = UiState.Success("Интервью удалено")
+                loadInterviews(userId)
+            } catch (e: Exception) {
+                _actionState.value = UiState.Error(e.message ?: "Ошибка удаления интервью")
             }
         }
     }

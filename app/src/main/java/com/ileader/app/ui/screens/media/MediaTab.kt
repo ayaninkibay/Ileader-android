@@ -13,6 +13,8 @@ sealed class MediaNavState {
     data class TournamentDetail(val id: String) : MediaNavState()
     data object Articles : MediaNavState()
     data class ArticleEditor(val articleId: String? = null) : MediaNavState()
+    data object Interviews : MediaNavState()
+    data class InterviewEditor(val interviewId: String? = null) : MediaNavState()
 }
 
 @Composable
@@ -23,7 +25,8 @@ fun MediaTab(user: User) {
         is MediaNavState.Accreditations -> {
             MediaAccreditationsScreen(
                 user = user,
-                onTournamentClick = { id -> navState = MediaNavState.TournamentDetail(id) }
+                onTournamentClick = { id -> navState = MediaNavState.TournamentDetail(id) },
+                onInterviewsClick = { navState = MediaNavState.Interviews }
             )
         }
         is MediaNavState.TournamentDetail -> {
@@ -46,6 +49,21 @@ fun MediaTab(user: User) {
                 userId = user.id,
                 articleId = state.articleId,
                 onBack = { navState = MediaNavState.Articles }
+            )
+        }
+        is MediaNavState.Interviews -> {
+            MediaInterviewsScreen(
+                user = user,
+                onBack = { navState = MediaNavState.Accreditations },
+                onInterviewClick = { id -> navState = MediaNavState.InterviewEditor(id) },
+                onCreateInterview = { navState = MediaNavState.InterviewEditor(null) }
+            )
+        }
+        is MediaNavState.InterviewEditor -> {
+            MediaInterviewEditorScreen(
+                userId = user.id,
+                interviewId = state.interviewId,
+                onBack = { navState = MediaNavState.Interviews }
             )
         }
     }
