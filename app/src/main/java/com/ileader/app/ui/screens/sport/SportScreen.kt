@@ -115,33 +115,47 @@ fun SportScreen(
             Spacer(Modifier.height(12.dp))
         }
 
-        // ── Sport chips row (horizontal scroll, all sports) ──
+        // ── Sport dropdown filter ──
         item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // "Все" chip
-                item {
-                    SportChip(
-                        name = "Все",
-                        icon = Icons.Default.Apps,
-                        isSelected = s.selectedIndices.isEmpty(),
-                        onClick = {
-                            if (s.selectedIndices.isNotEmpty()) {
-                                viewModel.toggleSport(s.selectedIndices.first())
-                            }
-                        }
-                    )
+            var dropdownExpanded by remember { mutableStateOf(false) }
+            val selectedSport = s.selectedIndices.firstOrNull()?.let { s.sports.getOrNull(it) }
+            Box(Modifier.padding(horizontal = 16.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp), color = CardBg,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.3f)),
+                    modifier = Modifier.fillMaxWidth().clickable { dropdownExpanded = true }
+                ) {
+                    Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            if (selectedSport != null) sportIcon(selectedSport.name) else Icons.Default.Apps,
+                            null, tint = if (selectedSport != null) Accent else TextSecondary, modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(selectedSport?.name ?: "Все виды спорта", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.weight(1f))
+                        Icon(if (dropdownExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null, tint = TextMuted, modifier = Modifier.size(22.dp))
+                    }
                 }
-                items(s.sports.size) { idx ->
-                    val sport = s.sports[idx]
-                    SportChip(
-                        name = sport.name,
-                        icon = sportIcon(sport.name),
-                        isSelected = idx in s.selectedIndices,
-                        onClick = { viewModel.toggleSport(idx) }
+                DropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }, modifier = Modifier.fillMaxWidth(0.9f)) {
+                    DropdownMenuItem(
+                        text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Apps, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text("Все виды спорта", fontSize = 14.sp, color = TextPrimary)
+                            if (s.selectedIndices.isEmpty()) { Spacer(Modifier.weight(1f)); Icon(Icons.Default.Check, null, tint = Accent, modifier = Modifier.size(18.dp)) }
+                        }},
+                        onClick = { if (s.selectedIndices.isNotEmpty()) viewModel.toggleSport(s.selectedIndices.first()); dropdownExpanded = false }
                     )
+                    s.sports.forEachIndexed { idx, sport ->
+                        DropdownMenuItem(
+                            text = { Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(sportIcon(sport.name), null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Text(sport.name, fontSize = 14.sp, color = TextPrimary)
+                                if (idx in s.selectedIndices) { Spacer(Modifier.weight(1f)); Icon(Icons.Default.Check, null, tint = Accent, modifier = Modifier.size(18.dp)) }
+                            }},
+                            onClick = { viewModel.toggleSport(idx); dropdownExpanded = false }
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -276,9 +290,20 @@ fun SportScreen(
 
         // ── Команды ──
         item {
-            SectionTitle("Команды")
-            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                EmptyState(title = "Команды появятся позже", subtitle = "")
+            SectionTitle(title = "Команды", action = "Все", onAction = {})
+            val mockTeams = remember {
+                listOf(
+                    MockTeam("Astana Racing", "Картинг", "Астана", 8),
+                    MockTeam("Almaty Shooters", "Стрельба", "Алматы", 6),
+                    MockTeam("Tennis Pro KZ", "Теннис", "Шымкент", 4),
+                    MockTeam("Boxing Club Elite", "Бокс", "Караганда", 10)
+                )
+            }
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(mockTeams.size) { i -> TeamMiniCard(mockTeams[i]) }
             }
             Spacer(Modifier.height(20.dp))
         }
