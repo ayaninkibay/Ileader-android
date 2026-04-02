@@ -5,11 +5,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
@@ -40,7 +44,7 @@ import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.preferences.SportPreference
 import com.ileader.app.data.remote.UiState
-import com.ileader.app.data.remote.dto.SportDto
+import com.ileader.app.data.remote.dto.*
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -64,13 +68,20 @@ fun ProfileScreen(
     onSignOut: () -> Unit,
     onEditProfile: () -> Unit,
     onTickets: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    onGoalClick: (AthleteGoal) -> Unit = {},
+    onGoalCreate: () -> Unit = {},
+    onSettings: () -> Unit = {},
+    onTournamentClick: (String) -> Unit = {}
 ) {
     val vm: ProfileViewModel = viewModel()
     val profileState by vm.profile.collectAsState()
     val stats by vm.stats.collectAsState()
     val userSports by vm.userSports.collectAsState()
     val goalsState by vm.goals.collectAsState()
+    val myTournaments by vm.myTournaments.collectAsState()
+    val myResults by vm.myResults.collectAsState()
+    val myTeam by vm.myTeam.collectAsState()
 
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showSportSheet by remember { mutableStateOf(false) }
@@ -82,7 +93,6 @@ fun ProfileScreen(
 
     val isDark = DarkTheme.isDark
 
-    // Primary sport for banner image
     val primarySportName = remember(userSports) {
         userSports.firstOrNull()?.sports?.name ?: "картинг"
     }
@@ -96,120 +106,52 @@ fun ProfileScreen(
         is UiState.Success -> {
             val profile = state.data
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Bg)
-                    .verticalScroll(rememberScrollState())
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().background(Bg),
+                contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 // ═══════════════════════════════════════
-                // HERO BANNER with sport photo
+                // HERO BANNER
                 // ═══════════════════════════════════════
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    // Sport photo background
-                    AsyncImage(
-                        model = bannerUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(320.dp)
-                            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    // Dark gradient overlay
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(320.dp)
-                            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.Black.copy(alpha = 0.3f),
-                                        Color.Black.copy(alpha = 0.75f)
-                                    )
-                                )
-                            )
-                    )
-                    // Top buttons
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.15f))
-                                .clickable { showSportSheet = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White)
-                                .clickable { onNotifications() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Notifications, null, tint = ILeaderColors.DarkRed, modifier = Modifier.size(20.dp))
-                        }
-                    }
-
-                    // Avatar + name overlapping banner
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(top = 80.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Animated glow ring avatar
-                        GlowAvatar(
-                            avatarUrl = profile.avatarUrl,
-                            initials = (profile.name ?: user.name).take(2).uppercase(),
-                            started = started
+                item {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        AsyncImage(
+                            model = bannerUrl, contentDescription = null,
+                            modifier = Modifier.fillMaxWidth().height(320.dp)
+                                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)),
+                            contentScale = ContentScale.Crop
                         )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        // Name on banner
-                        Text(
-                            text = profile.name ?: user.name,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            textAlign = TextAlign.Center
+                        Box(
+                            Modifier.fillMaxWidth().height(320.dp)
+                                .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                                .background(Brush.verticalGradient(listOf(Color.Black.copy(0.3f), Color.Black.copy(0.75f))))
                         )
-                        Spacer(Modifier.height(4.dp))
-                        Text(user.email, fontSize = 13.sp, color = Color.White.copy(alpha = 0.7f))
-
-                        Spacer(Modifier.height(8.dp))
-
-                        // Role + city
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    user.role.displayName,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White.copy(0.15f)).clickable { showSportSheet = true }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Settings, null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
-                            if (profile.city != null) {
-                                Text(profile.city, fontSize = 13.sp, color = Color.White.copy(alpha = 0.6f))
+                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White).clickable { onNotifications() }, contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Notifications, null, tint = ILeaderColors.DarkRed, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Column(
+                            Modifier.fillMaxWidth().statusBarsPadding().padding(top = 80.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            GlowAvatar(profile.avatarUrl, (profile.name ?: user.name).take(2).uppercase(), started)
+                            Spacer(Modifier.height(12.dp))
+                            Text(profile.name ?: user.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(4.dp))
+                            Text(user.email, fontSize = 13.sp, color = Color.White.copy(0.7f))
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = RoundedCornerShape(50), color = Color.White.copy(0.2f)) {
+                                    Text(user.role.displayName, Modifier.padding(horizontal = 14.dp, vertical = 5.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                                }
+                                if (profile.city != null) Text(profile.city, fontSize = 13.sp, color = Color.White.copy(0.6f))
                             }
                         }
                     }
@@ -219,24 +161,20 @@ fun ProfileScreen(
                 // SPORT CHIPS
                 // ═══════════════════════════════════════
                 if (userSports.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    FadeIn(visible = started, delayMs = 100) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            userSports.forEach { sport ->
-                                val name = sport.sports?.name ?: ""
-                                val emoji = sportEmoji(name)
-                                val color = sportColor(name)
-                                Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.1f)) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(emoji, fontSize = 14.sp)
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        FadeIn(visible = started, delayMs = 100) {
+                            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                userSports.forEach { sport ->
+                                    val name = sport.sports?.name ?: ""
+                                    val emoji = sportEmoji(name)
+                                    val color = sportColor(name)
+                                    Surface(shape = RoundedCornerShape(50), color = color.copy(0.1f)) {
+                                        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Text(emoji, fontSize = 14.sp)
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+                                        }
                                     }
                                 }
                             }
@@ -244,57 +182,40 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
-
                 // ═══════════════════════════════════════
                 // ANIMATED STATS
                 // ═══════════════════════════════════════
-                FadeIn(visible = started, delayMs = 200) {
-                    val primaryStats = stats.firstOrNull()
-                    val statItems = when (user.role) {
-                        UserRole.ATHLETE -> listOf(
-                            Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                            Triple(Icons.Default.MilitaryTech, primaryStats?.wins ?: 0, "Победы"),
-                            Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
-                        )
-                        UserRole.TRAINER -> listOf(
-                            Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                            Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг"),
-                            Triple(Icons.Default.People, userSports.size, "Виды спорта")
-                        )
-                        UserRole.REFEREE, UserRole.ORGANIZER -> listOf(
-                            Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                            Triple(Icons.Default.Gavel, userSports.size, "Виды спорта"),
-                            Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
-                        )
-                        else -> listOf(
-                            Triple(Icons.Default.SportsScore, userSports.size, "Виды спорта"),
-                            Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                            Triple(Icons.Default.People, 0, "Команды")
-                        )
-                    }
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = CardBg,
-                        shadowElevation = if (isDark) 0.dp else 3.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 20.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    FadeIn(visible = started, delayMs = 200) {
+                        val primaryStats = stats.firstOrNull()
+                        val statItems = when (user.role) {
+                            UserRole.ATHLETE -> listOf(
+                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Default.MilitaryTech, primaryStats?.wins ?: 0, "Победы"),
+                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
+                            )
+                            UserRole.TRAINER -> listOf(
+                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг"),
+                                Triple(Icons.Default.People, userSports.size, "Виды спорта")
+                            )
+                            else -> listOf(
+                                Triple(Icons.Default.SportsScore, userSports.size, "Виды спорта"),
+                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
+                            )
+                        }
+                        Surface(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            shape = RoundedCornerShape(16.dp), color = CardBg,
+                            shadowElevation = if (isDark) 0.dp else 3.dp
                         ) {
-                            statItems.forEachIndexed { idx, (icon, target, label) ->
-                                if (idx > 0) {
-                                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(alpha = 0.3f)))
+                            Row(Modifier.padding(vertical = 20.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
+                                statItems.forEachIndexed { idx, (icon, target, label) ->
+                                    if (idx > 0) Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                                    AnimatedStatItem(icon, target, label, started, Modifier.weight(1f))
                                 }
-                                AnimatedStatItem(
-                                    icon = icon,
-                                    targetValue = target,
-                                    label = label,
-                                    started = started,
-                                    modifier = Modifier.weight(1f)
-                                )
                             }
                         }
                     }
@@ -304,211 +225,209 @@ fun ProfileScreen(
                 // GOALS (athlete only)
                 // ═══════════════════════════════════════
                 if (user.role == UserRole.ATHLETE && goalsState != null) {
-                    Spacer(Modifier.height(20.dp))
-                    FadeIn(visible = started, delayMs = 300) {
-                        Column(Modifier.padding(horizontal = 16.dp)) {
-                            SectionHeader(title = "Мои цели")
-                            Spacer(Modifier.height(10.dp))
-                            when (val gs = goalsState) {
-                                is UiState.Success -> {
-                                    if (gs.data.isEmpty()) {
-                                        Surface(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(14.dp),
-                                            color = CardBg,
-                                            shadowElevation = if (isDark) 0.dp else 2.dp
-                                        ) {
-                                            Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(Icons.Default.Flag, null, tint = TextMuted, modifier = Modifier.size(24.dp))
-                                                Spacer(Modifier.width(12.dp))
-                                                Text("Нет активных целей", fontSize = 14.sp, color = TextMuted)
+                    item {
+                        Spacer(Modifier.height(20.dp))
+                        FadeIn(visible = started, delayMs = 300) {
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                SectionHeader("Мои цели", action = "+", onAction = onGoalCreate)
+                                Spacer(Modifier.height(10.dp))
+                                when (val gs = goalsState) {
+                                    is UiState.Success -> {
+                                        if (gs.data.isEmpty()) {
+                                            Surface(Modifier.fillMaxWidth().clickable(onClick = onGoalCreate), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+                                                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(Icons.Default.Add, null, tint = Accent, modifier = Modifier.size(24.dp))
+                                                    Spacer(Modifier.width(12.dp))
+                                                    Column {
+                                                        Text("Добавить цель", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                                                        Text("Отслеживайте свой прогресс", fontSize = 12.sp, color = TextMuted)
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                gs.data.forEach { goal -> GoalCard(goal) { onGoalClick(goal) } }
                                             }
                                         }
+                                    }
+                                    is UiState.Error -> Text(gs.message, fontSize = 13.sp, color = Accent)
+                                    else -> {}
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ═══════════════════════════════════════
+                // MY TOURNAMENTS — horizontal carousel
+                // ═══════════════════════════════════════
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    FadeIn(visible = started, delayMs = 350) {
+                        Column {
+                            Row(Modifier.padding(horizontal = 16.dp)) {
+                                SectionHeader("Мои турниры")
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            when (val ts = myTournaments) {
+                                is UiState.Success -> {
+                                    if (ts.data.isEmpty()) {
+                                        EmptyCard("Вы ещё не участвовали в турнирах", Icons.Default.EmojiEvents)
                                     } else {
-                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                            gs.data.forEach { goal -> GoalCard(goal) }
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            items(ts.data, key = { it.id }) { t ->
+                                                TournamentCard(t) { onTournamentClick(t.id) }
+                                            }
                                         }
                                     }
                                 }
-                                is UiState.Error -> Text(gs.message, fontSize = 13.sp, color = Accent)
-                                else -> Text("Загрузка...", fontSize = 13.sp, color = TextMuted)
+                                is UiState.Error -> EmptyCard(ts.message, Icons.Default.Error)
+                                is UiState.Loading -> Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                                }
                             }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
-
                 // ═══════════════════════════════════════
-                // QUICK ACTIONS — 2x2 grid
+                // RESULTS
                 // ═══════════════════════════════════════
-                FadeIn(visible = started, delayMs = 400) {
-                    Column(Modifier.padding(horizontal = 16.dp)) {
-                        SectionHeader(title = "Действия")
-                        Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            ActionTile(Icons.Default.Edit, "Редактировать\nпрофиль", onEditProfile, Modifier.weight(1f))
-                            ActionTile(Icons.Default.ConfirmationNumber, "Мои\nбилеты", onTickets, Modifier.weight(1f))
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            ActionTile(Icons.Default.Notifications, "Уведомления", onNotifications, Modifier.weight(1f))
-                            ActionTile(Icons.Default.SportsScore, "Виды\nспорта", { showSportSheet = true }, Modifier.weight(1f))
+                item {
+                    Spacer(Modifier.height(20.dp))
+                    FadeIn(visible = started, delayMs = 400) {
+                        Column(Modifier.padding(horizontal = 16.dp)) {
+                            SectionHeader("Результаты")
+                            Spacer(Modifier.height(10.dp))
+                            when (val rs = myResults) {
+                                is UiState.Success -> {
+                                    if (rs.data.isEmpty()) {
+                                        EmptyCard("Нет результатов", Icons.Default.Scoreboard)
+                                    } else {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            rs.data.take(5).forEach { r -> ResultCard(r) }
+                                        }
+                                    }
+                                }
+                                is UiState.Error -> EmptyCard(rs.message, Icons.Default.Error)
+                                is UiState.Loading -> {}
+                            }
                         }
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
-
                 // ═══════════════════════════════════════
-                // SETTINGS
+                // RATING BY SPORT
                 // ═══════════════════════════════════════
-                FadeIn(visible = started, delayMs = 500) {
-                    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionHeader(title = "Настройки")
-                        Spacer(Modifier.height(2.dp))
-                        ThemeSwitcherCard()
-                        LanguageSwitcherCard()
-                        SettingsRow(Icons.Default.Shield, "Конфиденциальность и условия") { showPrivacySheet = true }
+                if (stats.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(20.dp))
+                        FadeIn(visible = started, delayMs = 450) {
+                            Column {
+                                Row(Modifier.padding(horizontal = 16.dp)) {
+                                    SectionHeader("Рейтинг по спорту")
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    items(stats) { sportStat ->
+                                        SportRatingCard(sportStat)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                // ═══════════════════════════════════════
+                // TEAM (if any)
+                // ═══════════════════════════════════════
+                val team = myTeam
+                if (team != null) {
+                    item {
+                        Spacer(Modifier.height(20.dp))
+                        FadeIn(visible = started, delayMs = 500) {
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                SectionHeader("Команда")
+                                Spacer(Modifier.height(10.dp))
+                                TeamCard(team)
+                            }
+                        }
+                    }
+                }
 
-                // Sign out
-                FadeIn(visible = started, delayMs = 600) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .clickable { showSignOutDialog = true },
-                        shape = RoundedCornerShape(16.dp),
-                        color = CardBg,
-                        shadowElevation = if (isDark) 0.dp else 2.dp
-                    ) {
-                        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                                    .background(ILeaderColors.Error.copy(alpha = 0.1f)),
-                                contentAlignment = Alignment.Center
+                // ═══════════════════════════════════════
+                // BOTTOM ACTIONS — compact row
+                // ═══════════════════════════════════════
+                item {
+                    Spacer(Modifier.height(24.dp))
+                    FadeIn(visible = started, delayMs = 550) {
+                        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Edit + Settings row
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                CompactActionButton(Icons.Default.Edit, "Редактировать профиль", onEditProfile, Modifier.weight(1f))
+                                CompactActionButton(Icons.Default.Settings, "Настройки", { showPrivacySheet = true }, Modifier.weight(1f))
+                            }
+                            // Sign out
+                            Surface(
+                                Modifier.fillMaxWidth().clickable { showSignOutDialog = true },
+                                RoundedCornerShape(14.dp), CardBg,
+                                shadowElevation = if (isDark) 0.dp else 2.dp
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(20.dp))
+                                Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("Выйти", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error)
+                                }
                             }
-                            Spacer(Modifier.width(14.dp))
-                            Text("Выйти", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error, modifier = Modifier.weight(1f))
                         }
                     }
                 }
-
-                Spacer(Modifier.height(100.dp))
             }
         }
     }
 
-    // ── Dialogs ──
+    // Dialogs
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
             title = { Text("Выход", color = TextPrimary) },
             text = { Text("Вы уверены, что хотите выйти?", color = TextSecondary) },
-            confirmButton = {
-                TextButton(onClick = { showSignOutDialog = false; onSignOut() }) {
-                    Text("Выйти", color = ILeaderColors.Error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSignOutDialog = false }) {
-                    Text("Отмена", color = TextMuted)
-                }
-            }
+            confirmButton = { TextButton(onClick = { showSignOutDialog = false; onSignOut() }) { Text("Выйти", color = ILeaderColors.Error) } },
+            dismissButton = { TextButton(onClick = { showSignOutDialog = false }) { Text("Отмена", color = TextMuted) } }
         )
     }
-    if (showSportSheet) {
-        SportSelectionSheet(userId = user.id, onDismiss = { showSportSheet = false })
-    }
-    if (showPrivacySheet) {
-        PrivacySheet(onDismiss = { showPrivacySheet = false })
-    }
+    if (showSportSheet) SportSelectionSheet(user.id) { showSportSheet = false }
+    if (showPrivacySheet) SettingsSheet { showPrivacySheet = false }
 }
 
 // ═══════════════════════════════════════════════════════════
-// GLOW AVATAR — animated gradient ring
+// GLOW AVATAR
 // ═══════════════════════════════════════════════════════════
 
 @Composable
 private fun GlowAvatar(avatarUrl: String?, initials: String, started: Boolean) {
     val infiniteTransition = rememberInfiniteTransition(label = "glow")
-    val angle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(3000, easing = LinearEasing)),
-        label = "glowAngle"
-    )
-    val scale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.6f,
-        animationSpec = tween(600, delayMillis = 100, easing = EaseOutBack),
-        label = "avatarScale"
-    )
-    val alpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 100),
-        label = "avatarAlpha"
-    )
+    val angle by infiniteTransition.animateFloat(0f, 360f, infiniteRepeatable(tween(3000, easing = LinearEasing)), label = "glowAngle")
+    val scale by animateFloatAsState(if (started) 1f else 0.6f, tween(600, 100, EaseOutBack), label = "as")
+    val alpha by animateFloatAsState(if (started) 1f else 0f, tween(500, 100), label = "aa")
+    val glowColors = listOf(ILeaderColors.PrimaryRed, Color(0xFFFF6B6B), Color(0xFFFF8A65), ILeaderColors.PrimaryRed)
 
-    val glowColors = listOf(
-        ILeaderColors.PrimaryRed,
-        Color(0xFFFF6B6B),
-        Color(0xFFFF8A65),
-        ILeaderColors.PrimaryRed
-    )
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }
-    ) {
-        // Glow ring
-        Box(
-            modifier = Modifier
-                .size(116.dp)
-                .drawBehind {
-                    drawCircle(
-                        brush = Brush.sweepGradient(
-                            colors = glowColors,
-                            center = Offset(size.width / 2, size.height / 2)
-                        ),
-                        radius = size.width / 2,
-                        style = Stroke(width = 4.dp.toPx())
-                    )
-                }
-        )
-        // White separator ring
-        Box(
-            modifier = Modifier
-                .size(110.dp)
-                .clip(CircleShape)
-                .background(Bg)
-        )
-        // Avatar
-        Box(
-            modifier = Modifier
-                .size(104.dp)
-                .clip(CircleShape)
-                .background(CardBg),
-            contentAlignment = Alignment.Center
-        ) {
+    Box(modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(116.dp).drawBehind {
+            drawCircle(Brush.sweepGradient(glowColors, Offset(size.width / 2, size.height / 2)), size.width / 2, style = Stroke(4.dp.toPx()))
+        })
+        Box(Modifier.size(110.dp).clip(CircleShape).background(Bg))
+        Box(modifier = Modifier.size(104.dp).clip(CircleShape).background(CardBg), contentAlignment = Alignment.Center) {
             if (avatarUrl != null) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = null,
-                    modifier = Modifier.size(104.dp).clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                AsyncImage(avatarUrl, null, Modifier.size(104.dp).clip(CircleShape), contentScale = ContentScale.Crop)
             } else {
-                Box(
-                    modifier = Modifier.size(104.dp).clip(CircleShape).background(Accent),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(Modifier.size(104.dp).clip(CircleShape).background(Accent), contentAlignment = Alignment.Center) {
                     Text(initials, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
@@ -517,108 +436,228 @@ private fun GlowAvatar(avatarUrl: String?, initials: String, started: Boolean) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ANIMATED STAT ITEM — count-up numbers
+// ANIMATED STAT
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun AnimatedStatItem(
-    icon: ImageVector,
-    targetValue: Int,
-    label: String,
-    started: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val animatedValue by animateFloatAsState(
-        targetValue = if (started) targetValue.toFloat() else 0f,
-        animationSpec = tween(durationMillis = 900, delayMillis = 400, easing = FastOutSlowInEasing),
-        label = "stat_$label"
-    )
-
+private fun AnimatedStatItem(icon: ImageVector, targetValue: Int, label: String, started: Boolean, modifier: Modifier = Modifier) {
+    val v by animateFloatAsState(if (started) targetValue.toFloat() else 0f, tween(900, 400, FastOutSlowInEasing), label = "s_$label")
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
         Spacer(Modifier.height(6.dp))
-        Text(
-            "${animatedValue.roundToInt()}",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = TextPrimary
-        )
+        Text("${v.roundToInt()}", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(label, fontSize = 11.sp, color = TextMuted)
     }
 }
 
 // ═══════════════════════════════════════════════════════════
-// ACTION TILE — 2x2 grid card
+// TOURNAMENT CARD (horizontal carousel)
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun ActionTile(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun TournamentCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
-    val colors = LocalAppColors.current
+    val sportName = t.sportName ?: ""
+    val imgUrl = sportImageUrl(sportName)
 
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        Modifier.width(220.dp).clickable(onClick = onClick),
+        RoundedCornerShape(16.dp), CardBg,
+        shadowElevation = if (isDark) 0.dp else 3.dp
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(colors.accentSoft),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(icon, null, tint = Accent, modifier = Modifier.size(24.dp))
+        Column {
+            // Image header
+            Box(Modifier.fillMaxWidth().height(90.dp)) {
+                if (imgUrl != null) {
+                    AsyncImage(imgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(0.4f)))
+                } else {
+                    Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sportColor(sportName).copy(0.8f), sportColor(sportName).copy(0.4f)))))
+                }
+                // Sport badge
+                Surface(
+                    Modifier.align(Alignment.TopStart).padding(8.dp),
+                    RoundedCornerShape(50), Color.White.copy(0.2f)
+                ) {
+                    Text("${sportEmoji(sportName)} $sportName", Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                }
+                // Status
+                val statusText = when (t.status) {
+                    "registration_open" -> "Регистрация"
+                    "in_progress" -> "Идёт"
+                    "completed" -> "Завершён"
+                    else -> t.status ?: ""
+                }
+                if (statusText.isNotEmpty()) {
+                    Surface(
+                        Modifier.align(Alignment.TopEnd).padding(8.dp),
+                        RoundedCornerShape(50), Color.Black.copy(0.5f)
+                    ) {
+                        Text(statusText, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, color = Color.White)
+                    }
+                }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                label,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary,
-                textAlign = TextAlign.Center,
-                lineHeight = 16.sp
-            )
+            Column(Modifier.padding(12.dp)) {
+                Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(formatShortDate(t.startDate), fontSize = 12.sp, color = TextMuted)
+                }
+                if (t.locationName != null) {
+                    Spacer(Modifier.height(3.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(t.locationName, fontSize = 12.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
         }
     }
 }
 
 // ═══════════════════════════════════════════════════════════
-// SETTINGS ROW
+// RESULT CARD
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun ResultCard(r: ResultDto) {
     val isDark = DarkTheme.isDark
-    val colors = LocalAppColors.current
+    val posEmoji = when (r.position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "#${r.position}" }
+    val sportName = r.tournaments?.sports?.name ?: ""
 
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp
-    ) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Position
             Box(
-                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.accentSoft),
-                contentAlignment = Alignment.Center
+                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                    .background(if (r.position <= 3) Accent.copy(0.1f) else Border.copy(0.2f)),
+                Alignment.Center
             ) {
-                Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+                Text(posEmoji, fontSize = if (r.position <= 3) 20.sp else 14.sp, fontWeight = FontWeight.Bold,
+                    color = if (r.position <= 3) Accent else TextMuted)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(r.tournaments?.name ?: "Турнир", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (sportName.isNotEmpty()) {
+                        Text("${sportEmoji(sportName)} $sportName", fontSize = 12.sp, color = TextMuted)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(formatShortDate(r.tournaments?.startDate), fontSize = 12.sp, color = TextMuted)
+                }
+            }
+            if (r.points != null && r.points > 0) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("${r.points}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent)
+                    Text("очки", fontSize = 10.sp, color = TextMuted)
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPORT RATING CARD
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+private fun SportRatingCard(stat: UserSportStatsDto) {
+    val isDark = DarkTheme.isDark
+    val name = stat.sportName ?: ""
+    val color = sportColor(name)
+
+    Surface(Modifier.width(160.dp), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(0.12f)), contentAlignment = Alignment.Center) {
+                    Text(sportEmoji(name), fontSize = 18.sp)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("${stat.rating}", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${stat.tournaments} турн.", fontSize = 12.sp, color = TextMuted)
+                Spacer(Modifier.width(8.dp))
+                Text("${stat.wins} поб.", fontSize = 12.sp, color = TextMuted)
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEAM CARD
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+private fun TeamCard(membership: TeamMembershipDto) {
+    val isDark = DarkTheme.isDark
+    val team = membership.teams ?: return
+    val sportName = team.sports?.name ?: ""
+    val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
+
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(sportColor(sportName).copy(0.1f)), contentAlignment = Alignment.Center) {
+                Text(sportEmoji(sportName), fontSize = 24.sp)
             }
             Spacer(Modifier.width(14.dp))
-            Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(team.name ?: "Команда", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (sportName.isNotEmpty()) {
+                        Text(sportName, fontSize = 12.sp, color = TextMuted)
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    if (team.city != null) Text(team.city, fontSize = 12.sp, color = TextMuted)
+                }
+            }
+            Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.12f)) {
+                Text(roleName, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMPACT ACTION BUTTON
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+private fun CompactActionButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val isDark = DarkTheme.isDark
+    val colors = LocalAppColors.current
+    Surface(modifier.clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = Accent, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// EMPTY STATE CARD
+// ═══════════════════════════════════════════════════════════
+
+@Composable
+private fun EmptyCard(text: String, icon: ImageVector) {
+    val isDark = DarkTheme.isDark
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = TextMuted, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(text, fontSize = 14.sp, color = TextMuted)
         }
     }
 }
@@ -628,41 +667,25 @@ private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun GoalCard(goal: AthleteGoal) {
+private fun GoalCard(goal: AthleteGoal, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val progress = if (goal.targetValue > 0) (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f) else 0f
+    val statusColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Accent }
+    val progressColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Color(0xFF3B82F6) }
 
-    val statusColor = when (goal.status) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
-        GoalStatus.ACTIVE -> Accent
-    }
-    val progressColor = when (goal.status) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
-        GoalStatus.ACTIVE -> Color(0xFF3B82F6)
-    }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp
-    ) {
+    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(goal.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.width(8.dp))
-                Surface(shape = RoundedCornerShape(50), color = statusColor.copy(alpha = 0.12f)) {
-                    Text(goal.status.displayName, modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
+                Surface(shape = RoundedCornerShape(50), color = statusColor.copy(0.12f)) {
+                    Text(goal.status.displayName, Modifier.padding(horizontal = 10.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
                 }
             }
             Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                color = progressColor,
-                trackColor = progressColor.copy(alpha = 0.12f),
+                progress = { progress }, Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                color = progressColor, trackColor = progressColor.copy(0.12f),
                 strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
             )
             Spacer(Modifier.height(8.dp))
@@ -672,28 +695,91 @@ private fun GoalCard(goal: AthleteGoal) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PRIVACY SHEET
+// SETTINGS SHEET (Theme + Language + Privacy)
 // ═══════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PrivacySheet(onDismiss: () -> Unit) {
+private fun SettingsSheet(onDismiss: () -> Unit) {
+    var pages by remember { mutableStateOf<List<LegalPageDto>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var showLegal by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        try { pages = ViewerRepository().getLegalPages().filter { it.enabled } } catch (_: Exception) {}
+        loading = false
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = CardBg,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .verticalScroll(rememberScrollState())
+            Modifier.fillMaxWidth().fillMaxHeight(0.85f).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Конфиденциальность и условия", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Spacer(Modifier.height(16.dp))
-            Text("Содержимое будет добавлено позже.", fontSize = 14.sp, color = TextSecondary)
+            if (!showLegal) {
+                Text("Настройки", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(Modifier.height(8.dp))
+                ThemeSwitcherCard()
+                LanguageSwitcherCard()
+                SettingsRow(Icons.Default.Shield, "Конфиденциальность и условия") { showLegal = true }
+            } else {
+                // Legal content
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showLegal = false }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("Конфиденциальность и условия", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                }
+                Spacer(Modifier.height(12.dp))
+                if (loading) {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                    }
+                } else if (pages.isEmpty()) {
+                    Text("Содержимое будет добавлено позже.", fontSize = 14.sp, color = TextMuted)
+                } else {
+                    pages.forEach { page ->
+                        Text(page.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Spacer(Modifier.height(8.dp))
+                        RenderLegalContent(page.content)
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+            }
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+    val isDark = DarkTheme.isDark
+    val colors = LocalAppColors.current
+    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Text(label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun RenderLegalContent(content: String) {
+    content.split("\n").forEach { line ->
+        val trimmed = line.trim()
+        when {
+            trimmed.isEmpty() -> Spacer(Modifier.height(8.dp))
+            trimmed.startsWith("## ") -> { Spacer(Modifier.height(12.dp)); Text(trimmed.removePrefix("## "), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary); Spacer(Modifier.height(4.dp)) }
+            trimmed.startsWith("### ") -> { Spacer(Modifier.height(8.dp)); Text(trimmed.removePrefix("### "), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary); Spacer(Modifier.height(2.dp)) }
+            trimmed.startsWith("- ") || trimmed.startsWith("* ") -> Row(Modifier.padding(start = 12.dp)) { Text("•", fontSize = 14.sp, color = TextSecondary); Spacer(Modifier.width(8.dp)); Text(trimmed.removePrefix("- ").removePrefix("* "), fontSize = 14.sp, color = TextSecondary, lineHeight = 20.sp) }
+            else -> Text(trimmed, fontSize = 14.sp, color = TextSecondary, lineHeight = 20.sp)
         }
     }
 }
@@ -709,79 +795,33 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val sportPref = remember { SportPreference(context) }
-
     var allSports by remember { mutableStateOf<List<SportDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     val selectedIds = remember { mutableStateListOf<String>() }
     val currentIds by sportPref.selectedSportIds.collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
-        try {
-            allSports = ViewerRepository().getSports()
-            selectedIds.addAll(currentIds)
-        } catch (_: Exception) {}
+        try { allSports = ViewerRepository().getSports(); selectedIds.addAll(currentIds) } catch (_: Exception) {}
         loading = false
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = CardBg,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)
-        ) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = CardBg, shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
             Text("Виды спорта", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
             Text("Выберите 1-3 вида спорта", fontSize = 13.sp, color = TextMuted)
             Spacer(Modifier.height(16.dp))
-
-            if (loading) {
-                LoadingScreen()
-            } else {
+            if (loading) { LoadingScreen() } else {
                 allSports.forEach { sport ->
-                    val isSelected = selectedIds.contains(sport.id)
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable {
-                            if (isSelected) selectedIds.remove(sport.id)
-                            else if (selectedIds.size < 3) selectedIds.add(sport.id)
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) Accent.copy(alpha = 0.1f) else Color.Transparent
-                    ) {
-                        Text(
-                            sport.name,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                            fontSize = 15.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) Accent else TextPrimary
-                        )
+                    val sel = selectedIds.contains(sport.id)
+                    Surface(Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable { if (sel) selectedIds.remove(sport.id) else if (selectedIds.size < 3) selectedIds.add(sport.id) }, RoundedCornerShape(12.dp), if (sel) Accent.copy(0.1f) else Color.Transparent) {
+                        Text(sport.name, Modifier.padding(horizontal = 14.dp, vertical = 12.dp), fontSize = 15.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal, color = if (sel) Accent else TextPrimary)
                     }
                 }
-
                 Spacer(Modifier.height(16.dp))
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth().clickable(enabled = selectedIds.isNotEmpty()) {
-                        scope.launch {
-                            val selected = allSports.filter { selectedIds.contains(it.id) }
-                            if (selected.isNotEmpty()) {
-                                sportPref.setSports(selected.map { it.id }, selected.map { it.name })
-                            }
-                            onDismiss()
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (selectedIds.isNotEmpty()) Accent else TextMuted
-                ) {
-                    Text(
-                        "Сохранить",
-                        modifier = Modifier.padding(vertical = 14.dp).fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
+                Surface(Modifier.fillMaxWidth().clickable(enabled = selectedIds.isNotEmpty()) {
+                    scope.launch { val s = allSports.filter { selectedIds.contains(it.id) }; if (s.isNotEmpty()) sportPref.setSports(s.map { it.id }, s.map { it.name }); onDismiss() }
+                }, RoundedCornerShape(12.dp), if (selectedIds.isNotEmpty()) Accent else TextMuted) {
+                    Text("Сохранить", Modifier.padding(vertical = 14.dp).fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
             }
             Spacer(Modifier.height(32.dp))

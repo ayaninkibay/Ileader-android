@@ -385,4 +385,29 @@ class ViewerRepository {
                 .decodeFromString<List<LegalPageDto>>(row.value ?: "[]")
         } catch (_: Exception) { emptyList() }
     }
+
+    suspend fun getUserTournaments(userId: String, limit: Int = 10): List<TournamentWithCountsDto> {
+        // Get tournament IDs where user is a participant
+        val participantRows = client.from("tournament_participants")
+            .select(Columns.raw("tournament_id")) {
+                filter { eq("athlete_id", userId) }
+            }
+            .decodeList<ParticipantTournamentIdDto>()
+
+        val ids = participantRows.mapNotNull { it.tournamentId }
+        if (ids.isEmpty()) return emptyList()
+
+        return client.from("v_tournament_with_counts")
+            .select {
+                filter { isIn("id", ids) }
+                order("start_date", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<TournamentWithCountsDto>()
+    }
 }
+
+@kotlinx.serialization.Serializable
+private data class ParticipantTournamentIdDto(
+    @kotlinx.serialization.SerialName("tournament_id") val tournamentId: String? = null
+)

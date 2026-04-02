@@ -5,10 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.models.AthleteGoal
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
-import com.ileader.app.data.remote.dto.ProfileDto
-import com.ileader.app.data.remote.dto.ProfileUpdateDto
-import com.ileader.app.data.remote.dto.UserSportDto
-import com.ileader.app.data.remote.dto.UserSportStatsDto
+import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.async
@@ -31,6 +28,15 @@ class ProfileViewModel : ViewModel() {
 
     private val _goals = MutableStateFlow<UiState<List<AthleteGoal>>?>(null)
     val goals: StateFlow<UiState<List<AthleteGoal>>?> = _goals
+
+    private val _myTournaments = MutableStateFlow<UiState<List<TournamentWithCountsDto>>>(UiState.Loading)
+    val myTournaments: StateFlow<UiState<List<TournamentWithCountsDto>>> = _myTournaments
+
+    private val _myResults = MutableStateFlow<UiState<List<ResultDto>>>(UiState.Loading)
+    val myResults: StateFlow<UiState<List<ResultDto>>> = _myResults
+
+    private val _myTeam = MutableStateFlow<TeamMembershipDto?>(null)
+    val myTeam: StateFlow<TeamMembershipDto?> = _myTeam
 
     private val _saveState = MutableStateFlow<UiState<Unit>?>(null)
     val saveState: StateFlow<UiState<Unit>?> = _saveState
@@ -64,12 +70,36 @@ class ProfileViewModel : ViewModel() {
                 _goals.value = UiState.Loading
                 launch {
                     try {
-                        val goalsList = athleteRepo.getGoals(userId)
-                        _goals.value = UiState.Success(goalsList)
+                        _goals.value = UiState.Success(athleteRepo.getGoals(userId))
                     } catch (e: Exception) {
                         _goals.value = UiState.Error(e.message ?: "Ошибка загрузки целей")
                     }
                 }
+            }
+
+            // Load user tournaments
+            launch {
+                try {
+                    _myTournaments.value = UiState.Success(viewerRepo.getUserTournaments(userId, 10))
+                } catch (e: Exception) {
+                    _myTournaments.value = UiState.Error(e.message ?: "Ошибка")
+                }
+            }
+
+            // Load results
+            launch {
+                try {
+                    _myResults.value = UiState.Success(viewerRepo.getAthleteResults(userId, 5))
+                } catch (e: Exception) {
+                    _myResults.value = UiState.Error(e.message ?: "Ошибка")
+                }
+            }
+
+            // Load team membership
+            launch {
+                try {
+                    _myTeam.value = viewerRepo.getAthleteMembership(userId)
+                } catch (_: Exception) {}
             }
         }
     }

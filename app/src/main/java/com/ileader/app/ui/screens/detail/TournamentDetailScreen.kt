@@ -2,6 +2,7 @@ package com.ileader.app.ui.screens.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,20 +23,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.ileader.app.data.bracket.BracketUtils
 import com.ileader.app.data.models.BracketMatch
 import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.ParticipantDto
 import com.ileader.app.data.remote.dto.ResultDto
+import com.ileader.app.data.remote.dto.ScheduleItemDto
+import com.ileader.app.data.remote.dto.TournamentDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.bracket.BracketView
 import com.ileader.app.ui.components.bracket.MatchDetailDialog
 import com.ileader.app.ui.viewmodels.RegistrationState
 import com.ileader.app.ui.viewmodels.HomeTournamentDetailData
+import com.ileader.app.ui.viewmodels.SportViewModel
 import com.ileader.app.ui.viewmodels.TournamentDetailViewModel
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -110,57 +119,74 @@ private fun TournamentContent(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // ── Hero Header (inzhu style) ──
+            // ── Hero Header with photo ──
             FadeIn(visible = started, delayMs = 0) {
+                val sportName = tournament.sports?.name ?: ""
+                val heroColor = if (sportName.isNotEmpty()) sportColor(sportName) else accentColor
+                val heroImage = tournament.imageUrl
+                    ?: tournament.sports?.let { SportViewModel.getFallbackImage(it) }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFFC62828),
-                                    accentColor,
-                                    Color(0xFFFF8A80)
-                                ),
-                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                                end = androidx.compose.ui.geometry.Offset(
-                                    Float.POSITIVE_INFINITY,
-                                    Float.POSITIVE_INFINITY
-                                )
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
-                        )
-                        .statusBarsPadding()
-                        .padding(top = 12.dp, bottom = 28.dp)
+                        .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                 ) {
-                    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                    // Background: photo or sport gradient
+                    if (heroImage != null) {
+                        AsyncImage(
+                            model = heroImage,
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            Modifier.matchParentSize().background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.4f), Color.Black.copy(alpha = 0.7f))
+                                )
+                            )
+                        )
+                    } else {
+                        Box(
+                            Modifier.matchParentSize().background(
+                                Brush.linearGradient(
+                                    listOf(heroColor.copy(alpha = 0.9f), heroColor.copy(alpha = 0.5f))
+                                )
+                            )
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .padding(horizontal = 20.dp)
+                            .padding(top = 12.dp, bottom = 28.dp)
+                    ) {
                         // Top row: back + share
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Back button (white circle like inzhu)
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White)
+                                    .background(Color.Black.copy(alpha = 0.3f))
                                     .clickable { onBack() },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.ArrowBack, "Назад",
-                                    tint = accentDarkColor,
+                                    tint = Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                             Spacer(Modifier.weight(1f))
-                            // Share button
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.15f)),
+                                    .background(Color.Black.copy(alpha = 0.3f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -247,6 +273,7 @@ private fun TournamentContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -254,25 +281,31 @@ private fun TournamentContent(
                         icon = Icons.Default.CalendarMonth,
                         label = "Дата",
                         value = formatDateShort(tournament.startDate),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.width(100.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.LocationOn,
                         label = "Место",
                         value = tournament.locations?.name ?: "—",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.width(100.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.People,
                         label = "Участники",
                         value = "${data.participants.size}/${tournament.maxParticipants ?: "∞"}",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.width(100.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.EmojiEvents,
                         label = "Приз",
                         value = if (!tournament.prize.isNullOrEmpty()) tournament.prize else "—",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.width(100.dp)
+                    )
+                    QuickInfoCard(
+                        icon = Icons.Default.AccountTree,
+                        label = "Формат",
+                        value = formatShortLabel(tournament.format),
+                        modifier = Modifier.width(100.dp)
                     )
                 }
             }
@@ -333,10 +366,40 @@ private fun TournamentContent(
                 }
             }
 
+            // ── Tournament Details (2-column grid) ──
+            Spacer(Modifier.height(8.dp))
+            FadeIn(visible = started, delayMs = 420) {
+                TournamentDetailsSection(tournament)
+            }
+
+            // ── Location ──
+            if (tournament.locations != null) {
+                Spacer(Modifier.height(8.dp))
+                FadeIn(visible = started, delayMs = 470) {
+                    LocationSection(tournament.locations)
+                }
+            }
+
+            // ── Prizes ──
+            if (!tournament.prizes.isNullOrEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                FadeIn(visible = started, delayMs = 520) {
+                    PrizesSection(tournament.prizes)
+                }
+            }
+
+            // ── Schedule ──
+            if (tournament.schedule != null) {
+                Spacer(Modifier.height(8.dp))
+                FadeIn(visible = started, delayMs = 570) {
+                    ScheduleSection(tournament.schedule)
+                }
+            }
+
             // ── Participants ──
             if (data.participants.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 450) {
+                FadeIn(visible = started, delayMs = 620) {
                     ParticipantsSection(data.participants)
                 }
             }
@@ -344,7 +407,7 @@ private fun TournamentContent(
             // ── Results ──
             if (data.results.isNotEmpty() && tournament.status == "completed") {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 500) {
+                FadeIn(visible = started, delayMs = 670) {
                     ResultsSection(data.results)
                 }
             }
@@ -352,7 +415,7 @@ private fun TournamentContent(
             // ── Bracket ──
             if (data.bracket.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                FadeIn(visible = started, delayMs = 550) {
+                FadeIn(visible = started, delayMs = 720) {
                     BracketSection(data)
                 }
             }
@@ -385,6 +448,36 @@ private fun ParticipantsSection(participants: List<ParticipantDto>) {
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
             ) {
+                // Avatar
+                val avatarUrl = p.profiles?.avatarUrl
+                val name = p.profiles?.name ?: "—"
+                if (avatarUrl != null) {
+                    AsyncImage(
+                        model = avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(AccentSoft),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = name.take(1).uppercase(),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Accent
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+
                 p.seed?.let { seed ->
                     Text(
                         text = "#$seed",
@@ -395,11 +488,37 @@ private fun ParticipantsSection(participants: List<ParticipantDto>) {
                     )
                 }
                 Text(
-                    text = p.profiles?.name ?: "—",
+                    text = name,
                     fontSize = 14.sp,
                     color = TextPrimary,
                     modifier = Modifier.weight(1f)
                 )
+
+                // Status badge
+                val status = p.status
+                if (status != null && status != "registered") {
+                    val (statusLabel, statusColor) = when (status) {
+                        "pending" -> "Ожидание" to Color(0xFFF59E0B)
+                        "checked_in" -> "Check-in" to Color(0xFF22C55E)
+                        "declined" -> "Отклонён" to Color(0xFFEF4444)
+                        "withdrawn" -> "Снялся" to Color(0xFF6B7280)
+                        else -> status to TextMuted
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = statusColor.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = statusLabel,
+                            fontSize = 10.sp,
+                            color = statusColor,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                }
+
                 p.profiles?.city?.let { city ->
                     Text(
                         text = city,
@@ -645,6 +764,290 @@ private fun QuickInfoCard(
 }
 
 // ══════════════════════════════════════════════════════════
+// New Detail Sections
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun TournamentDetailsSection(tournament: TournamentDto) {
+    val items = buildList<Triple<ImageVector, String, String>> {
+        tournament.format?.let {
+            add(Triple(Icons.Default.AccountTree, "Формат", formatLabel(it)))
+        }
+        tournament.matchFormat?.let {
+            add(Triple(Icons.Default.SportsScore, "Формат матча", matchFormatLabel(it)))
+        }
+        tournament.seedingType?.let {
+            add(Triple(Icons.Default.Shuffle, "Посев", seedingLabel(it)))
+        }
+        tournament.ageCategory?.let {
+            add(Triple(Icons.Default.Cake, "Возраст", it))
+        }
+        tournament.discipline?.let {
+            add(Triple(Icons.Default.FitnessCenter, "Дисциплина", it))
+        }
+        tournament.region?.let {
+            add(Triple(Icons.Default.Public, "Регион", it))
+        }
+        if (tournament.endDate != null && tournament.endDate != tournament.startDate) {
+            add(Triple(Icons.Default.EventBusy, "Окончание", formatDateShort(tournament.endDate)))
+        }
+        tournament.registrationDeadline?.let {
+            add(Triple(Icons.Default.HowToReg, "Дедлайн рег.", formatDateShort(it)))
+        }
+        tournament.minParticipants?.let {
+            add(Triple(Icons.Default.GroupRemove, "Мин. участников", it.toString()))
+        }
+        if (tournament.hasCheckIn == true) {
+            val mins = tournament.checkInStartsBefore
+            add(Triple(Icons.Default.QrCodeScanner, "Check-in", if (mins != null) "За $mins мин" else "Да"))
+        }
+    }
+
+    if (items.isEmpty()) return
+
+    SectionCard(title = "Детали турнира") {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            val left = items.filterIndexed { i, _ -> i % 2 == 0 }
+            val right = items.filterIndexed { i, _ -> i % 2 == 1 }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                left.forEach { (icon, label, value) ->
+                    DetailGridItem(icon, label, value)
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                right.forEach { (icon, label, value) ->
+                    DetailGridItem(icon, label, value)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailGridItem(icon: ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Column {
+            Text(text = label, fontSize = 11.sp, color = TextMuted)
+            Text(text = value, fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun LocationSection(location: LocationDto) {
+    SectionCard(title = "Место проведения") {
+        // Location image
+        location.imageUrls?.firstOrNull()?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(Modifier.height(10.dp))
+        }
+
+        // Name + rating
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = location.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            location.rating?.let { rating ->
+                Text(
+                    text = "★ ${"%.1f".format(rating)}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFF59E0B)
+                )
+            }
+        }
+
+        // Address + city
+        val addressParts = listOfNotNull(location.address, location.city).filter { it.isNotEmpty() }
+        if (addressParts.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = addressParts.joinToString(", "),
+                    fontSize = 13.sp,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        // Type badge
+        location.type?.let { type ->
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = AccentSoft
+            ) {
+                Text(
+                    text = locationTypeLabel(type),
+                    fontSize = 11.sp,
+                    color = Accent,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
+        }
+
+        // Capacity
+        location.capacity?.let { cap ->
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(text = "Вместимость: $cap", fontSize = 12.sp, color = TextSecondary)
+            }
+        }
+
+        // Facilities chips
+        if (!location.facilities.isNullOrEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                location.facilities.forEach { facility ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = CardBorder.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = facility,
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Phone
+        location.phone?.let { phone ->
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Phone, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(text = phone, fontSize = 12.sp, color = TextSecondary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrizesSection(prizes: List<String>) {
+    SectionCard(title = "Призы") {
+        prizes.forEachIndexed { index, prize ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(vertical = 3.dp)
+            ) {
+                val medal = when (index) {
+                    0 -> "\uD83E\uDD47"
+                    1 -> "\uD83E\uDD48"
+                    2 -> "\uD83E\uDD49"
+                    else -> "${index + 1}."
+                }
+                Text(
+                    text = medal,
+                    fontSize = 14.sp,
+                    modifier = Modifier.width(32.dp)
+                )
+                Text(
+                    text = prize,
+                    fontSize = 14.sp,
+                    color = TextPrimary,
+                    fontWeight = if (index < 3) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleSection(scheduleJson: kotlinx.serialization.json.JsonElement) {
+    val jsonParser = remember { Json { ignoreUnknownKeys = true } }
+    val items = remember(scheduleJson) {
+        try {
+            jsonParser.decodeFromJsonElement<List<ScheduleItemDto>>(scheduleJson)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+    if (items.isEmpty()) return
+
+    val accentColor = Accent
+    val accentFaded = Accent.copy(alpha = 0.2f)
+
+    SectionCard(title = "Расписание") {
+        items.forEachIndexed { index, item ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                // Time column
+                Text(
+                    text = item.time,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor,
+                    modifier = Modifier.width(52.dp)
+                )
+
+                // Timeline dot + line
+                Box(
+                    modifier = Modifier
+                        .width(20.dp)
+                        .height(IntrinsicSize.Min),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    if (index < items.size - 1) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .fillMaxHeight()
+                                .background(accentFaded)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(accentColor)
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                // Title
+                Text(
+                    text = item.title,
+                    fontSize = 13.sp,
+                    color = TextPrimary,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(bottom = if (index < items.size - 1) 16.dp else 0.dp)
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
 // Helpers
 // ══════════════════════════════════════════════════════════
 
@@ -670,4 +1073,47 @@ private fun getStatusLabel(status: String): String = when (status) {
     "cancelled" -> "Отменён"
     "draft" -> "Черновик"
     else -> status
+}
+
+private fun formatShortLabel(format: String?): String = when (format) {
+    "single_elimination" -> "SE"
+    "double_elimination" -> "DE"
+    "round_robin" -> "RR"
+    "group_stage" -> "GR"
+    else -> format?.take(2)?.uppercase() ?: "—"
+}
+
+private fun formatLabel(format: String): String = when (format) {
+    "single_elimination" -> "Одиночная элиминация"
+    "double_elimination" -> "Двойная элиминация"
+    "round_robin" -> "Круговой"
+    "group_stage" -> "Групповой"
+    else -> format
+}
+
+private fun matchFormatLabel(mf: String): String = when (mf) {
+    "bo1" -> "До 1 победы"
+    "bo3" -> "До 2 побед"
+    "bo5" -> "До 3 побед"
+    else -> mf
+}
+
+private fun seedingLabel(st: String): String = when (st) {
+    "random" -> "Случайное"
+    "manual" -> "Ручное"
+    "rating" -> "По рейтингу"
+    else -> st
+}
+
+private fun locationTypeLabel(type: String): String = when (type) {
+    "track" -> "Трасса"
+    "stadium" -> "Стадион"
+    "arena" -> "Арена"
+    "court" -> "Корт"
+    "pool" -> "Бассейн"
+    "gym" -> "Зал"
+    "field" -> "Поле"
+    "range" -> "Стрельбище"
+    "water" -> "Водоём"
+    else -> type
 }
