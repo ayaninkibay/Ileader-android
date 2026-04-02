@@ -7,8 +7,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.AthleteGoal
 import com.ileader.app.data.models.User
+import com.ileader.app.data.models.UserRole
 import com.ileader.app.ui.screens.common.MyTicketsScreen
 import com.ileader.app.ui.screens.common.NotificationsScreen
+import com.ileader.app.ui.screens.media.MediaArticlesScreen
+import com.ileader.app.ui.screens.media.MediaArticleEditorScreen
 
 private sealed class ProfileNavState {
     data object Main : ProfileNavState()
@@ -17,6 +20,8 @@ private sealed class ProfileNavState {
     data object Notifications : ProfileNavState()
     data class GoalDetail(val goal: AthleteGoal) : ProfileNavState()
     data object GoalCreate : ProfileNavState()
+    data object Articles : ProfileNavState()
+    data class ArticleEditor(val articleId: String? = null) : ProfileNavState()
 }
 
 @Composable
@@ -32,7 +37,8 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 onTickets = { navState = ProfileNavState.Tickets },
                 onNotifications = { navState = ProfileNavState.Notifications },
                 onGoalClick = { goal -> navState = ProfileNavState.GoalDetail(goal) },
-                onGoalCreate = { navState = ProfileNavState.GoalCreate }
+                onGoalCreate = { navState = ProfileNavState.GoalCreate },
+                onArticles = { navState = ProfileNavState.Articles }
             )
         }
         is ProfileNavState.Edit -> {
@@ -49,6 +55,21 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
         }
         is ProfileNavState.GoalCreate -> {
             GoalCreateScreen(userId = user.id, onBack = { navState = ProfileNavState.Main }, onCreated = { navState = ProfileNavState.Main })
+        }
+        is ProfileNavState.Articles -> {
+            MediaArticlesScreen(
+                user = user,
+                onBack = { navState = ProfileNavState.Main },
+                onArticleClick = { id -> navState = ProfileNavState.ArticleEditor(id) },
+                onCreateArticle = { navState = ProfileNavState.ArticleEditor(null) }
+            )
+        }
+        is ProfileNavState.ArticleEditor -> {
+            MediaArticleEditorScreen(
+                userId = user.id,
+                articleId = state.articleId,
+                onBack = { navState = ProfileNavState.Articles }
+            )
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -204,7 +205,7 @@ fun ArticleDetailScreen(
                                             color = TextPrimary
                                         )
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(12.dp), tint = TextMuted)
+                                            Icon(Icons.Outlined.CalendarMonth, null, modifier = Modifier.size(12.dp), tint = TextMuted)
                                             Spacer(Modifier.width(4.dp))
                                             Text(
                                                 text = formatDateRu(article.publishedAt ?: article.createdAt),
@@ -244,7 +245,7 @@ fun ArticleDetailScreen(
                             ) {
                                 if (article.views > 0) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Visibility, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                        Icon(Icons.Outlined.Visibility, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text("${article.views}", fontSize = 12.sp, color = TextMuted)
                                     }
@@ -252,7 +253,7 @@ fun ArticleDetailScreen(
                                 val wordCount = (article.content?.length ?: 0) / 5
                                 val readMinutes = (wordCount / 200).coerceAtLeast(1)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Schedule, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                                    Icon(Icons.Outlined.Schedule, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text("$readMinutes мин. чтения", fontSize = 12.sp, color = TextMuted)
                                 }

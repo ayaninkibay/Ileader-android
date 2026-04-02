@@ -1,8 +1,11 @@
 package com.ileader.app.ui.screens.main
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,9 +27,11 @@ import com.ileader.app.data.DeepLinkTarget
 import com.ileader.app.data.DeepLinkType
 import com.ileader.app.ui.navigation.BottomNavItem
 import com.ileader.app.ui.navigation.getBottomNavItems
+import com.ileader.app.data.models.UserRole
 import com.ileader.app.ui.screens.home.HomeTab
 import com.ileader.app.ui.screens.sport.SportTab
 import com.ileader.app.ui.screens.mytournaments.MyTournamentsTab
+import com.ileader.app.ui.screens.media.MediaTab
 import com.ileader.app.ui.screens.profile.ProfileTab
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -78,7 +83,13 @@ fun MainScreen(
                 when (selectedRoute) {
                     "home" -> HomeTab(user = user)
                     "sport" -> SportTab(user = user)
-                    "my_tournaments" -> MyTournamentsTab(user = user, onSignOut = onSignOut)
+                    "my_tournaments" -> {
+                        if (user.role == UserRole.MEDIA) {
+                            MediaTab(user = user)
+                        } else {
+                            MyTournamentsTab(user = user, onSignOut = onSignOut)
+                        }
+                    }
                     "profile" -> ProfileTab(user = user, onSignOut = onSignOut)
                 }
             }
@@ -114,6 +125,11 @@ private fun ILeaderBottomBar(
 ) {
     val colors = LocalAppColors.current
 
+    // Pill colors
+    val pillBg = if (isDark) Color.White else Color(0xFF1C1C1E)
+    val pillContentColor = if (isDark) Color(0xFF1C1C1E) else Color.White
+    val unselectedColor = if (isDark) colors.textMuted else Color(0xFF8E8E93)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -123,82 +139,138 @@ private fun ILeaderBottomBar(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(62.dp)
+                .height(64.dp)
                 .floatingShadow(isDark),
             color = colors.cardBg,
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(22.dp),
             tonalElevation = 0.dp,
-            shadowElevation = 0.dp
+            shadowElevation = if (isDark) 0.dp else 8.dp
         ) {
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items.forEachIndexed { index, item ->
                     val isSelected = selectedIndex == index
-                    val iconAlpha by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0.55f,
-                        animationSpec = tween(250, easing = EaseInOut),
-                        label = "iconAlpha$index"
-                    )
-                    val indicatorAlpha by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0f,
-                        animationSpec = tween(250, easing = EaseInOut),
-                        label = "indicator$index"
-                    )
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { onItemSelected(index) },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                if (item.badge > 0) {
-                                    Badge(
-                                        containerColor = ILeaderColors.PrimaryRed,
-                                        contentColor = Color.White
-                                    ) {
-                                        Text(
-                                            item.badge.toString(),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
+                    BottomBarItem(
+                        item = item,
+                        isSelected = isSelected,
+                        pillBg = pillBg,
+                        pillContentColor = pillContentColor,
+                        unselectedColor = unselectedColor,
+                        onClick = { onItemSelected(index) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomBarItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    pillBg: Color,
+    pillContentColor: Color,
+    unselectedColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val pillAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = tween(300, easing = EaseInOut),
+        label = "pillAlpha"
+    )
+    val iconAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0.6f,
+        animationSpec = tween(250, easing = EaseInOut),
+        label = "iconAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // Pill background
+        Box(
+            modifier = Modifier
+                .alpha(pillAlpha)
+                .clip(RoundedCornerShape(18.dp))
+                .background(pillBg)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                BadgedBox(
+                    badge = {
+                        if (item.badge > 0) {
+                            Badge(
+                                containerColor = ILeaderColors.PrimaryRed,
+                                contentColor = Color.White
+                            ) {
+                                Text(item.badge.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
-                        ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.label,
-                                modifier = Modifier
-                                    .size(26.dp)
-                                    .alpha(iconAlpha),
-                                tint = if (isSelected) colors.accent else colors.textMuted
-                            )
                         }
-
-                        Spacer(Modifier.height(6.dp))
-
-                        // Indicator bar
-                        Box(
-                            modifier = Modifier
-                                .width(24.dp)
-                                .height(3.dp)
-                                .alpha(indicatorAlpha)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(colors.accent)
+                    }
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(22.dp),
+                        tint = pillContentColor
+                    )
+                }
+                AnimatedVisibility(
+                    visible = isSelected,
+                    enter = fadeIn(tween(200)) + expandHorizontally(tween(250)),
+                    exit = fadeOut(tween(150)) + shrinkHorizontally(tween(200))
+                ) {
+                    Row {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = item.shortLabel,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = pillContentColor,
+                            maxLines = 1
                         )
                     }
                 }
+            }
+        }
+
+        // Unselected icon (shown when pill is hidden)
+        if (!isSelected) {
+            BadgedBox(
+                badge = {
+                    if (item.badge > 0) {
+                        Badge(
+                            containerColor = ILeaderColors.PrimaryRed,
+                            contentColor = Color.White
+                        ) {
+                            Text(item.badge.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    modifier = Modifier.size(24.dp).alpha(iconAlpha),
+                    tint = unselectedColor
+                )
             }
         }
     }

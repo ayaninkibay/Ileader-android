@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -459,7 +460,7 @@ private fun CountdownCard(
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Icon(Icons.Outlined.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(3.dp))
                         Text(formatDateShort(data.date), fontSize = 12.sp, color = TextMuted)
                     }
@@ -616,14 +617,14 @@ private fun BigTournamentCard(
                 ) {
                     // Date
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Outlined.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(formatDateShort(data.date), fontSize = 13.sp, color = TextSecondary)
                     }
                     // Location
                     if (data.location.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
-                            Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(data.location, fontSize = 13.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -637,7 +638,7 @@ private fun BigTournamentCard(
                     Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("${data.participantCount}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                     data.maxParticipants?.let { max ->

@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -316,7 +317,7 @@ private fun TournamentContent(
                             if (tournament.visibility == "private") {
                                 Surface(shape = RoundedCornerShape(50), color = Color.White.copy(0.2f)) {
                                     Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Lock, null, tint = Color.White.copy(0.8f), modifier = Modifier.size(12.dp))
+                                        Icon(Icons.Outlined.Lock, null, tint = Color.White.copy(0.8f), modifier = Modifier.size(12.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text("Приватный", fontSize = 11.sp, color = Color.White.copy(0.8f), fontWeight = FontWeight.SemiBold)
                                     }
@@ -341,7 +342,7 @@ private fun TournamentContent(
                             Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Default.Business, null,
+                                    Icons.Outlined.Business, null,
                                     tint = Color.White.copy(alpha = 0.7f),
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -1024,35 +1025,35 @@ private fun QuickInfoCard(
 private fun TournamentDetailsSection(tournament: TournamentDto) {
     val items = buildList<Triple<ImageVector, String, String>> {
         tournament.format?.let {
-            add(Triple(Icons.Default.AccountTree, "Формат", formatLabel(it)))
+            add(Triple(Icons.Outlined.AccountTree, "Формат", formatLabel(it)))
         }
         tournament.matchFormat?.let {
-            add(Triple(Icons.Default.SportsScore, "Формат матча", matchFormatLabel(it)))
+            add(Triple(Icons.Outlined.SportsScore, "Формат матча", matchFormatLabel(it)))
         }
         tournament.seedingType?.let {
-            add(Triple(Icons.Default.Shuffle, "Посев", seedingLabel(it)))
+            add(Triple(Icons.Outlined.Shuffle, "Посев", seedingLabel(it)))
         }
         tournament.ageCategory?.let {
-            add(Triple(Icons.Default.Cake, "Возраст", it))
+            add(Triple(Icons.Outlined.Cake, "Возраст", it))
         }
         tournament.discipline?.let {
-            add(Triple(Icons.Default.FitnessCenter, "Дисциплина", it))
+            add(Triple(Icons.Outlined.FitnessCenter, "Дисциплина", it))
         }
         tournament.region?.let {
-            add(Triple(Icons.Default.Public, "Регион", it))
+            add(Triple(Icons.Outlined.Public, "Регион", it))
         }
         if (tournament.endDate != null && tournament.endDate != tournament.startDate) {
-            add(Triple(Icons.Default.EventBusy, "Окончание", formatDateShort(tournament.endDate)))
+            add(Triple(Icons.Outlined.EventBusy, "Окончание", formatDateShort(tournament.endDate)))
         }
         tournament.registrationDeadline?.let {
-            add(Triple(Icons.Default.HowToReg, "Дедлайн рег.", formatDateShort(it)))
+            add(Triple(Icons.Outlined.HowToReg, "Дедлайн рег.", formatDateShort(it)))
         }
         tournament.minParticipants?.let {
-            add(Triple(Icons.Default.GroupRemove, "Мин. участников", it.toString()))
+            add(Triple(Icons.Outlined.GroupRemove, "Мин. участников", it.toString()))
         }
         if (tournament.hasCheckIn == true) {
             val mins = tournament.checkInStartsBefore
-            add(Triple(Icons.Default.QrCodeScanner, "Check-in", if (mins != null) "За $mins мин" else "Да"))
+            add(Triple(Icons.Outlined.QrCodeScanner, "Check-in", if (mins != null) "За $mins мин" else "Да"))
         }
     }
 
@@ -1131,7 +1132,7 @@ private fun LocationSection(location: LocationDto) {
         if (addressParts.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Icon(Icons.Outlined.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = addressParts.joinToString(", "),
@@ -1162,7 +1163,7 @@ private fun LocationSection(location: LocationDto) {
         location.capacity?.let { cap ->
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(text = "Вместимость: $cap", fontSize = 12.sp, color = TextSecondary)
             }
@@ -1196,7 +1197,7 @@ private fun LocationSection(location: LocationDto) {
         location.phone?.let { phone ->
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Phone, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                Icon(Icons.Outlined.Phone, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(text = phone, fontSize = 12.sp, color = TextSecondary)
             }

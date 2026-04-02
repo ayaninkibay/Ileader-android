@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -194,19 +195,19 @@ fun ProfileScreen(
                         val primaryStats = stats.firstOrNull()
                         val statItems = when (user.role) {
                             UserRole.ATHLETE -> listOf(
-                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                                Triple(Icons.Default.MilitaryTech, primaryStats?.wins ?: 0, "Победы"),
-                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
+                                Triple(Icons.Outlined.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Outlined.MilitaryTech, primaryStats?.wins ?: 0, "Победы"),
+                                Triple(Icons.Outlined.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
                             )
                             UserRole.TRAINER -> listOf(
-                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг"),
-                                Triple(Icons.Default.People, userSports.size, "Виды спорта")
+                                Triple(Icons.Outlined.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Outlined.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг"),
+                                Triple(Icons.Outlined.People, userSports.size, "Виды спорта")
                             )
                             else -> listOf(
-                                Triple(Icons.Default.SportsScore, userSports.size, "Виды спорта"),
-                                Triple(Icons.Default.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
-                                Triple(Icons.Default.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
+                                Triple(Icons.Outlined.SportsScore, userSports.size, "Виды спорта"),
+                                Triple(Icons.Outlined.EmojiEvents, primaryStats?.tournaments ?: 0, "Турниры"),
+                                Triple(Icons.Outlined.Leaderboard, primaryStats?.rating ?: 1000, "Рейтинг")
                             )
                         }
                         Surface(
@@ -241,7 +242,7 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Edit, null, tint = Accent, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Outlined.Edit, null, tint = Accent, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Редактировать профиль", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Accent)
                             }
@@ -298,14 +299,14 @@ fun ProfileScreen(
                             when (val rs = myResults) {
                                 is UiState.Success -> {
                                     if (rs.data.isEmpty()) {
-                                        EmptyCard("Нет результатов", Icons.Default.Scoreboard)
+                                        EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
                                     } else {
                                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             rs.data.take(5).forEach { r -> ResultCard(r) }
                                         }
                                     }
                                 }
-                                is UiState.Error -> EmptyCard(rs.message, Icons.Default.Error)
+                                is UiState.Error -> EmptyCard(rs.message, Icons.Outlined.Error)
                                 is UiState.Loading -> {}
                             }
                         }
@@ -371,7 +372,7 @@ fun ProfileScreen(
                             Column {
                                 // My Tickets (viewer only)
                                 if (user.role == UserRole.USER) {
-                                    MenuRow(icon = Icons.Default.ConfirmationNumber, label = "Мои билеты", onClick = onTickets)
+                                    MenuRow(icon = Icons.Outlined.ConfirmationNumber, label = "Мои билеты", onClick = onTickets)
                                     MenuDivider()
                                 }
                                 // My Articles (media only)
@@ -380,10 +381,10 @@ fun ProfileScreen(
                                     MenuDivider()
                                 }
                                 // Notifications
-                                MenuRow(icon = Icons.Default.Notifications, label = "Уведомления", onClick = onNotifications)
+                                MenuRow(icon = Icons.Outlined.Notifications, label = "Уведомления", onClick = onNotifications)
                                 MenuDivider()
                                 // Settings
-                                MenuRow(icon = Icons.Default.Settings, label = "Настройки", onClick = { showPrivacySheet = true })
+                                MenuRow(icon = Icons.Outlined.Settings, label = "Настройки", onClick = { showPrivacySheet = true })
                             }
                         }
                     }
@@ -401,9 +402,9 @@ fun ProfileScreen(
                             shadowElevation = if (isDark) 0.dp else 2.dp
                         ) {
                             Column {
-                                MenuRow(icon = Icons.Default.Shield, label = "Конфиденциальность", onClick = { showLegalSheet = true })
+                                MenuRow(icon = Icons.Outlined.Shield, label = "Конфиденциальность", onClick = { showLegalSheet = true })
                                 MenuDivider()
-                                MenuRow(icon = Icons.Default.Info, label = "О приложении", onClick = { showLegalSheet = true })
+                                MenuRow(icon = Icons.Outlined.Info, label = "О приложении", onClick = { showLegalSheet = true })
                                 MenuDivider()
                                 // Sign out (red)
                                 Row(
@@ -538,14 +539,14 @@ private fun TournamentCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
                 Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Outlined.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(formatShortDate(t.startDate), fontSize = 12.sp, color = TextMuted)
                 }
                 if (t.locationName != null) {
                     Spacer(Modifier.height(3.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Outlined.LocationOn, null, tint = TextMuted, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(t.locationName, fontSize = 12.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -790,7 +791,7 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
                 ThemeSwitcherCard()
                 LanguageSwitcherCard()
-                SettingsRow(Icons.Default.Shield, "Конфиденциальность и условия") { showLegal = true }
+                SettingsRow(Icons.Outlined.Shield, "Конфиденциальность и условия") { showLegal = true }
             } else {
                 // Legal content
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showLegal = false }) {

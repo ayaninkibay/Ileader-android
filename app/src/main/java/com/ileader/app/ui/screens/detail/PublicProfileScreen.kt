@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -212,11 +213,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AnimStat(Icons.Default.EmojiEvents, s.tournaments, "Турниры", started)
+                        AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры", started)
                         Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                        AnimStat(Icons.Default.MilitaryTech, s.wins, "Победы", started)
+                        AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы", started)
                         Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                        AnimStat(Icons.Default.Leaderboard, s.rating, "Рейтинг", started)
+                        AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг", started)
                     }
                 }
             }
@@ -298,7 +299,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Результаты", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         }
@@ -325,7 +326,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Outlined.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Команда", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         }

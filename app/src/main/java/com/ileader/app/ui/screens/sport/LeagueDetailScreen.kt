@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -205,9 +206,9 @@ fun LeagueDetailScreen(
                 // Stats row (like website)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    StatLabel(Icons.Default.People, "24", "участников", textOnImage)
-                    StatLabel(Icons.Default.Layers, "3 / 5", "этапов", textOnImage)
-                    StatLabel(Icons.Default.EmojiEvents, "Лучшие 3", "из 5", textOnImage)
+                    StatLabel(Icons.Outlined.People, "24", "участников", textOnImage)
+                    StatLabel(Icons.Outlined.Layers, "3 / 5", "этапов", textOnImage)
+                    StatLabel(Icons.Outlined.EmojiEvents, "Лучшие 3", "из 5", textOnImage)
                 }
             }
         }
@@ -219,8 +220,8 @@ fun LeagueDetailScreen(
         // ════════════════════════════════════
         SectionCard(
             title = "Таблица рейтинга",
-            icon = Icons.Default.WorkspacePremium,
-            iconTint = Color(0xFFEAB308),
+            icon = Icons.Outlined.WorkspacePremium,
+            iconTint = TextMuted,
             modifier = Modifier.graphicsLayer { alpha = sec1Alpha; translationY = sec1Offset }
         ) {
             // Header
@@ -282,7 +283,7 @@ fun LeagueDetailScreen(
                     // Best
                     Row(Modifier.width(55.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         if (s.bestFinish != null && s.bestFinish <= 3) {
-                            Icon(Icons.Default.MilitaryTech, null, tint = Color(0xFFEAB308), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.MilitaryTech, null, tint = Color(0xFFEAB308), modifier = Modifier.size(14.dp))
                         }
                         Text(
                             s.bestFinish?.toString() ?: "—", fontSize = 13.sp, color = TextSecondary
@@ -306,8 +307,8 @@ fun LeagueDetailScreen(
         // ════════════════════════════════════
         SectionCard(
             title = "Таблица очков",
-            icon = Icons.Default.Tag,
-            iconTint = Accent,
+            icon = Icons.Outlined.Tag,
+            iconTint = TextMuted,
             modifier = Modifier.graphicsLayer { alpha = sec2Alpha; translationY = sec2Offset }
         ) {
             Row(
@@ -354,8 +355,8 @@ fun LeagueDetailScreen(
         // ════════════════════════════════════
         SectionCard(
             title = "Этапы",
-            icon = Icons.Default.CalendarMonth,
-            iconTint = ILeaderColors.Info,
+            icon = Icons.Outlined.CalendarMonth,
+            iconTint = TextMuted,
             modifier = Modifier.graphicsLayer { alpha = sec3Alpha; translationY = sec3Offset }
         ) {
             mockStages.forEachIndexed { index, stage ->
@@ -412,7 +413,7 @@ fun LeagueDetailScreen(
                     stage.tournamentName?.let {
                         Spacer(Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                            Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(13.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(it, fontSize = 12.sp, color = TextMuted)
                         }
@@ -420,7 +421,7 @@ fun LeagueDetailScreen(
                     stage.date?.let {
                         Spacer(Modifier.height(2.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CalendarMonth, null, tint = if (isNext) Accent else TextMuted, modifier = Modifier.size(13.dp))
+                            Icon(Icons.Outlined.CalendarMonth, null, tint = if (isNext) Accent else TextMuted, modifier = Modifier.size(13.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(it, fontSize = 12.sp, color = if (isNext) Accent else TextMuted,
                                 fontWeight = if (isNext) FontWeight.SemiBold else FontWeight.Normal)
@@ -515,7 +516,7 @@ private fun Pill(label: String, textColor: Color, bgColor: Color) {
 @Composable
 private fun StatLabel(icon: ImageVector, value: String, label: String, onImage: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = Accent, modifier = Modifier.size(16.dp))
+        Icon(icon, null, tint = if (onImage) Color.White.copy(0.7f) else TextMuted, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (onImage) Color.White else TextPrimary)
         Spacer(Modifier.width(3.dp))
