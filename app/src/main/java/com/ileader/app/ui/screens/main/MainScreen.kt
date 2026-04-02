@@ -232,22 +232,6 @@ private fun BottomBarItem(
                         tint = pillContentColor
                     )
                 }
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = fadeIn(tween(200)) + expandHorizontally(tween(250)),
-                    exit = fadeOut(tween(150)) + shrinkHorizontally(tween(200))
-                ) {
-                    Row {
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = item.shortLabel,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = pillContentColor,
-                            maxLines = 1
-                        )
-                    }
-                }
             }
         }
 

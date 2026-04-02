@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -121,20 +122,20 @@ fun sportColor(sportName: String): Color = when (sportName.lowercase().trim()) {
 }
 
 fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
-    "картинг", "karting"                     -> Icons.Default.DirectionsCar
-    "стрельба", "shooting"                   -> Icons.Default.GpsFixed
-    "теннис", "tennis"                       -> Icons.Default.SportsTennis
-    "футбол", "football", "soccer"           -> Icons.Default.SportsSoccer
-    "бокс", "boxing"                         -> Icons.Default.SportsMartialArts
-    "плавание", "swimming"                   -> Icons.Default.Pool
+    "картинг", "karting"                     -> Icons.Outlined.DirectionsCar
+    "стрельба", "shooting"                   -> Icons.Outlined.GpsFixed
+    "теннис", "tennis"                       -> Icons.Outlined.SportsTennis
+    "футбол", "football", "soccer"           -> Icons.Outlined.SportsSoccer
+    "бокс", "boxing"                         -> Icons.Outlined.SportsMartialArts
+    "плавание", "swimming"                   -> Icons.Outlined.Pool
     "лёгкая атлетика", "легкая атлетика",
-    "athletics", "track and field"           -> Icons.Default.DirectionsRun
-    "гребля", "rowing"                       -> Icons.Default.Rowing
+    "athletics", "track and field"           -> Icons.Outlined.DirectionsRun
+    "гребля", "rowing"                       -> Icons.Outlined.Rowing
     "рыболовство", "sportivnoe-rybolovstvo",
-    "спортивное рыболовство"                 -> Icons.Default.Water
+    "спортивное рыболовство"                 -> Icons.Outlined.Water
     "страйкбол", "страйк бол", "strayk-bol",
-    "airsoft"                                -> Icons.Default.Adjust
-    else                                     -> Icons.Default.EmojiEvents
+    "airsoft"                                -> Icons.Outlined.Adjust
+    else                                     -> Icons.Outlined.EmojiEvents
 }
 
 // CARDS

@@ -172,12 +172,11 @@ fun ProfileScreen(
                                 userSports.forEach { sport ->
                                     val name = sport.sports?.name ?: ""
                                     val emoji = sportEmoji(name)
-                                    val color = sportColor(name)
-                                    Surface(shape = RoundedCornerShape(50), color = color.copy(0.1f)) {
+                                    Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
                                         Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                             Text(emoji, fontSize = 14.sp)
                                             Spacer(Modifier.width(6.dp))
-                                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+                                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
                                         }
                                     }
                                 }
@@ -607,12 +606,10 @@ private fun ResultCard(r: ResultDto) {
 private fun SportRatingCard(stat: UserSportStatsDto) {
     val isDark = DarkTheme.isDark
     val name = stat.sportName ?: ""
-    val color = sportColor(name)
-
     Surface(Modifier.width(160.dp), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(0.12f)), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
                     Text(sportEmoji(name), fontSize = 18.sp)
                 }
                 Spacer(Modifier.width(10.dp))
@@ -643,7 +640,7 @@ private fun TeamCard(membership: TeamMembershipDto) {
 
     Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(sportColor(sportName).copy(0.1f)), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
                 Text(sportEmoji(sportName), fontSize = 24.sp)
             }
             Spacer(Modifier.width(14.dp))

@@ -183,12 +183,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                     data.sports.forEach { sport ->
                         val name = sport.sports?.name ?: ""
                         val emoji = sportEmoji(name)
-                        val color = sportColor(name)
-                        Surface(shape = RoundedCornerShape(50), color = color.copy(0.1f)) {
+                        Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
                             Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(emoji, fontSize = 14.sp)
                                 Spacer(Modifier.width(6.dp))
-                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = color)
+                                Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
                             }
                         }
                     }
@@ -245,7 +244,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                             ) {
                                 Box(
                                     Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                                        .background(sportColor(name).copy(0.1f)),
+                                        .background(TextMuted.copy(0.08f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(sportEmoji(name), fontSize = 18.sp)
@@ -335,7 +334,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                             val sportName = m.teams?.sports?.name ?: ""
                             Box(
                                 Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                                    .background(sportColor(sportName).copy(0.1f)),
+                                    .background(TextMuted.copy(0.08f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(sportEmoji(sportName), fontSize = 22.sp)
