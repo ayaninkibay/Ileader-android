@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -369,33 +370,74 @@ private fun TournamentContent(
                         icon = Icons.Default.CalendarMonth,
                         label = "Дата",
                         value = formatDateShort(tournament.startDate),
-                        modifier = Modifier.width(100.dp)
+                        modifier = Modifier.width(110.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.LocationOn,
                         label = "Место",
                         value = tournament.locations?.name ?: "—",
-                        modifier = Modifier.width(100.dp)
+                        modifier = Modifier.width(110.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.People,
                         label = "Участники",
                         value = "${data.participants.size}/${tournament.maxParticipants ?: "∞"}",
-                        modifier = Modifier.width(100.dp)
+                        modifier = Modifier.width(110.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.EmojiEvents,
                         label = "Приз",
                         value = if (!tournament.prize.isNullOrEmpty()) tournament.prize else "—",
-                        modifier = Modifier.width(100.dp)
+                        modifier = Modifier.width(110.dp)
                     )
                     QuickInfoCard(
                         icon = Icons.Default.AccountTree,
                         label = "Формат",
                         value = formatShortLabel(tournament.format),
-                        modifier = Modifier.width(100.dp)
+                        modifier = Modifier.width(110.dp)
                     )
+                    tournament.entryFee?.let { fee ->
+                        if (fee > 0) {
+                            QuickInfoCard(
+                                icon = Icons.Default.CreditCard,
+                                label = "Взнос",
+                                value = "${fee.toInt()} ₸",
+                                modifier = Modifier.width(110.dp)
+                            )
+                        }
+                    }
                 }
+            }
+
+            // ── Organizer Info Card ──
+            tournament.profiles?.name?.let { orgName ->
+                FadeIn(visible = started, delayMs = 200) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = CardBg,
+                        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    ) {
+                        Row(
+                            Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(44.dp).background(accentColor.copy(0.1f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Business, null, tint = accentColor, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("Организатор", fontSize = 11.sp, color = TextMuted)
+                                Text(orgName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            }
+                            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
             }
 
             // ── Description ──
@@ -538,102 +580,89 @@ private fun TournamentContent(
 @Composable
 private fun ParticipantsSection(participants: List<ParticipantDto>, onProfileClick: (String) -> Unit = {}) {
     SectionCard(title = "Участники (${participants.size})") {
-        participants.take(10).forEach { p ->
+        participants.take(12).forEachIndexed { idx, p ->
+            val avatarUrl = p.profiles?.avatarUrl
+            val name = p.profiles?.name ?: "—"
+
+            if (idx > 0) HorizontalDivider(
+                thickness = 0.5.dp,
+                color = com.ileader.app.ui.theme.LocalAppColors.current.border.copy(0.15f),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .clickable { p.athleteId?.let { onProfileClick(it) } }
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 6.dp)
             ) {
                 // Avatar
-                val avatarUrl = p.profiles?.avatarUrl
-                val name = p.profiles?.name ?: "—"
                 if (avatarUrl != null) {
                     AsyncImage(
-                        model = avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape),
+                        model = avatarUrl, contentDescription = null,
+                        modifier = Modifier.size(36.dp).clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(AccentSoft),
+                        modifier = Modifier.size(36.dp).clip(CircleShape).background(AccentSoft),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = name.take(1).uppercase(),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Accent
-                        )
+                        Text(name.take(1).uppercase(), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent)
                     }
                 }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
 
+                // Seed badge
                 p.seed?.let { seed ->
-                    Text(
-                        text = "#$seed",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Accent,
-                        modifier = Modifier.width(32.dp)
-                    )
+                    Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(0.1f)) {
+                        Text("#$seed", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
+                    }
+                    Spacer(Modifier.width(8.dp))
                 }
-                Text(
-                    text = name,
-                    fontSize = 14.sp,
-                    color = TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
+
+                // Name + city
+                Column(Modifier.weight(1f)) {
+                    Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                    p.profiles?.city?.let { city ->
+                        Text(city, fontSize = 12.sp, color = TextMuted)
+                    }
+                }
 
                 // Status badge
                 val status = p.status
-                if (status != null && status != "registered") {
+                if (status != null && status != "registered" && status != "confirmed") {
                     val (statusLabel, statusColor) = when (status) {
                         "pending" -> "Ожидание" to Color(0xFFF59E0B)
-                        "checked_in" -> "Check-in" to Color(0xFF22C55E)
+                        "checked_in" -> "Check-in ✓" to Color(0xFF22C55E)
                         "declined" -> "Отклонён" to Color(0xFFEF4444)
                         "withdrawn" -> "Снялся" to Color(0xFF6B7280)
                         else -> status to TextMuted
                     }
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = statusColor.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            fontSize = 10.sp,
-                            color = statusColor,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.12f)) {
+                        Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            fontSize = 11.sp, color = statusColor, fontWeight = FontWeight.SemiBold)
                     }
-                    Spacer(Modifier.width(6.dp))
-                }
-
-                p.profiles?.city?.let { city ->
-                    Text(
-                        text = city,
-                        fontSize = 12.sp,
-                        color = TextMuted
-                    )
                 }
             }
         }
-        if (participants.size > 10) {
-            Text(
-                text = "и ещё ${participants.size - 10}...",
-                fontSize = 12.sp,
-                color = TextMuted,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+        if (participants.size > 12) {
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Accent.copy(0.08f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Ещё ${participants.size - 12} участников",
+                    Modifier.padding(vertical = 10.dp).fillMaxWidth(),
+                    fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Accent,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     }
 }
@@ -948,21 +977,37 @@ private fun QuickInfoCard(
     value: String,
     modifier: Modifier = Modifier
 ) {
-    DarkCard(modifier = modifier) {
+    val isDark = DarkTheme.isDark
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = CardBg,
+        shadowElevation = if (isDark) 0.dp else 2.dp,
+        border = if (isDark) androidx.compose.foundation.BorderStroke(
+            1.dp, com.ileader.app.ui.theme.LocalAppColors.current.border.copy(0.2f)
+        ) else null
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(icon, contentDescription = label, tint = Accent, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(text = label, fontSize = 10.sp, color = TextMuted)
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Accent.copy(alpha = 0.1f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = label, tint = Accent, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(text = label, fontSize = 11.sp, color = TextMuted)
             Spacer(Modifier.height(2.dp))
             Text(
                 text = value,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1055,11 +1100,11 @@ private fun LocationSection(location: LocationDto) {
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
         }
 
         // Name + rating
