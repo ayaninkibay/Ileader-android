@@ -18,7 +18,8 @@ data class HomeState(
     val sports: List<SportDto> = emptyList(),
     val news: UiState<List<ArticleDto>> = UiState.Loading,
     val tournaments: UiState<List<TournamentWithCountsDto>> = UiState.Loading,
-    val people: UiState<List<CommunityProfileDto>> = UiState.Loading
+    val people: UiState<List<CommunityProfileDto>> = UiState.Loading,
+    val selectedSportSlug: String? = null
 )
 
 class HomeViewModel : ViewModel() {
@@ -26,6 +27,11 @@ class HomeViewModel : ViewModel() {
 
     var state by mutableStateOf(HomeState())
         private set
+
+    // Full unfiltered lists
+    private var allTournaments: List<TournamentWithCountsDto> = emptyList()
+    private var allNews: List<ArticleDto> = emptyList()
+    private var allPeople: List<CommunityProfileDto> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -47,40 +53,60 @@ class HomeViewModel : ViewModel() {
             }
 
             val newsDeferred = async {
-                try {
-                    UiState.Success(repo.getRecentArticles(5))
-                } catch (e: Exception) {
-                    UiState.Error(e.message ?: "Ошибка загрузки новостей")
-                }
+                try { repo.getRecentArticles(20) }
+                catch (_: Exception) { emptyList() }
             }
 
             val tournamentsDeferred = async {
-                try {
-                    val all = repo.getUpcomingTournaments(10)
-                    val filtered = if (sportIds.isNotEmpty()) {
-                        all.filter { it.sportId in sportIds }
-                    } else all
-                    UiState.Success(filtered)
-                } catch (e: Exception) {
-                    UiState.Error(e.message ?: "Ошибка загрузки турниров")
-                }
+                try { repo.getUpcomingTournaments(20) }
+                catch (_: Exception) { emptyList() }
             }
 
             val peopleDeferred = async {
-                try {
-                    val athletes = repo.getAthletes()
-                    UiState.Success(athletes.take(10))
-                } catch (e: Exception) {
-                    UiState.Error(e.message ?: "Ошибка загрузки людей")
-                }
+                try { repo.getAthletes().take(20) }
+                catch (_: Exception) { emptyList() }
             }
 
+            val sports = sportsDeferred.await()
+            allTournaments = tournamentsDeferred.await()
+            allNews = newsDeferred.await()
+            allPeople = peopleDeferred.await()
+
             state = HomeState(
-                sports = sportsDeferred.await(),
-                news = newsDeferred.await(),
-                tournaments = tournamentsDeferred.await(),
-                people = peopleDeferred.await()
+                sports = sports,
+                news = UiState.Success(allNews),
+                tournaments = UiState.Success(allTournaments),
+                people = UiState.Success(allPeople)
             )
         }
+    }
+
+    fun filterBySport(slug: String?) {
+        state = state.copy(selectedSportSlug = slug)
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val slug = state.selectedSportSlug
+        val sportId = if (slug != null) {
+            state.sports.find { (it.slug ?: it.name.lowercase()) == slug }?.id
+        } else null
+
+        val filteredTournaments = if (sportId == null) allTournaments
+            else allTournaments.filter { it.sportId == sportId }
+
+        val filteredNews = if (sportId == null) allNews
+            else allNews.filter { it.sportId == sportId }
+
+        val filteredPeople = if (sportId == null) allPeople
+            else allPeople.filter { p ->
+                p.userSports?.any { it.sports?.id == sportId } == true
+            }
+
+        state = state.copy(
+            tournaments = UiState.Success(filteredTournaments),
+            news = UiState.Success(filteredNews),
+            people = UiState.Success(filteredPeople)
+        )
     }
 }

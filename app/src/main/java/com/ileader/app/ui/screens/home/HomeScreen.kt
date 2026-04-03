@@ -152,11 +152,10 @@ fun HomeScreen(
                     )
                 }
             }
-            var selectedSport by remember { mutableStateOf<String?>(null) }
             SportCirclesRow(
                 sports = sportsList,
-                selectedId = selectedSport,
-                onSelect = { selectedSport = it }
+                selectedId = state.selectedSportSlug,
+                onSelect = { viewModel.filterBySport(it) }
             )
             
         }
