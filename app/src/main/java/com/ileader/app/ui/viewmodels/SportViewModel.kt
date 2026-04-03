@@ -223,9 +223,13 @@ class SportViewModel : ViewModel() {
     // ── Data classes ──
 
     fun toggleSport(index: Int) {
-        state.sports.getOrNull(index) ?: return
+        val sport = state.sports.getOrNull(index) ?: return
         val newSet = if (index in state.selectedIndices) emptySet() else setOf(index)
-        state = state.copy(selectedIndices = newSet)
+        val sportId = if (newSet.isEmpty()) null else sport.id
+        state = state.copy(
+            selectedIndices = newSet,
+            filters = state.filters.copy(sportId = sportId)
+        )
         applyClientFilters()
     }
 
