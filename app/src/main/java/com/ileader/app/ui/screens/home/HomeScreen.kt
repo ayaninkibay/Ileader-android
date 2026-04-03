@@ -56,6 +56,10 @@ fun HomeScreen(
     onTournamentClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
     onRankingsClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onAllNewsClick: () -> Unit = {},
+    onAllTournamentsClick: () -> Unit = {},
+    onAllPeopleClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -112,7 +116,8 @@ fun HomeScreen(
                                 1.dp,
                                 Border.copy(alpha = 0.3f),
                                 CircleShape
-                            ),
+                            )
+                            .clickable { onNotificationsClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -136,7 +141,7 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(20.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader(title = "Новости", action = "Все", onAction = {})
+                SectionHeader(title = "Новости", action = "Все", onAction = onAllNewsClick)
                 Spacer(Modifier.height(12.dp))
             }
             
@@ -157,7 +162,7 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(20.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader(title = "Ближайшие турниры", action = "Все", onAction = {})
+                SectionHeader(title = "Ближайшие турниры", action = "Все", onAction = onAllTournamentsClick)
                 Spacer(Modifier.height(12.dp))
             }
             
@@ -174,7 +179,7 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(24.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader(title = "Сообщество", action = "Все", onAction = {})
+                SectionHeader(title = "Сообщество", action = "Все", onAction = onAllPeopleClick)
                 Spacer(Modifier.height(12.dp))
             }
             
@@ -476,11 +481,7 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 t.sportName?.let { sport ->
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(sportIcon(sport), null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                        Spacer(Modifier.width(3.dp))
-                                        Text(sport, fontSize = 12.sp, color = TextMuted)
-                                    }
+                                    SportTag(sport)
                                 }
                                 t.locationName?.let { loc ->
                                     Text("· $loc", fontSize = 12.sp, color = TextMuted, maxLines = 1)
@@ -799,23 +800,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         tournament.sportName?.let { sport ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.Black.copy(alpha = 0.4f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        sportIcon(sport), null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(sport, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
-                                }
-                            }
+                            SportTag(sport, onImage = true)
                         }
                         tournament.status?.let { status ->
                             if (status == "in_progress") {
@@ -861,19 +846,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         tournament.sportName?.let { sport ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = TextMuted.copy(alpha = 0.15f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(sportIcon(sport), null, tint = TextSecondary, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(sport, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
-                                }
-                            }
+                            SportTag(sport)
                         }
                         Spacer(Modifier.weight(1f))
                         tournament.status?.let { status ->

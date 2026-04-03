@@ -13,6 +13,7 @@ sealed class HomeNavState {
     data class TournamentDetail(val id: String) : HomeNavState()
     data class PublicProfile(val id: String) : HomeNavState()
     object Rankings : HomeNavState()
+    object Notifications : HomeNavState()
 }
 
 @Composable
@@ -25,7 +26,11 @@ fun HomeTab(user: User) {
             onArticleClick = { navState = HomeNavState.ArticleDetail(it) },
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) },
-            onRankingsClick = { navState = HomeNavState.Rankings }
+            onRankingsClick = { navState = HomeNavState.Rankings },
+            onNotificationsClick = { navState = HomeNavState.Notifications },
+            onAllNewsClick = { /* TODO: full news list */ },
+            onAllTournamentsClick = { /* TODO: full tournaments list */ },
+            onAllPeopleClick = { /* TODO: full people list */ }
         )
         is HomeNavState.ArticleDetail -> ArticleDetailScreen(
             articleId = state.id,
@@ -38,6 +43,10 @@ fun HomeTab(user: User) {
         )
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
+            onBack = { navState = HomeNavState.Home }
+        )
+        is HomeNavState.Notifications -> com.ileader.app.ui.screens.common.NotificationsScreen(
+            user = user,
             onBack = { navState = HomeNavState.Home }
         )
         is HomeNavState.Rankings -> RankingsScreen(
