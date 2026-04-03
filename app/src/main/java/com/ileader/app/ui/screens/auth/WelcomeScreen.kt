@@ -73,131 +73,22 @@ fun WelcomeScreen(
     val colors = LocalAppColors.current
     val isDark = colors.bg == DarkAppColors.bg
 
-    // ── Entrance animations ──
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
-
-    val logoAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 900, delayMillis = 300),
-        label = "logoAlpha"
-    )
-
-    val logoScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0.5f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "logoScale"
-    )
-
-    val titleOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 50f,
-        animationSpec = tween(durationMillis = 800, delayMillis = 500, easing = EaseOutBack),
-        label = "titleOffset"
-    )
-
-    val titleAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 700, delayMillis = 500),
-        label = "titleAlpha"
-    )
-
-    val subtitleAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 600, delayMillis = 700),
-        label = "subtitleAlpha"
-    )
-
-    val statsAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 600, delayMillis = 900),
-        label = "statsAlpha"
-    )
-
-    val statsOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 30f,
-        animationSpec = tween(durationMillis = 700, delayMillis = 900, easing = FastOutSlowInEasing),
-        label = "statsOffset"
-    )
-
-    val buttonsAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(durationMillis = 600, delayMillis = 1100),
-        label = "buttonsAlpha"
-    )
-
-    val buttonsOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 40f,
-        animationSpec = tween(durationMillis = 700, delayMillis = 1100, easing = FastOutSlowInEasing),
-        label = "buttonsOffset"
-    )
-
-    // ── Infinite animations ──
-    val infiniteTransition = rememberInfiniteTransition(label = "welcome")
-
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.45f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
-
-    val orbitRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(25000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "orbitRotation"
-    )
-
-    val secondOrbitRotation by infiniteTransition.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(30000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "secondOrbit"
-    )
-
-    // Background gradient shift
-    val gradientOffset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(8000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "gradientOffset"
-    )
-
-    // Particle time
-    val particleTime by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "particleTime"
-    )
+    // Static values (animations removed)
+    val logoAlpha = 1f
+    val logoScale = 1f
+    val titleOffset = 0f
+    val titleAlpha = 1f
+    val subtitleAlpha = 1f
+    val statsAlpha = 1f
+    val statsOffset = 0f
+    val buttonsAlpha = 1f
+    val buttonsOffset = 0f
+    val pulseScale = 1f
+    val glowAlpha = 0.3f
+    val orbitRotation = 0f
+    val secondOrbitRotation = 0f
+    val gradientOffset = 0.5f
+    val particleTime = 0.5f
 
     val particles = remember { generateParticles(30) }
 

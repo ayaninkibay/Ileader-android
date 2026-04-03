@@ -79,9 +79,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     val profile = data.profile
     val user = profile.toDomain()
 
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
-
     val isDark = DarkTheme.isDark
     val primarySportName = data.sports.firstOrNull()?.sports?.name ?: "картинг"
     val sColor = sportColor(primarySportName)
@@ -211,11 +208,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры", started)
+                    AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы", started)
+                    AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг", started)
+                    AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг")
                 }
             }
             
@@ -364,15 +361,11 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
 // ══════════════════════════════════════════
 
 @Composable
-private fun AnimStat(icon: ImageVector, target: Int, label: String, started: Boolean) {
-    val v by animateFloatAsState(
-        if (started) target.toFloat() else 0f,
-        tween(800, 300, FastOutSlowInEasing), label = "ps_$label"
-    )
+private fun AnimStat(icon: ImageVector, target: Int, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = TextMuted, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(4.dp))
-        Text("${v.roundToInt()}", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+        Text("$target", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(label, fontSize = 11.sp, color = TextMuted)
     }
 }

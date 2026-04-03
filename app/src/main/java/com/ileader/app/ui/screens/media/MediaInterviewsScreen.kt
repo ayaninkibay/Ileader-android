@@ -64,10 +64,8 @@ fun MediaInterviewsScreen(
 
     val snackbar = LocalSnackbarHost.current
 
-    var started by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) {
         vm.loadInterviews(user.id)
-        started = true
     }
 
     LaunchedEffect(actionState) {

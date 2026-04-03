@@ -57,60 +57,15 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    // ── Entrance animations ──
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
-
-    val backAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(400, delayMillis = 100),
-        label = "backAlpha"
-    )
-
-    val headerAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 200),
-        label = "headerAlpha"
-    )
-    val headerOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 30f,
-        animationSpec = tween(600, delayMillis = 200, easing = EaseOutBack),
-        label = "headerOffset"
-    )
-
-    val formAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 400),
-        label = "formAlpha"
-    )
-    val formOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 40f,
-        animationSpec = tween(600, delayMillis = 400, easing = FastOutSlowInEasing),
-        label = "formOffset"
-    )
-
-    val demoAlpha by animateFloatAsState(
-        targetValue = if (started) 1f else 0f,
-        animationSpec = tween(500, delayMillis = 600),
-        label = "demoAlpha"
-    )
-    val demoOffset by animateFloatAsState(
-        targetValue = if (started) 0f else 30f,
-        animationSpec = tween(600, delayMillis = 600, easing = FastOutSlowInEasing),
-        label = "demoOffset"
-    )
-
-    // ── Background glow ──
-    val infiniteTransition = rememberInfiniteTransition(label = "loginBg")
-    val glowShift by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowShift"
-    )
+    // Static values (animations removed)
+    val backAlpha = 1f
+    val headerAlpha = 1f
+    val headerOffset = 0f
+    val formAlpha = 1f
+    val formOffset = 0f
+    val demoAlpha = 1f
+    val demoOffset = 0f
+    val glowShift = 0.5f
 
     Box(
         modifier = Modifier.fillMaxSize()

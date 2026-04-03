@@ -76,11 +76,9 @@ fun MediaAccreditationsScreen(
 
     val snackbar = LocalSnackbarHost.current
 
-    var started by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) {
         vm.loadAccreditations(user.id)
         vm.loadUpcomingTournaments()
-        started = true
     }
 
     // Handle action results

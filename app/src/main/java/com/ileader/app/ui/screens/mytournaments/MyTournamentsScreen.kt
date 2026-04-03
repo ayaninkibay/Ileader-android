@@ -78,8 +78,6 @@ fun MyTournamentsScreen(
     val favoritesPref = remember { com.ileader.app.data.preferences.FavoritesPreference(context) }
     val favoriteIds by favoritesPref.favoriteTournamentIds.collectAsState(initial = emptyList())
 
-    @Suppress("UNUSED_VALUE")
-    var started by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(Tab.MY) }
     var selectedFilter by remember { mutableStateOf(Filter.ALL) }
 
@@ -87,7 +85,6 @@ fun MyTournamentsScreen(
 
     LaunchedEffect(user.id) {
         vm.load(user.id, user.role)
-        started = true
     }
 
     LaunchedEffect(favoriteIds) {
