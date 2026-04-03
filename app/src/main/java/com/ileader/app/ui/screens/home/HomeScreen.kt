@@ -1,6 +1,5 @@
 package com.ileader.app.ui.screens.home
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,12 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,12 +58,8 @@ fun HomeScreen(
     onRankingsClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val sportPref = remember { SportPreference(context) }
-    val sportIds by sportPref.selectedSportIds.collectAsState(initial = emptyList())
-
-    LaunchedEffect(sportIds) {
-        viewModel.load(sportIds)
+    LaunchedEffect(Unit) {
+        viewModel.load()
     }
 
     val state = viewModel.state
@@ -140,25 +131,6 @@ fun HomeScreen(
             }
         }
 
-        // ── Sport Circles ──
-        item {
-            Spacer(Modifier.height(16.dp))
-            val sportsList = remember(state.sports) {
-                state.sports.map { sport ->
-                    Triple(
-                        sport.slug ?: sport.name.lowercase(),
-                        sport.name,
-                        sportEmoji(sport.name)
-                    )
-                }
-            }
-            SportCirclesRow(
-                sports = sportsList,
-                selectedId = state.selectedSportSlug,
-                onSelect = { viewModel.filterBySport(it) }
-            )
-            
-        }
 
         // ── Новости (overlay card style) ──
         item {
@@ -642,33 +614,10 @@ private fun NewsContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     itemsIndexed(state.data, key = { _, it -> it.id }) { index, article ->
-                        val delay = (index * 60).coerceAtMost(400)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(400),
-                            label = "newsItemAlpha"
+                        NewsCardOverlay(
+                            article = article,
+                            onClick = { onArticleClick(article.id) }
                         )
-                        val itemOffset by animateFloatAsState(
-                            targetValue = if (itemVisible) 0f else 40f,
-                            animationSpec = tween(400, easing = EaseOutBack),
-                            label = "newsItemOffset"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                translationY = itemOffset
-                            }
-                        ) {
-                            NewsCardOverlay(
-                                article = article,
-                                onClick = { onArticleClick(article.id) }
-                            )
-                        }
                     }
                 }
             }
@@ -678,25 +627,13 @@ private fun NewsContent(
 
 @Composable
 private fun NewsCardOverlay(article: ArticleDto, onClick: () -> Unit) {
-    var isPressed by remember { mutableStateOf(false) }
-    val pressScale by animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        tween(100), label = "newsPress"
-    )
-
     // Overlay-style card: image fills the whole card, text on top
     Box(
         modifier = Modifier
             .width(180.dp)
             .height(200.dp)
-            .scale(pressScale)
             .clip(RoundedCornerShape(16.dp))
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                    onTap = { onClick() }
-                )
-            }
+            .clickable { onClick() }
     ) {
         // Background image
         AsyncImage(
@@ -798,33 +735,10 @@ private fun TournamentsContent(
                     itemsIndexed(
                         state.data,
                         key = { _, it -> it.id }) { index, tournament ->
-                        val delay = (index * 60).coerceAtMost(400)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(400),
-                            label = "tournamentItemAlpha"
+                        TournamentCard(
+                            tournament = tournament,
+                            onClick = { onTournamentClick(tournament.id) }
                         )
-                        val itemOffset by animateFloatAsState(
-                            targetValue = if (itemVisible) 0f else 40f,
-                            animationSpec = tween(400, easing = EaseOutBack),
-                            label = "tournamentItemOffset"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                translationY = itemOffset
-                            }
-                        ) {
-                            TournamentCard(
-                                tournament = tournament,
-                                onClick = { onTournamentClick(tournament.id) }
-                            )
-                        }
                     }
                 }
             }
@@ -836,16 +750,10 @@ private fun TournamentsContent(
 private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> Unit) {
     val colors = LocalAppColors.current
     val isDark = DarkTheme.isDark
-    var isPressed by remember { mutableStateOf(false) }
-    val pressScale by animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        tween(100), label = "tournPress"
-    )
 
     Surface(
         modifier = Modifier
-            .width(260.dp)
-            .scale(pressScale),
+            .width(260.dp),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
@@ -853,14 +761,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
         shadowElevation = if (isDark) 0.dp else 4.dp
     ) {
         Column(
-            modifier = Modifier.pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true; tryAwaitRelease(); isPressed = false
-                    },
-                    onTap = { onClick() }
-                )
-            }
+            modifier = Modifier.clickable { onClick() }
         ) {
             // Cover image
             if (tournament.imageUrl != null) {
@@ -1080,34 +981,10 @@ private fun PeopleContent(
                     itemsIndexed(
                         state.data,
                         key = { _, it -> it.id }) { index, profile ->
-                        val delay = (index * 60).coerceAtMost(400)
-                        var itemVisible by remember { mutableStateOf(false) }
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(delay.toLong())
-                            itemVisible = true
-                        }
-                        val itemAlpha by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0f,
-                            animationSpec = tween(400),
-                            label = "personItemAlpha"
+                        PersonCard(
+                            profile = profile,
+                            onClick = { onProfileClick(profile.id) }
                         )
-                        val itemScale by animateFloatAsState(
-                            targetValue = if (itemVisible) 1f else 0.8f,
-                            animationSpec = tween(400, easing = EaseOutBack),
-                            label = "personItemScale"
-                        )
-                        Box(
-                            modifier = Modifier.graphicsLayer {
-                                alpha = itemAlpha
-                                scaleX = itemScale
-                                scaleY = itemScale
-                            }
-                        ) {
-                            PersonCard(
-                                profile = profile,
-                                onClick = { onProfileClick(profile.id) }
-                            )
-                        }
                     }
                 }
             }

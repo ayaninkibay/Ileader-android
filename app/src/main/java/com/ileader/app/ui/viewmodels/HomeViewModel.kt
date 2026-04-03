@@ -18,8 +18,7 @@ data class HomeState(
     val sports: List<SportDto> = emptyList(),
     val news: UiState<List<ArticleDto>> = UiState.Loading,
     val tournaments: UiState<List<TournamentWithCountsDto>> = UiState.Loading,
-    val people: UiState<List<CommunityProfileDto>> = UiState.Loading,
-    val selectedSportSlug: String? = null
+    val people: UiState<List<CommunityProfileDto>> = UiState.Loading
 )
 
 class HomeViewModel : ViewModel() {
@@ -27,10 +26,6 @@ class HomeViewModel : ViewModel() {
 
     var state by mutableStateOf(HomeState())
         private set
-
-    private var allTournaments: List<TournamentWithCountsDto> = emptyList()
-    private var allNews: List<ArticleDto> = emptyList()
-    private var allPeople: List<CommunityProfileDto> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -41,17 +36,9 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    fun load(sportIds: List<String> = emptyList()) {
+    fun load() {
         viewModelScope.launch {
             val currentSports = state.sports
-            val currentSlug = state.selectedSportSlug
-
-            // Keep selectedSportSlug — don't reset
-            state = state.copy(
-                news = UiState.Loading,
-                tournaments = UiState.Loading,
-                people = UiState.Loading
-            )
 
             val sportsDeferred = async {
                 if (currentSports.isNotEmpty()) currentSports
@@ -59,88 +46,26 @@ class HomeViewModel : ViewModel() {
             }
 
             val newsDeferred = async {
-                try { repo.getRecentArticles(20) }
-                catch (_: Exception) { emptyList() }
+                try { UiState.Success(repo.getRecentArticles(10)) }
+                catch (e: Exception) { UiState.Error(e.message ?: "Ошибка") }
             }
 
             val tournamentsDeferred = async {
-                try { repo.getUpcomingTournaments(20) }
-                catch (_: Exception) { emptyList() }
+                try { UiState.Success(repo.getUpcomingTournaments(10)) }
+                catch (e: Exception) { UiState.Error(e.message ?: "Ошибка") }
             }
 
             val peopleDeferred = async {
-                try { repo.getAthletes().take(20) }
-                catch (_: Exception) { emptyList() }
+                try { UiState.Success(repo.getAthletes().take(10)) }
+                catch (e: Exception) { UiState.Error(e.message ?: "Ошибка") }
             }
 
-            val sports = sportsDeferred.await()
-            allTournaments = tournamentsDeferred.await()
-            allNews = newsDeferred.await()
-            allPeople = peopleDeferred.await()
-
-            state = state.copy(
-                sports = sports,
-                news = UiState.Success(allNews),
-                tournaments = UiState.Success(allTournaments),
-                people = UiState.Success(allPeople),
-                selectedSportSlug = currentSlug
+            state = HomeState(
+                sports = sportsDeferred.await(),
+                news = newsDeferred.await(),
+                tournaments = tournamentsDeferred.await(),
+                people = peopleDeferred.await()
             )
-
-            // Re-apply filter if one was selected
-            if (currentSlug != null) {
-                applyFilter()
-            }
         }
-    }
-
-    fun filterBySport(slug: String?) {
-        state = state.copy(selectedSportSlug = slug)
-        applyFilter()
-    }
-
-    private fun applyFilter() {
-        val slug = state.selectedSportSlug
-
-        if (slug == null) {
-            // Show all
-            state = state.copy(
-                tournaments = UiState.Success(allTournaments),
-                news = UiState.Success(allNews),
-                people = UiState.Success(allPeople)
-            )
-            return
-        }
-
-        // Find sportId by slug (check both slug field and lowercased name)
-        val sportId = state.sports.find {
-            (it.slug ?: it.name.lowercase()) == slug || it.name.lowercase() == slug
-        }?.id
-
-        if (sportId == null) {
-            // Slug not found — show all
-            state = state.copy(
-                tournaments = UiState.Success(allTournaments),
-                news = UiState.Success(allNews),
-                people = UiState.Success(allPeople)
-            )
-            return
-        }
-
-        val filteredTournaments = allTournaments.filter { it.sportId == sportId }
-
-        val filteredNews = allNews.filter { it.sportId == sportId }
-
-        // People: show those with matching sport OR all if userSports is null/empty
-        val filteredPeople = allPeople.filter { p ->
-            val sports = p.userSports
-            if (sports.isNullOrEmpty()) false
-            else sports.any { it.sports?.id == sportId }
-        }
-
-        state = state.copy(
-            tournaments = UiState.Success(filteredTournaments),
-            news = UiState.Success(filteredNews),
-            people = UiState.Success(filteredPeople)
-        )
     }
 }
