@@ -9,6 +9,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.CommunityProfileDto
 import com.ileader.app.data.remote.dto.SportDto
+import com.ileader.app.data.remote.dto.TeamWithStatsDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.async
@@ -23,17 +24,14 @@ class SportViewModel : ViewModel() {
 
     // Full loaded lists (before client-side filtering)
     private var allTournaments: List<TournamentWithCountsDto> = emptyList()
-    private var allPeople: List<CommunityProfileDto> = emptyList()
+    private var allAthletes: List<CommunityProfileDto> = emptyList()
+    private var allTrainers: List<CommunityProfileDto> = emptyList()
+    private var allReferees: List<CommunityProfileDto> = emptyList()
     private var allNews: List<ArticleDto> = emptyList()
-
-    // Track which role each person belongs to
-    private var athleteIds: Set<String> = emptySet()
-    private var trainerIds: Set<String> = emptySet()
-    private var refereeIds: Set<String> = emptySet()
+    private var allTeams: List<TeamWithStatsDto> = emptyList()
 
     // Pagination offsets
     private var tournamentOffset = 0
-    private var peopleOffset = 0
     private var newsOffset = 0
 
     init {
@@ -49,6 +47,7 @@ class SportViewModel : ViewModel() {
                 val trainersDeferred = async { repo.getTrainers() }
                 val refereesDeferred = async { repo.getReferees() }
                 val articlesDeferred = async { repo.getPublishedArticles(PAGE_SIZE) }
+                val teamsDeferred = async { repo.getTeams() }
 
                 val sports = sportsDeferred.await()
                 val tournaments = tournamentsDeferred.await()
@@ -56,36 +55,38 @@ class SportViewModel : ViewModel() {
                 val trainers = trainersDeferred.await()
                 val referees = refereesDeferred.await()
                 val articles = articlesDeferred.await()
-
-                athleteIds = athletes.map { it.id }.toSet()
-                trainerIds = trainers.map { it.id }.toSet()
-                refereeIds = referees.map { it.id }.toSet()
-
-                val people = (athletes + trainers + referees).distinctBy { it.id }
+                val teams = teamsDeferred.await()
 
                 allTournaments = tournaments
-                allPeople = people
+                allAthletes = athletes
+                allTrainers = trainers
+                allReferees = referees
                 allNews = articles
+                allTeams = teams
 
                 tournamentOffset = tournaments.size
-                peopleOffset = people.size
                 newsOffset = articles.size
 
                 state = state.copy(
                     sports = sports,
                     tournaments = UiState.Success(tournaments),
-                    people = UiState.Success(people),
+                    athletes = UiState.Success(athletes),
+                    trainers = UiState.Success(trainers),
+                    referees = UiState.Success(referees),
                     news = UiState.Success(articles),
+                    teams = UiState.Success(teams),
                     hasMoreTournaments = false,
-                    hasMorePeople = false,
                     hasMoreNews = articles.size >= PAGE_SIZE
                 )
             } catch (e: Exception) {
                 val msg = e.message ?: "Ошибка загрузки"
                 state = state.copy(
                     tournaments = UiState.Error(msg),
-                    people = UiState.Error(msg),
-                    news = UiState.Error(msg)
+                    athletes = UiState.Error(msg),
+                    trainers = UiState.Error(msg),
+                    referees = UiState.Error(msg),
+                    news = UiState.Error(msg),
+                    teams = UiState.Error(msg)
                 )
             }
         }
@@ -113,9 +114,8 @@ class SportViewModel : ViewModel() {
     fun loadMore() {
         when (state.activeTab) {
             SportSubTab.TOURNAMENTS -> loadMoreTournaments()
-            SportSubTab.PEOPLE -> loadMorePeople()
             SportSubTab.NEWS -> loadMoreNews()
-            SportSubTab.LEAGUES -> { /* mock data, no pagination */ }
+            else -> { /* no pagination for other tabs */ }
         }
     }
 
@@ -134,22 +134,6 @@ class SportViewModel : ViewModel() {
                     return@launch
                 }
                 state = state.copy(hasMoreTournaments = false)
-            } catch (_: Exception) { }
-        }
-    }
-
-    private fun loadMorePeople() {
-        viewModelScope.launch {
-            try {
-                val athletes = repo.getAthletes()
-                val trainers = repo.getTrainers()
-                val referees = repo.getReferees()
-                val all = (athletes + trainers + referees).distinctBy { it.id }
-                if (all.size <= peopleOffset) {
-                    state = state.copy(hasMorePeople = false)
-                    return@launch
-                }
-                state = state.copy(hasMorePeople = false)
             } catch (_: Exception) { }
         }
     }
@@ -177,6 +161,15 @@ class SportViewModel : ViewModel() {
         val query = state.searchQuery.trim()
         val filters = state.filters
 
+        fun matchesPerson(p: CommunityProfileDto): Boolean {
+            val matchesQuery = query.isEmpty() || (p.name?.contains(query, ignoreCase = true) == true)
+            val matchesSport = filters.sportId == null ||
+                    p.userSports?.any { it.sports?.id == filters.sportId } == true
+            val matchesCity = filters.city.isNullOrBlank() ||
+                    (p.city?.contains(filters.city, ignoreCase = true) == true)
+            return matchesQuery && matchesSport && matchesCity
+        }
+
         // Filter tournaments
         val filteredTournaments = allTournaments.filter { t ->
             val matchesQuery = query.isEmpty() || t.name.contains(query, ignoreCase = true)
@@ -189,21 +182,10 @@ class SportViewModel : ViewModel() {
             matchesQuery && matchesSport && matchesStatus && matchesCity && matchesAge
         }
 
-        // Filter people
-        val filteredPeople = allPeople.filter { p ->
-            val matchesQuery = query.isEmpty() || (p.name?.contains(query, ignoreCase = true) == true)
-            val matchesSport = filters.sportId == null ||
-                    p.userSports?.any { it.sports?.id == filters.sportId } == true
-            val matchesCity = filters.city.isNullOrBlank() ||
-                    (p.city?.contains(filters.city, ignoreCase = true) == true)
-            val matchesRole = filters.role == null || when (filters.role) {
-                "athlete" -> p.id in athleteIds
-                "trainer" -> p.id in trainerIds
-                "referee" -> p.id in refereeIds
-                else -> true
-            }
-            matchesQuery && matchesSport && matchesCity && matchesRole
-        }
+        // Filter each role separately
+        val filteredAthletes = allAthletes.filter { matchesPerson(it) }
+        val filteredTrainers = allTrainers.filter { matchesPerson(it) }
+        val filteredReferees = allReferees.filter { matchesPerson(it) }
 
         // Filter news
         val filteredNews = allNews.filter { a ->
@@ -213,10 +195,20 @@ class SportViewModel : ViewModel() {
             matchesQuery && matchesSport && matchesCategory
         }
 
+        // Filter teams
+        val filteredTeams = allTeams.filter { t ->
+            val matchesQuery = query.isEmpty() || t.name.contains(query, ignoreCase = true)
+            val matchesSport = filters.sportId == null || t.sportId == filters.sportId
+            matchesQuery && matchesSport
+        }
+
         state = state.copy(
             tournaments = UiState.Success(filteredTournaments),
-            people = UiState.Success(filteredPeople),
-            news = UiState.Success(filteredNews)
+            athletes = UiState.Success(filteredAthletes),
+            trainers = UiState.Success(filteredTrainers),
+            referees = UiState.Success(filteredReferees),
+            news = UiState.Success(filteredNews),
+            teams = UiState.Success(filteredTeams)
         )
     }
 
@@ -257,13 +249,15 @@ class SportViewModel : ViewModel() {
         val searchQuery: String = "",
         val filters: SportFilterState = SportFilterState(),
         val tournaments: UiState<List<TournamentWithCountsDto>> = UiState.Loading,
-        val people: UiState<List<CommunityProfileDto>> = UiState.Loading,
+        val athletes: UiState<List<CommunityProfileDto>> = UiState.Loading,
+        val trainers: UiState<List<CommunityProfileDto>> = UiState.Loading,
+        val referees: UiState<List<CommunityProfileDto>> = UiState.Loading,
         val news: UiState<List<ArticleDto>> = UiState.Loading,
+        val teams: UiState<List<TeamWithStatsDto>> = UiState.Loading,
         val sports: List<SportDto> = emptyList(),
         val selectedIndices: Set<Int> = emptySet(),
         val sportImages: Map<String, List<String>> = emptyMap(),
         val hasMoreTournaments: Boolean = true,
-        val hasMorePeople: Boolean = true,
         val hasMoreNews: Boolean = true
     ) {
         val selectedSports: List<SportDto>

@@ -1,8 +1,5 @@
 package com.ileader.app.ui.screens.sport
 
-import androidx.compose.animation.core.EaseOutBack
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +34,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.CommunityProfileDto
 import com.ileader.app.data.remote.dto.SportDto
+import com.ileader.app.data.remote.dto.TeamWithStatsDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
@@ -64,6 +62,7 @@ fun SportScreen(
 ) {
     val s = viewModel.state
     val isDark = DarkTheme.isDark
+    var showAllSports by remember { mutableStateOf(false) }
 
     if (s.sports.isEmpty() && s.tournaments is UiState.Loading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -137,18 +136,61 @@ fun SportScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                Surface(
-                    shape = RoundedCornerShape(12.dp), color = CardBg,
-                    modifier = Modifier.weight(1f).fillMaxHeight().clickable { /* TODO: show all sports */ }
-                ) {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp), color = CardBg,
+                        modifier = Modifier.fillMaxSize().clickable { showAllSports = !showAllSports }
                     ) {
-                        Icon(Icons.Default.Tune, null, tint = Accent, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text("Ещё", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Column(
+                            Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                if (showAllSports) Icons.Default.Close else Icons.Default.Tune,
+                                null, tint = Accent, modifier = Modifier.size(28.dp)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                if (showAllSports) "Скрыть" else "Ещё",
+                                color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showAllSports,
+                        onDismissRequest = { showAllSports = false },
+                        modifier = Modifier.background(CardBg)
+                    ) {
+                        s.sports.drop(4).forEach { sport ->
+                            val idx = s.sports.indexOf(sport)
+                            val isSelected = idx in s.selectedIndices
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            sportIcon(sport.name), null,
+                                            tint = if (isSelected) Accent else TextSecondary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            sport.name,
+                                            color = if (isSelected) Accent else TextPrimary,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.toggleSport(idx)
+                                    showAllSports = false
+                                },
+                                trailingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.Check, null, tint = Accent, modifier = Modifier.size(16.dp)) }
+                                } else null
+                            )
+                        }
                     }
                 }
             }
@@ -205,13 +247,12 @@ fun SportScreen(
         // ── Спортсмены ──
         item {
             SectionTitle(title = "Спортсмены", action = "Все", onAction = onRankingsClick)
-            SportSection(state = s.people) { list ->
-                val athletes = list.take(10)
+            SportSection(state = s.athletes) { list ->
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(athletes, key = { it.id }) { p ->
+                    items(list, key = { it.id }) { p ->
                         PersonMiniCard(p, onClick = { onProfileClick(p.id) })
                     }
                 }
@@ -237,14 +278,25 @@ fun SportScreen(
 
         // ── Лиги ──
         item {
+            val selectedSportName = s.selectedSports.firstOrNull()?.name
+            val filteredLeagues = if (selectedSportName != null) {
+                mockLeagues.filter { it.sportName.equals(selectedSportName, ignoreCase = true) }
+            } else mockLeagues
+
             SectionTitle(title = "Лиги", action = "Все", onAction = {})
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(mockLeagues.size) { i ->
-                    val league = mockLeagues[i]
-                    LeagueMiniCard(league) { onLeagueClick(league.name, league.sportName, league.imageUrl) }
+            if (filteredLeagues.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    EmptyState(title = "Пусто", subtitle = "Данные появятся позже")
+                }
+            } else {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredLeagues.size) { i ->
+                        val league = filteredLeagues[i]
+                        LeagueMiniCard(league) { onLeagueClick(league.name, league.sportName, league.imageUrl) }
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -253,12 +305,12 @@ fun SportScreen(
         // ── Судьи ──
         item {
             SectionTitle(title = "Судьи", action = "Все", onAction = {})
-            SportSection(state = s.people) { list ->
+            SportSection(state = s.referees) { list ->
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(list.takeLast(5), key = { "ref_${it.id}" }) { p ->
+                    items(list, key = { "ref_${it.id}" }) { p ->
                         RefereeMiniCard(p, onClick = { onProfileClick(p.id) })
                     }
                 }
@@ -269,12 +321,12 @@ fun SportScreen(
         // ── Тренера ──
         item {
             SectionTitle(title = "Тренера", action = "Все", onAction = {})
-            SportSection(state = s.people) { list ->
+            SportSection(state = s.trainers) { list ->
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(list.drop(3).take(5), key = { "tr_${it.id}" }) { p ->
+                    items(list, key = { "tr_${it.id}" }) { p ->
                         TrainerMiniCard(p, onClick = { onProfileClick(p.id) })
                     }
                 }
@@ -285,22 +337,14 @@ fun SportScreen(
         // ── Команды ──
         item {
             SectionTitle(title = "Команды", action = "Все", onAction = {})
-            val mockTeams = remember {
-                listOf(
-                    MockTeam("Astana Racing", "Картинг", 8, "Астана", 4.7),
-                    MockTeam("Almaty Shooters", "Стрельба", 6, "Алматы", 4.5),
-                    MockTeam("Tennis Pro KZ", "Теннис", 4, "Шымкент", 4.2),
-                    MockTeam("Boxing Club Elite", "Бокс", 10, "Караганда", 4.8),
-                    MockTeam("Aqua Stars", "Плавание", 7, "Актау", 4.3)
-                )
-            }
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(mockTeams.size) { i ->
-                    val team = mockTeams[i]
-                    TeamMiniCard(team, onClick = { onTeamClick(team.name, team.sportName, team.city) })
+            SportSection(state = s.teams) { list ->
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(list, key = { it.id }) { team ->
+                        TeamMiniCard(team, onClick = { onTeamClick(team.id, team.sportName, team.city ?: "") })
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -588,7 +632,7 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                     Spacer(Modifier.height(8.dp))
                     league.leaders.forEachIndexed { idx, leader ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(when (idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }, fontSize = 14.sp, modifier = Modifier.width(24.dp))
+                            Text("${idx + 1}.", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.width(24.dp))
                             Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.12f)), contentAlignment = Alignment.Center) {
                                 Text(leader.name.take(1), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                             }
@@ -698,13 +742,9 @@ private fun TrainerMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
 // Team Mini Card
 // ═══════════════════════════════════════════════════
 
-private data class MockTeam(
-    val name: String, val sportName: String, val memberCount: Int,
-    val city: String, val rating: Double
-)
 
 @Composable
-private fun TeamMiniCard(team: MockTeam, onClick: () -> Unit = {}) {
+private fun TeamMiniCard(team: TeamWithStatsDto, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val sColor = sportColor(team.sportName)
     Surface(
@@ -713,18 +753,20 @@ private fun TeamMiniCard(team: MockTeam, onClick: () -> Unit = {}) {
         modifier = Modifier.width(170.dp).height(170.dp).clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(14.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            // Logo placeholder
             Box(
                 Modifier.size(50.dp).clip(CircleShape).background(sColor.copy(0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(team.name.take(1), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = sColor)
+                if (team.logoUrl != null) {
+                    AsyncImage(team.logoUrl, null, Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                } else {
+                    Text(team.name.take(1), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = sColor)
+                }
             }
             Spacer(Modifier.height(10.dp))
             Text(team.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
-            // Sport badge
             Surface(shape = RoundedCornerShape(6.dp), color = TextMuted.copy(0.15f)) {
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(sportIcon(team.sportName), null, tint = TextMuted, modifier = Modifier.size(12.dp))
@@ -735,14 +777,16 @@ private fun TeamMiniCard(team: MockTeam, onClick: () -> Unit = {}) {
             Spacer(Modifier.weight(1f))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(3.dp))
                     Text("${team.memberCount}", fontSize = 11.sp, color = TextMuted)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(2.dp))
-                    Text(team.city, fontSize = 11.sp, color = TextMuted)
+                team.city?.let { city ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.LocationOn, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(2.dp))
+                        Text(city, fontSize = 11.sp, color = TextMuted, maxLines = 1)
+                    }
                 }
             }
         }
