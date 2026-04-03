@@ -28,7 +28,6 @@ class HomeViewModel : ViewModel() {
     var state by mutableStateOf(HomeState())
         private set
 
-    // Full unfiltered lists
     private var allTournaments: List<TournamentWithCountsDto> = emptyList()
     private var allNews: List<ArticleDto> = emptyList()
     private var allPeople: List<CommunityProfileDto> = emptyList()
@@ -45,7 +44,14 @@ class HomeViewModel : ViewModel() {
     fun load(sportIds: List<String> = emptyList()) {
         viewModelScope.launch {
             val currentSports = state.sports
-            state = HomeState(sports = currentSports)
+            val currentSlug = state.selectedSportSlug
+
+            // Keep selectedSportSlug — don't reset
+            state = state.copy(
+                news = UiState.Loading,
+                tournaments = UiState.Loading,
+                people = UiState.Loading
+            )
 
             val sportsDeferred = async {
                 if (currentSports.isNotEmpty()) currentSports
@@ -72,12 +78,18 @@ class HomeViewModel : ViewModel() {
             allNews = newsDeferred.await()
             allPeople = peopleDeferred.await()
 
-            state = HomeState(
+            state = state.copy(
                 sports = sports,
                 news = UiState.Success(allNews),
                 tournaments = UiState.Success(allTournaments),
-                people = UiState.Success(allPeople)
+                people = UiState.Success(allPeople),
+                selectedSportSlug = currentSlug
             )
+
+            // Re-apply filter if one was selected
+            if (currentSlug != null) {
+                applyFilter()
+            }
         }
     }
 
@@ -88,20 +100,42 @@ class HomeViewModel : ViewModel() {
 
     private fun applyFilter() {
         val slug = state.selectedSportSlug
-        val sportId = if (slug != null) {
-            state.sports.find { (it.slug ?: it.name.lowercase()) == slug }?.id
-        } else null
 
-        val filteredTournaments = if (sportId == null) allTournaments
-            else allTournaments.filter { it.sportId == sportId }
+        if (slug == null) {
+            // Show all
+            state = state.copy(
+                tournaments = UiState.Success(allTournaments),
+                news = UiState.Success(allNews),
+                people = UiState.Success(allPeople)
+            )
+            return
+        }
 
-        val filteredNews = if (sportId == null) allNews
-            else allNews.filter { it.sportId == sportId }
+        // Find sportId by slug (check both slug field and lowercased name)
+        val sportId = state.sports.find {
+            (it.slug ?: it.name.lowercase()) == slug || it.name.lowercase() == slug
+        }?.id
 
-        val filteredPeople = if (sportId == null) allPeople
-            else allPeople.filter { p ->
-                p.userSports?.any { it.sports?.id == sportId } == true
-            }
+        if (sportId == null) {
+            // Slug not found — show all
+            state = state.copy(
+                tournaments = UiState.Success(allTournaments),
+                news = UiState.Success(allNews),
+                people = UiState.Success(allPeople)
+            )
+            return
+        }
+
+        val filteredTournaments = allTournaments.filter { it.sportId == sportId }
+
+        val filteredNews = allNews.filter { it.sportId == sportId }
+
+        // People: show those with matching sport OR all if userSports is null/empty
+        val filteredPeople = allPeople.filter { p ->
+            val sports = p.userSports
+            if (sports.isNullOrEmpty()) false
+            else sports.any { it.sports?.id == sportId }
+        }
 
         state = state.copy(
             tournaments = UiState.Success(filteredTournaments),
