@@ -58,6 +58,8 @@ fun SportScreen(
     onArticleClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
     onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
+    onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
+    onRankingsClick: () -> Unit = {},
     viewModel: SportViewModel = viewModel()
 ) {
     val s = viewModel.state
@@ -202,7 +204,7 @@ fun SportScreen(
 
         // ── Спортсмены ──
         item {
-            SectionTitle(title = "Спортсмены", action = "Все", onAction = {})
+            SectionTitle(title = "Спортсмены", action = "Все", onAction = onRankingsClick)
             SportSection(state = s.people) { list ->
                 val athletes = list.take(10)
                 LazyRow(
@@ -296,7 +298,10 @@ fun SportScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(mockTeams.size) { i -> TeamMiniCard(mockTeams[i]) }
+                items(mockTeams.size) { i ->
+                    val team = mockTeams[i]
+                    TeamMiniCard(team, onClick = { onTeamClick(team.name, team.sportName, team.city) })
+                }
             }
             Spacer(Modifier.height(20.dp))
         }
@@ -699,13 +704,13 @@ private data class MockTeam(
 )
 
 @Composable
-private fun TeamMiniCard(team: MockTeam) {
+private fun TeamMiniCard(team: MockTeam, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val sColor = sportColor(team.sportName)
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
         shadowElevation = if (isDark) 0.dp else 4.dp,
-        modifier = Modifier.width(170.dp).height(170.dp)
+        modifier = Modifier.width(170.dp).height(170.dp).clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(14.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             // Logo placeholder
