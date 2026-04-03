@@ -96,24 +96,15 @@ fun LeagueDetailScreen(
     onProfileClick: (String) -> Unit = {}
 ) {
     val isDark = DarkTheme.isDark
-    var started by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { started = true }
-
-    val heroAlpha by animateFloatAsState(if (started) 1f else 0f, tween(500), label = "hA")
-    val sec1Alpha by animateFloatAsState(if (started) 1f else 0f, tween(500, 200), label = "s1A")
-    val sec1Offset by animateFloatAsState(if (started) 0f else 40f, tween(600, 200, easing = EaseOutBack), label = "s1O")
-    val sec2Alpha by animateFloatAsState(if (started) 1f else 0f, tween(500, 350), label = "s2A")
-    val sec2Offset by animateFloatAsState(if (started) 0f else 40f, tween(600, 350, easing = EaseOutBack), label = "s2O")
-    val sec3Alpha by animateFloatAsState(if (started) 1f else 0f, tween(500, 500), label = "s3A")
-    val sec3Offset by animateFloatAsState(if (started) 0f else 40f, tween(600, 500, easing = EaseOutBack), label = "s3O")
-
-    // Pulse for "live" stage
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        0.5f, 1f,
-        infiniteRepeatable(tween(1200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "pA"
-    )
+    // Static values (animations removed)
+    val heroAlpha = 1f
+    val sec1Alpha = 1f
+    val sec1Offset = 0f
+    val sec2Alpha = 1f
+    val sec2Offset = 0f
+    val sec3Alpha = 1f
+    val sec3Offset = 0f
+    val pulseAlpha = 0.75f
 
     Column(
         modifier = Modifier
@@ -237,9 +228,7 @@ fun LeagueDetailScreen(
             HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.3f))
 
             mockStandings.forEachIndexed { index, s ->
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { kotlinx.coroutines.delay((400 + index * 60).toLong()); visible = true }
-                val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(300), label = "r$index")
+                val alpha = 1f
 
                 val rankBg = when (s.rank) {
                     1 -> if (isDark) Color(0xFFCA8A04).copy(0.2f) else Color(0xFFFEF9C3)
@@ -363,14 +352,9 @@ fun LeagueDetailScreen(
                 val isCompleted = stage.status == "completed"
                 val isNext = !isCompleted && (index == 0 || mockStages[index - 1].status == "completed")
 
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) { kotlinx.coroutines.delay((600 + index * 100).toLong()); visible = true }
-                val itemAlpha by animateFloatAsState(if (visible) 1f else 0f, tween(400), label = "st$index")
-
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .graphicsLayer { alpha = itemAlpha }
                         .then(
                             if (isNext) Modifier.background(Accent.copy(0.15f), RoundedCornerShape(12.dp))
                             else Modifier

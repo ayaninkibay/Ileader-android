@@ -399,21 +399,6 @@ private fun RankingTable(
 
         // Entries
         entries.forEachIndexed { index, entry ->
-            val animDelay = 100 + index * 40
-            var visible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                kotlinx.coroutines.delay(animDelay.toLong())
-                visible = true
-            }
-            val alpha by animateFloatAsState(
-                if (visible) 1f else 0f,
-                tween(350, easing = FastOutSlowInEasing), label = "row$index"
-            )
-            val offset by animateFloatAsState(
-                if (visible) 0f else 20f,
-                tween(350, easing = EaseOutBack), label = "rowOff$index"
-            )
-
             val isLast = index == entries.lastIndex
             val shape = if (isLast) RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
             else RoundedCornerShape(0.dp)
@@ -426,7 +411,6 @@ private fun RankingTable(
                 },
                 border = if (isDark) BorderStroke(0.5.dp, Border.copy(0.15f)) else null,
                 modifier = Modifier
-                    .graphicsLayer { translationY = offset; this.alpha = alpha }
                     .clickable { onProfileClick(entry.athleteId) }
             ) {
                 Column {

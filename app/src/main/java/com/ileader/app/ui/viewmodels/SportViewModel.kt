@@ -180,7 +180,7 @@ class SportViewModel : ViewModel() {
         // Filter tournaments
         val filteredTournaments = allTournaments.filter { t ->
             val matchesQuery = query.isEmpty() || t.name.contains(query, ignoreCase = true)
-            val matchesSport = filters.sportIds.isEmpty() || t.sportId in filters.sportIds
+            val matchesSport = filters.sportId == null || t.sportId == filters.sportId
             val matchesStatus = filters.status == null || t.status == filters.status
             val matchesCity = filters.city.isNullOrBlank() ||
                     (t.locationName?.contains(filters.city, ignoreCase = true) == true) ||
@@ -192,8 +192,8 @@ class SportViewModel : ViewModel() {
         // Filter people
         val filteredPeople = allPeople.filter { p ->
             val matchesQuery = query.isEmpty() || (p.name?.contains(query, ignoreCase = true) == true)
-            val matchesSport = filters.sportIds.isEmpty() ||
-                    p.userSports?.any { it.sports?.id in filters.sportIds } == true
+            val matchesSport = filters.sportId == null ||
+                    p.userSports?.any { it.sports?.id == filters.sportId } == true
             val matchesCity = filters.city.isNullOrBlank() ||
                     (p.city?.contains(filters.city, ignoreCase = true) == true)
             val matchesRole = filters.role == null || when (filters.role) {
@@ -208,7 +208,7 @@ class SportViewModel : ViewModel() {
         // Filter news
         val filteredNews = allNews.filter { a ->
             val matchesQuery = query.isEmpty() || a.title.contains(query, ignoreCase = true)
-            val matchesSport = filters.sportIds.isEmpty() || a.sportId in filters.sportIds
+            val matchesSport = filters.sportId == null || a.sportId == filters.sportId
             val matchesCategory = filters.category == null || a.category == filters.category
             matchesQuery && matchesSport && matchesCategory
         }
@@ -224,17 +224,11 @@ class SportViewModel : ViewModel() {
 
     fun toggleSport(index: Int) {
         val sport = state.sports.getOrNull(index) ?: return
-        val current = state.selectedIndices
-        val newSet = if (index in current) {
-            current - index
-        } else {
-            if (current.size >= 2) (current - current.first()) + index
-            else current + index
-        }
-        val sportIds = newSet.mapNotNull { state.sports.getOrNull(it)?.id }.toSet()
+        val newSet = if (index in state.selectedIndices) emptySet() else setOf(index)
+        val sportId = if (newSet.isEmpty()) null else sport.id
         state = state.copy(
             selectedIndices = newSet,
-            filters = state.filters.copy(sportId = sportIds.firstOrNull(), sportIds = sportIds)
+            filters = state.filters.copy(sportId = sportId)
         )
         applyClientFilters()
     }
@@ -280,7 +274,6 @@ class SportViewModel : ViewModel() {
 
     data class SportFilterState(
         val sportId: String? = null,
-        val sportIds: Set<String> = emptySet(),
         val status: String? = null,
         val city: String? = null,
         val ageCategory: String? = null,
