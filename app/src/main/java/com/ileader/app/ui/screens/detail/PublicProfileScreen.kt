@@ -8,8 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,7 +25,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.ui.components.*
-import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.PublicProfileData
 import com.ileader.app.ui.viewmodels.PublicProfileViewModel
 
@@ -38,7 +34,6 @@ private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
 private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
-private val Border: Color @Composable get() = LocalAppColors.current.border
 
 @Composable
 fun PublicProfileScreen(
@@ -70,11 +65,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     val profile = data.profile
     val user = profile.toDomain()
 
-    val isDark = DarkTheme.isDark
-    val primarySportName = data.sports.firstOrNull()?.sports?.name ?: "картинг"
-    val sColor = sportColor(primarySportName)
-    val bannerUrl = sportImageUrl(primarySportName)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,29 +72,14 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             .verticalScroll(rememberScrollState())
     ) {
         // ══════════════════════════════════════
-        // HERO with sport background
+        // HERO with neutral background
         // ══════════════════════════════════════
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Background image or gradient
-            if (bannerUrl != null) {
-                AsyncImage(
-                    model = bannerUrl, contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(200.dp)
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    Modifier.fillMaxWidth().height(200.dp)
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                        .background(Brush.verticalGradient(listOf(Color.Black.copy(0.3f), Color.Black.copy(0.7f))))
-                )
-            } else {
-                Box(
-                    Modifier.fillMaxWidth().height(200.dp)
-                        .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                        .background(Brush.horizontalGradient(listOf(sColor.copy(0.9f), sColor.copy(0.5f))))
-                )
-            }
+            Box(
+                Modifier.fillMaxWidth().height(200.dp)
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .background(Brush.horizontalGradient(listOf(Accent.copy(0.9f), Accent.copy(0.4f))))
+            )
 
             // Back button
             Box(
@@ -123,8 +98,8 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Modifier.fillMaxWidth().statusBarsPadding().padding(top = 60.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar with sport-color gradient border
-                val borderColors = listOf(sColor, sColor.copy(0.5f), Accent, sColor)
+                // Avatar with accent gradient border
+                val borderColors = listOf(Accent, Accent.copy(0.5f), Accent.copy(0.8f), Accent)
                 Box(contentAlignment = Alignment.Center) {
                     Box(Modifier.size(112.dp).background(Brush.sweepGradient(borderColors), CircleShape))
                     Box(Modifier.size(106.dp).clip(CircleShape).background(Bg))
@@ -161,49 +136,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         // ══════════════════════════════════════
-        // SPORT CHIPS
-        // ══════════════════════════════════════
-        if (data.sports.isNotEmpty()) {
-            Row(
-                Modifier.padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                data.sports.forEach { sport ->
-                    val name = sport.sports?.name ?: ""
-                    SportTag(name)
-                }
-            }
-            
-            Spacer(Modifier.height(12.dp))
-        }
-
-        // ══════════════════════════════════════
-        // ANIMATED STATS
-        // ══════════════════════════════════════
-        if (data.stats.isNotEmpty()) {
-            val s = data.stats.first()
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = 0.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    AnimStat(Icons.Outlined.EmojiEvents, s.tournaments, "Турниры")
-                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    AnimStat(Icons.Outlined.MilitaryTech, s.wins, "Победы")
-                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    AnimStat(Icons.Outlined.Leaderboard, s.rating, "Рейтинг")
-                }
-            }
-            
-            Spacer(Modifier.height(12.dp))
-        }
-
-        // ══════════════════════════════════════
         // BIO
         // ══════════════════════════════════════
         if (!profile.bio.isNullOrEmpty()) {
@@ -226,17 +158,4 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     }
 }
 
-// ══════════════════════════════════════════
-// Animated Stat
-// ══════════════════════════════════════════
-
-@Composable
-private fun AnimStat(icon: ImageVector, target: Int, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.height(4.dp))
-        Text("$target", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-        Text(label, fontSize = 11.sp, color = TextMuted)
-    }
-}
 

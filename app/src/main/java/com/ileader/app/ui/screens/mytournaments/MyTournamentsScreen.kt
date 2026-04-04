@@ -50,7 +50,7 @@ private val Accent: Color @Composable get() = DarkTheme.Accent
 private val Border: Color @Composable get() = LocalAppColors.current.border
 
 private enum class Tab(val label: String) {
-    MY("Мои турниры"), FAVORITES("Избранные ♡")
+    MY("Турниры"), FAVORITES("Избранные ♡")
 }
 
 private enum class Filter(val label: String) {
@@ -410,7 +410,7 @@ private fun HeroSection(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("Мои турниры", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold,
+                    Text("Турниры", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold,
                         color = Color.White, letterSpacing = (-0.5).sp)
                     Text(getRoleSubtitle(user.role), fontSize = 13.sp, color = Color.White.copy(0.7f))
                 }

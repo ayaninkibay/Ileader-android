@@ -274,72 +274,74 @@ fun ProfileScreen(
                     }
                 }
 
-                // ═══════════════════════════════════════
-                // RESULTS
-                // ═══════════════════════════════════════
-                item {
-                    Spacer(Modifier.height(20.dp))
-                    FadeIn(visible = true, delayMs = 400) {
-                        Column(Modifier.padding(horizontal = 16.dp)) {
-                            SectionHeader("Результаты")
-                            Spacer(Modifier.height(10.dp))
-                            when (val rs = myResults) {
-                                is UiState.Success -> {
-                                    if (rs.data.isEmpty()) {
-                                        EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
-                                    } else {
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            rs.data.take(5).forEach { r -> ResultCard(r) }
+                if (user.role != UserRole.USER) {
+                    // ═══════════════════════════════════════
+                    // RESULTS
+                    // ═══════════════════════════════════════
+                    item {
+                        Spacer(Modifier.height(20.dp))
+                        FadeIn(visible = true, delayMs = 400) {
+                            Column(Modifier.padding(horizontal = 16.dp)) {
+                                SectionHeader("Результаты")
+                                Spacer(Modifier.height(10.dp))
+                                when (val rs = myResults) {
+                                    is UiState.Success -> {
+                                        if (rs.data.isEmpty()) {
+                                            EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
+                                        } else {
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                rs.data.take(5).forEach { r -> ResultCard(r) }
+                                            }
+                                        }
+                                    }
+                                    is UiState.Error -> EmptyCard(rs.message, Icons.Outlined.Error)
+                                    is UiState.Loading -> {}
+                                }
+                            }
+                        }
+                    }
+
+                    // ═══════════════════════════════════════
+                    // RATING BY SPORT
+                    // ═══════════════════════════════════════
+                    // Filter stats to only user's sports
+                    val userSportIds = userSports.mapNotNull { it.sportId }
+                    val filteredStats = stats.filter { it.sportId in userSportIds || userSportIds.isEmpty() }
+                    if (filteredStats.isNotEmpty()) {
+                        item {
+                            Spacer(Modifier.height(20.dp))
+                            FadeIn(visible = true, delayMs = 450) {
+                                Column {
+                                    Row(Modifier.padding(horizontal = 16.dp)) {
+                                        SectionHeader("Рейтинг по спорту")
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        items(filteredStats) { sportStat ->
+                                            SportRatingCard(sportStat)
                                         }
                                     }
                                 }
-                                is UiState.Error -> EmptyCard(rs.message, Icons.Outlined.Error)
-                                is UiState.Loading -> {}
                             }
                         }
                     }
-                }
 
-                // ═══════════════════════════════════════
-                // RATING BY SPORT
-                // ═══════════════════════════════════════
-                // Filter stats to only user's sports
-                val userSportIds = userSports.mapNotNull { it.sportId }
-                val filteredStats = stats.filter { it.sportId in userSportIds || userSportIds.isEmpty() }
-                if (filteredStats.isNotEmpty()) {
-                    item {
-                        Spacer(Modifier.height(20.dp))
-                        FadeIn(visible = true, delayMs = 450) {
-                            Column {
-                                Row(Modifier.padding(horizontal = 16.dp)) {
-                                    SectionHeader("Рейтинг по спорту")
+                    // ═══════════════════════════════════════
+                    // TEAM (if any)
+                    // ═══════════════════════════════════════
+                    val team = myTeam
+                    if (team != null) {
+                        item {
+                            Spacer(Modifier.height(20.dp))
+                            FadeIn(visible = true, delayMs = 500) {
+                                Column(Modifier.padding(horizontal = 16.dp)) {
+                                    SectionHeader("Команда")
+                                    Spacer(Modifier.height(10.dp))
+                                    TeamCard(team)
                                 }
-                                Spacer(Modifier.height(10.dp))
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    items(filteredStats) { sportStat ->
-                                        SportRatingCard(sportStat)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ═══════════════════════════════════════
-                // TEAM (if any)
-                // ═══════════════════════════════════════
-                val team = myTeam
-                if (team != null) {
-                    item {
-                        Spacer(Modifier.height(20.dp))
-                        FadeIn(visible = true, delayMs = 500) {
-                            Column(Modifier.padding(horizontal = 16.dp)) {
-                                SectionHeader("Команда")
-                                Spacer(Modifier.height(10.dp))
-                                TeamCard(team)
                             }
                         }
                     }

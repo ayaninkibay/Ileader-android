@@ -401,7 +401,8 @@ private fun TournamentContent(
             // ── Organizer Info Card ──
             tournament.profiles?.name?.let { orgName ->
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        .clickable { tournament.organizerId?.let { onProfileClick(it) } },
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
                     shadowElevation = 0.dp
