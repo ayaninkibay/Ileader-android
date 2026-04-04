@@ -22,6 +22,14 @@ class SportViewModel : ViewModel() {
     var state by mutableStateOf(SportState())
         private set
 
+    // Mock league data classes
+    data class MockLeague(
+        val name: String, val sportName: String, val totalStages: Int,
+        val completedStages: Int, val status: String, val participants: Int,
+        val imageUrl: String?, val nextStageDate: String?, val leaders: List<MockLeader>
+    )
+    data class MockLeader(val name: String, val points: Int)
+
     // Full loaded lists (before client-side filtering)
     private var allTournaments: List<TournamentWithCountsDto> = emptyList()
     private var allAthletes: List<CommunityProfileDto> = emptyList()
@@ -29,6 +37,16 @@ class SportViewModel : ViewModel() {
     private var allReferees: List<CommunityProfileDto> = emptyList()
     private var allNews: List<ArticleDto> = emptyList()
     private var allTeams: List<TeamWithStatsDto> = emptyList()
+    private var allLeagues: List<MockLeague> = listOf(
+        MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
+            "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
+            listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
+        MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
+            "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
+        MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
+            "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
+            listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
+    )
 
     // Pagination offsets
     private var tournamentOffset = 0
@@ -75,6 +93,7 @@ class SportViewModel : ViewModel() {
                     referees = UiState.Success(referees),
                     news = UiState.Success(articles),
                     teams = UiState.Success(teams),
+                    leagues = UiState.Success(allLeagues),
                     hasMoreTournaments = false,
                     hasMoreNews = articles.size >= PAGE_SIZE
                 )
@@ -202,13 +221,22 @@ class SportViewModel : ViewModel() {
             matchesQuery && matchesSport
         }
 
+        // Filter leagues (by sportName)
+        val selectedSportName = state.selectedSports.firstOrNull()?.name
+        val filteredLeagues = allLeagues.filter { l ->
+            val matchesQuery = query.isEmpty() || l.name.contains(query, ignoreCase = true)
+            val matchesSport = selectedSportName == null || l.sportName.equals(selectedSportName, ignoreCase = true)
+            matchesQuery && matchesSport
+        }
+
         state = state.copy(
             tournaments = UiState.Success(filteredTournaments),
             athletes = UiState.Success(filteredAthletes),
             trainers = UiState.Success(filteredTrainers),
             referees = UiState.Success(filteredReferees),
             news = UiState.Success(filteredNews),
-            teams = UiState.Success(filteredTeams)
+            teams = UiState.Success(filteredTeams),
+            leagues = UiState.Success(filteredLeagues)
         )
     }
 
@@ -254,6 +282,7 @@ class SportViewModel : ViewModel() {
         val referees: UiState<List<CommunityProfileDto>> = UiState.Loading,
         val news: UiState<List<ArticleDto>> = UiState.Loading,
         val teams: UiState<List<TeamWithStatsDto>> = UiState.Loading,
+        val leagues: UiState<List<MockLeague>> = UiState.Loading,
         val sports: List<SportDto> = emptyList(),
         val selectedIndices: Set<Int> = emptySet(),
         val sportImages: Map<String, List<String>> = emptyMap(),

@@ -75,18 +75,7 @@ fun SportScreen(
     val secondarySports = s.sports.drop(2).take(2)
 
     // Mock leagues
-    val mockLeagues = remember {
-        listOf(
-            MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
-                "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
-                listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
-            MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
-                "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
-            MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
-                "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
-                listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
-        )
-    }
+    // Leagues from ViewModel
 
     LazyColumn(
         modifier = Modifier
@@ -248,23 +237,14 @@ fun SportScreen(
 
         // ── Лиги ──
         item {
-            val selectedSportName = s.selectedSports.firstOrNull()?.name
-            val filteredLeagues = if (selectedSportName != null) {
-                mockLeagues.filter { it.sportName.equals(selectedSportName, ignoreCase = true) }
-            } else mockLeagues
-
             SectionTitle(title = "Лиги", action = "Все", onAction = {})
-            if (filteredLeagues.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    EmptyState(title = "Пусто", subtitle = "Данные появятся позже")
-                }
-            } else {
+            SportSection(state = s.leagues) { list ->
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(filteredLeagues.size) { i ->
-                        val league = filteredLeagues[i]
+                    items(list.size) { i ->
+                        val league = list[i]
                         LeagueMiniCard(league) { onLeagueClick(league.name, league.sportName, league.imageUrl) }
                     }
                 }
@@ -530,12 +510,8 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
 // League Mini Card
 // ═══════════════════════════════════════════════════
 
-private data class MockLeague(
-    val name: String, val sportName: String, val totalStages: Int,
-    val completedStages: Int, val status: String, val participants: Int,
-    val imageUrl: String?, val nextStageDate: String?, val leaders: List<MockLeader>
-)
-private data class MockLeader(val name: String, val points: Int)
+private typealias MockLeague = SportViewModel.MockLeague
+private typealias MockLeader = SportViewModel.MockLeader
 
 @Composable
 private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
