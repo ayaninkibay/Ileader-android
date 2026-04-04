@@ -75,7 +75,7 @@ fun MyTournamentsScreen(
     val favoritesPref = remember { com.ileader.app.data.preferences.FavoritesPreference(context) }
     val favoriteIds by favoritesPref.favoriteTournamentIds.collectAsState(initial = emptyList())
 
-    var selectedTab by remember { mutableStateOf(Tab.MY) }
+    var selectedTab by remember { mutableStateOf(if (user.role == UserRole.USER) Tab.FAVORITES else Tab.MY) }
     var selectedFilter by remember { mutableStateOf(Filter.ALL) }
 
     val isDark = DarkTheme.isDark
