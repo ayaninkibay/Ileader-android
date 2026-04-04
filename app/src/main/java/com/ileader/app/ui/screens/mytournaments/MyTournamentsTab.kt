@@ -31,7 +31,8 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 onQrScan = { id, name -> navState = MyTournamentsNavState.QrScanner(id, name) },
                 onManualCheckIn = { id, name -> navState = MyTournamentsNavState.ManualCheckIn(id, name) },
                 onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
-                onHelperManagement = { id, name -> navState = MyTournamentsNavState.HelperManagement(id, name) }
+                onHelperManagement = { id, name -> navState = MyTournamentsNavState.HelperManagement(id, name) },
+                onCreateTournament = { /* TODO: navigate to create tournament */ }
             )
         }
         is MyTournamentsNavState.TournamentDetail -> {

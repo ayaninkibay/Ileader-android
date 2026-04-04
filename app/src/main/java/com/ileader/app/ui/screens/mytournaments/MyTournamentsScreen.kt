@@ -64,7 +64,8 @@ fun MyTournamentsScreen(
     onQrScan: (String, String) -> Unit = { _, _ -> },
     onManualCheckIn: (String, String) -> Unit = { _, _ -> },
     onEditTournament: (String) -> Unit = {},
-    onHelperManagement: (String, String) -> Unit = { _, _ -> }
+    onHelperManagement: (String, String) -> Unit = { _, _ -> },
+    onCreateTournament: () -> Unit = {}
 ) {
     val vm: MyTournamentsViewModel = viewModel()
     val roleTournaments by vm.roleTournaments.collectAsState()
@@ -308,7 +309,62 @@ fun MyTournamentsScreen(
                     onHelpers = { onHelperManagement(t.id, t.name) },
                     isDark = isDark
                 )
-                
+
+            }
+        }
+
+        // ══════════════════════════════════════
+        // CREATE TOURNAMENT (organizer only)
+        // ══════════════════════════════════════
+        if (user.role == UserRole.ORGANIZER) {
+            item {
+                Spacer(Modifier.height(16.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clickable { onCreateTournament() }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(listOf(Accent, ILeaderColors.DarkRed)),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape)
+                                    .background(Color.White.copy(0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Создать турнир", fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold, color = Color.White
+                                )
+                                Text(
+                                    "Организуйте новое мероприятие",
+                                    fontSize = 12.sp, color = Color.White.copy(0.7f)
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                                tint = Color.White.copy(0.7f), modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
