@@ -56,7 +56,10 @@ class MyTournamentsViewModel : ViewModel() {
                 try {
                     when (role) {
                         UserRole.USER, UserRole.SPONSOR, UserRole.ADMIN, UserRole.CONTENT_MANAGER -> {
-                            ViewerRepository().getMySpectatorRegistrations(userId)
+                            val spectators = viewerRepo.getMySpectatorRegistrations(userId)
+                            val ids = spectators.map { it.tournamentId }.distinct()
+                            if (ids.isNotEmpty()) viewerRepo.getTournamentsByIds(ids)
+                            else emptyList<TournamentWithCountsDto>()
                         }
                         UserRole.ATHLETE -> {
                             AthleteRepository().getMyTournaments(userId)
