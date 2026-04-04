@@ -1,8 +1,5 @@
 package com.ileader.app.ui.screens.mytournaments
 
-import androidx.compose.animation.core.EaseOutBack
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,7 +21,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -168,7 +164,7 @@ fun MyTournamentsScreen(
                         color = if (isSelected) Accent else CardBg,
                         border = if (!isSelected && isDark) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.2f))
                         else if (!isSelected) androidx.compose.foundation.BorderStroke(0.5.dp, Border.copy(0.3f)) else null,
-                        shadowElevation = if (isDark || isSelected) 0.dp else 2.dp,
+                        shadowElevation = 0.dp,
                         modifier = Modifier.weight(1f).clickable { selectedTab = tab; selectedFilter = Filter.ALL }
                     ) {
                         Row(
@@ -407,7 +403,7 @@ private fun CountdownCard(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, sportBgColor.copy(0.2f)) else null
     ) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -540,7 +536,7 @@ private fun BigTournamentCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         border = if (isDark) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.15f)) else null
     ) {
         Column {

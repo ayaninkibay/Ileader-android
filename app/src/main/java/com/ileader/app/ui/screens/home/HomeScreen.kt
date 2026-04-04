@@ -759,7 +759,7 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = if (isDark) 0.dp else 4.dp
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier.clickable { onClick() }
@@ -978,7 +978,7 @@ private fun PersonCard(profile: CommunityProfileDto, onClick: () -> Unit) {
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = if (isDark) 0.dp else 4.dp
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier.padding(14.dp),

@@ -300,7 +300,7 @@ private fun HelperCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp,
+        shadowElevation = 0.dp,
         border = BorderStroke(1.dp, Border)
     ) {
         Row(

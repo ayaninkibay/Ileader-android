@@ -168,7 +168,7 @@ private fun HeroSection(
                 Surface(
                     shape = CircleShape,
                     color = CardBg,
-                    shadowElevation = if (isDark) 0.dp else 2.dp,
+                    shadowElevation = 0.dp,
                     modifier = Modifier.size(40.dp).clickable(onClick = onBack)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -263,7 +263,7 @@ private fun StatMiniCard(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp,
+        shadowElevation = 0.dp,
         border = if (isDark) BorderStroke(1.dp, Border.copy(0.2f)) else null
     ) {
         Column(
@@ -310,7 +310,7 @@ private fun SportFilterTabs(
                 color = if (isSelected) Accent else CardBg,
                 border = if (!isSelected && isDark) BorderStroke(1.dp, Border.copy(0.3f))
                 else if (!isSelected) BorderStroke(1.dp, Border.copy(0.2f)) else null,
-                shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
+                shadowElevation = 0.dp,
                 modifier = Modifier.clickable { onSelectSport(null) }
             ) {
                 Row(
@@ -337,7 +337,7 @@ private fun SportFilterTabs(
                 color = if (isSelected) Accent else CardBg,
                 border = if (!isSelected && isDark) BorderStroke(1.dp, Border.copy(0.3f))
                 else if (!isSelected) BorderStroke(1.dp, Border.copy(0.2f)) else null,
-                shadowElevation = if (isDark || isSelected) 0.dp else 1.dp,
+                shadowElevation = 0.dp,
                 modifier = Modifier.clickable { onSelectSport(sport.id) }
             ) {
                 Row(
@@ -374,7 +374,7 @@ private fun RankingTable(
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             color = CardBg,
             border = if (isDark) BorderStroke(1.dp, Border.copy(0.2f)) else null,
-            shadowElevation = if (isDark) 0.dp else 2.dp
+            shadowElevation = 0.dp
         ) {
             Column {
                 // Header row

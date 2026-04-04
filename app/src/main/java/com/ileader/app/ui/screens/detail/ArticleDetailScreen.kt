@@ -176,7 +176,7 @@ fun ArticleDetailScreen(
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = CardBg,
-                            shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                            shadowElevation = 0.dp
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),

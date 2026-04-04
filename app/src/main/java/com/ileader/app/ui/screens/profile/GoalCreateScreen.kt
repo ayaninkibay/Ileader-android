@@ -85,7 +85,7 @@ fun GoalCreateScreen(
                         shape = RoundedCornerShape(12.dp),
                         color = if (isSelected) Accent.copy(alpha = 0.12f) else CardBg,
                         border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, Accent) else null,
-                        shadowElevation = if (isDark) 0.dp else 1.dp
+                        shadowElevation = 0.dp
                     ) {
                         Column(
                             Modifier.padding(12.dp),

@@ -127,6 +127,42 @@ fun sportIcon(sportName: String) = when (sportName.lowercase().trim()) {
     else                                     -> Icons.Outlined.EmojiEvents
 }
 
+// SPORT TAG — lucid grey chip (icon + label)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+fun SportTag(
+    sportName: String,
+    modifier: Modifier = Modifier,
+    onImage: Boolean = false          // true → overlay on photo (dark bg, white text)
+) {
+    val colors = LocalAppColors.current
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = if (onImage) Color.Black.copy(alpha = 0.45f)
+                else colors.textMuted.copy(alpha = 0.10f)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                sportIcon(sportName), null,
+                tint = if (onImage) Color.White else colors.textSecondary,
+                modifier = Modifier.size(13.dp)
+            )
+            Text(
+                sportName,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (onImage) Color.White else colors.textSecondary
+            )
+        }
+    }
+}
+
 // CARDS
 // ══════════════════════════════════════════════════════════
 
@@ -180,12 +216,7 @@ fun DarkCardPadded(
 
 @Composable
 fun FadeIn(visible: Boolean, delayMs: Int, content: @Composable () -> Unit) {
-    var show by remember { mutableStateOf(false) }
-    LaunchedEffect(visible) { if (visible) { delay(delayMs.toLong()); show = true } }
-    val alpha by animateFloatAsState(if (show) 1f else 0f, tween(400, easing = FastOutSlowInEasing), label = "fi$delayMs")
-    val offset by animateDpAsState(if (show) 0.dp else 16.dp, tween(400, easing = FastOutSlowInEasing), label = "fo$delayMs")
-    val scale by animateFloatAsState(if (show) 1f else 0.96f, tween(400, easing = FastOutSlowInEasing), label = "fs$delayMs")
-    Column(Modifier.offset(y = offset).alpha(alpha).scale(scale)) { content() }
+    content()
 }
 
 // ══════════════════════════════════════════════════════════
@@ -751,11 +782,7 @@ fun DarkProgressBar(
     color: Color? = null
 ) {
     val colors = LocalAppColors.current
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = if (animate) tween(800, easing = FastOutSlowInEasing) else snap(),
-        label = "progress"
-    )
+    val animatedProgress = progress.coerceIn(0f, 1f)
     val fillColor = color ?: colors.accent
     Box(
         modifier
@@ -1533,17 +1560,11 @@ fun GradientButton(
     loading: Boolean = false
 ) {
     val colors = LocalAppColors.current
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        tween(100), label = "btnScale"
-    )
     val isActive = enabled && !loading
 
     Box(
         modifier = modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(
                 if (isActive) Brush.horizontalGradient(
@@ -1552,18 +1573,7 @@ fun GradientButton(
                     listOf(colors.border, colors.border)
                 )
             )
-            .pointerInput(isActive) {
-                if (isActive) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        },
-                        onTap = { onClick() }
-                    )
-                }
-            }
+            .clickable(enabled = isActive) { onClick() }
             .padding(vertical = 14.dp, horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1610,24 +1620,13 @@ fun SecondaryButton(
     fillWidth: Boolean = true
 ) {
     val colors = LocalAppColors.current
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        tween(100), label = "secBtnScale"
-    )
 
     Box(
         modifier = modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .background(colors.accentSoft)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                    onTap = { onClick() }
-                )
-            }
+            .clickable { onClick() }
             .padding(vertical = 14.dp, horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1655,25 +1654,14 @@ fun OutlineButton(
 ) {
     val colors = LocalAppColors.current
     val tint = color ?: colors.textPrimary
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        if (isPressed) 0.97f else 1f,
-        tween(100), label = "outBtnScale"
-    )
 
     Box(
         modifier = modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .scale(scale)
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, colors.border, RoundedCornerShape(16.dp))
             .background(Color.Transparent)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { isPressed = true; tryAwaitRelease(); isPressed = false },
-                    onTap = { onClick() }
-                )
-            }
+            .clickable { onClick() }
             .padding(vertical = 14.dp, horizontal = 24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1780,21 +1768,11 @@ fun PulsingDot(
     size: Dp = 10.dp,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         Box(
             Modifier
                 .fillMaxSize()
-                .alpha(pulseAlpha * 0.4f)
+                .alpha(0.4f)
                 .clip(CircleShape)
                 .background(color)
         )
@@ -1893,39 +1871,19 @@ fun PressableCard(
 ) {
     val colors = LocalAppColors.current
     val isDark = colors.bg == DarkAppColors.bg
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        if (isPressed) 0.98f else 1f,
-        tween(100), label = "cardPress"
-    )
-    val bgColor by animateColorAsState(
-        if (isPressed) colors.cardHover else colors.cardBg,
-        tween(150), label = "cardBg"
-    )
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .scale(scale)
-            .cardShadow(isDark),
+            .cardShadow(isDark)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        color = bgColor,
+        color = colors.cardBg,
         border = if (isDark) DarkTheme.cardBorderStroke else BorderStroke(
             0.5.dp, colors.border.copy(alpha = 0.3f)
         )
     ) {
-        Box(
-            Modifier.pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                    },
-                    onTap = { onClick() }
-                )
-            }
-        ) {
+        Box {
             content()
         }
     }
@@ -2039,15 +1997,6 @@ fun SportCircle(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalAppColors.current
-    val borderAlpha by animateFloatAsState(
-        if (selected) 1f else 0f,
-        tween(250), label = "sportBorder"
-    )
-    val bgScale by animateFloatAsState(
-        if (selected) 1f else 0.92f,
-        tween(200), label = "sportScale"
-    )
-
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -2058,7 +2007,6 @@ fun SportCircle(
         Box(
             Modifier
                 .size(64.dp)
-                .scale(bgScale)
                 .then(
                     if (selected) Modifier.border(
                         2.dp,
@@ -2104,7 +2052,7 @@ fun SportCirclesRow(
     ) {
         item {
             SportCircle(
-                emoji = "🏆",
+                emoji = "",
                 label = "Все",
                 selected = selectedId == null,
                 onClick = { onSelect(null) }
@@ -2113,7 +2061,7 @@ fun SportCirclesRow(
         items(sports.size) { index ->
             val (id, name, emoji) = sports[index]
             SportCircle(
-                emoji = emoji,
+                emoji = "",
                 label = name,
                 selected = selectedId == id,
                 onClick = { onSelect(id) }

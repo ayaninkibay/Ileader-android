@@ -312,7 +312,7 @@ private fun TopArticleCard(article: ArticleDto, onClick: () -> Unit) {
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Column {
             // Cover image or gradient
@@ -388,7 +388,7 @@ private fun CreateArticleButton(onClick: () -> Unit) {
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, MediaColor.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(
             Modifier.padding(16.dp),
@@ -485,7 +485,7 @@ private fun ArticleCard(
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(Modifier.padding(12.dp)) {
             // Cover thumbnail

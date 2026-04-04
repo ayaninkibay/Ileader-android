@@ -96,7 +96,7 @@ fun GoalDetailScreen(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             shape = RoundedCornerShape(20.dp),
             color = CardBg,
-            shadowElevation = if (isDark) 0.dp else 4.dp
+            shadowElevation = 0.dp
         ) {
             Column(Modifier.padding(20.dp)) {
                 // Type icon + status
@@ -208,7 +208,7 @@ private fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(14.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
             Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))

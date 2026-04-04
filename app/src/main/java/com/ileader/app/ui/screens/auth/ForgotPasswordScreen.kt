@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -82,8 +81,7 @@ fun ForgotPasswordScreen(
             AnimatedContent(
                 targetState = state.passwordResetSent,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.95f) togetherWith
-                            fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 1.05f)
+                    EnterTransition.None togetherWith ExitTransition.None
                 },
                 label = "resetState"
             ) { isSent ->
@@ -252,15 +250,6 @@ private fun SuccessContent(
     onNavigateToLogin: () -> Unit
 ) {
     val colors = LocalAppColors.current
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "successScale"
-    )
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -270,7 +259,6 @@ private fun SuccessContent(
         Box(
             modifier = Modifier
                 .size(88.dp)
-                .scale(scale)
                 .clip(CircleShape)
                 .background(
                     brush = Brush.linearGradient(

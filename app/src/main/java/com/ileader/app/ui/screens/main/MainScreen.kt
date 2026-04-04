@@ -1,12 +1,5 @@
 package com.ileader.app.ui.screens.main
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.EaseInOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -144,7 +137,7 @@ private fun ILeaderBottomBar(
             color = colors.cardBg,
             shape = RoundedCornerShape(22.dp),
             tonalElevation = 0.dp,
-            shadowElevation = if (isDark) 0.dp else 8.dp
+            shadowElevation = 0.dp
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -179,16 +172,8 @@ private fun BottomBarItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pillAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0f,
-        animationSpec = tween(300, easing = EaseInOut),
-        label = "pillAlpha"
-    )
-    val iconAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0.6f,
-        animationSpec = tween(250, easing = EaseInOut),
-        label = "iconAlpha"
-    )
+    val pillAlpha = if (isSelected) 1f else 0f
+    val iconAlpha = if (isSelected) 1f else 0.6f
 
     Box(
         modifier = modifier

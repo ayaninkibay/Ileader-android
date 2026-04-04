@@ -29,7 +29,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -53,7 +52,6 @@ import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.ProfileViewModel
 import com.ileader.app.data.repository.ViewerRepository
 import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -90,10 +88,7 @@ fun ProfileScreen(
     var showSportSheet by remember { mutableStateOf(false) }
     var showPrivacySheet by remember { mutableStateOf(false) }
     var showLegalSheet by remember { mutableStateOf(false) }
-    var started by remember { mutableStateOf(false) }
-
     LaunchedEffect(user.id) { vm.load(user.id, user.role) }
-    LaunchedEffect(Unit) { started = true }
 
     val isDark = DarkTheme.isDark
 
@@ -167,18 +162,11 @@ fun ProfileScreen(
                 if (userSports.isNotEmpty()) {
                     item {
                         Spacer(Modifier.height(16.dp))
-                        FadeIn(visible = started, delayMs = 100) {
+                        FadeIn(visible = true, delayMs = 100) {
                             Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 userSports.forEach { sport ->
                                     val name = sport.sports?.name ?: ""
-                                    val emoji = sportEmoji(name)
-                                    Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
-                                        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Text(emoji, fontSize = 14.sp)
-                                            Spacer(Modifier.width(6.dp))
-                                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                                        }
-                                    }
+                                    SportTag(name)
                                 }
                             }
                         }
@@ -190,7 +178,7 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(20.dp))
-                    FadeIn(visible = started, delayMs = 200) {
+                    FadeIn(visible = true, delayMs = 200) {
                         val primaryStats = stats.firstOrNull()
                         val statItems = when (user.role) {
                             UserRole.ATHLETE -> listOf(
@@ -212,12 +200,12 @@ fun ProfileScreen(
                         Surface(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             shape = RoundedCornerShape(16.dp), color = CardBg,
-                            shadowElevation = if (isDark) 0.dp else 3.dp
+                            shadowElevation = 0.dp
                         ) {
                             Row(Modifier.padding(vertical = 20.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
                                 statItems.forEachIndexed { idx, (icon, target, label) ->
                                     if (idx > 0) Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                                    AnimatedStatItem(icon, target, label, started, Modifier.weight(1f))
+                                    StaticStatItem(icon, target, label, Modifier.weight(1f))
                                 }
                             }
                         }
@@ -229,12 +217,12 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(14.dp))
-                    FadeIn(visible = started, delayMs = 250) {
+                    FadeIn(visible = true, delayMs = 250) {
                         Surface(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onEditProfile),
                             shape = RoundedCornerShape(14.dp),
                             color = CardBg,
-                            shadowElevation = if (isDark) 0.dp else 2.dp
+                            shadowElevation = 0.dp
                         ) {
                             Row(
                                 Modifier.fillMaxWidth().padding(vertical = 14.dp),
@@ -255,14 +243,14 @@ fun ProfileScreen(
                 if (user.role == UserRole.ATHLETE && goalsState != null) {
                     item {
                         Spacer(Modifier.height(20.dp))
-                        FadeIn(visible = started, delayMs = 300) {
+                        FadeIn(visible = true, delayMs = 300) {
                             Column(Modifier.padding(horizontal = 16.dp)) {
                                 SectionHeader("Мои цели", action = "+", onAction = onGoalCreate)
                                 Spacer(Modifier.height(10.dp))
                                 when (val gs = goalsState) {
                                     is UiState.Success -> {
                                         if (gs.data.isEmpty()) {
-                                            Surface(Modifier.fillMaxWidth().clickable(onClick = onGoalCreate), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+                                            Surface(Modifier.fillMaxWidth().clickable(onClick = onGoalCreate), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
                                                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     Icon(Icons.Default.Add, null, tint = Accent, modifier = Modifier.size(24.dp))
                                                     Spacer(Modifier.width(12.dp))
@@ -291,7 +279,7 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(20.dp))
-                    FadeIn(visible = started, delayMs = 400) {
+                    FadeIn(visible = true, delayMs = 400) {
                         Column(Modifier.padding(horizontal = 16.dp)) {
                             SectionHeader("Результаты")
                             Spacer(Modifier.height(10.dp))
@@ -321,7 +309,7 @@ fun ProfileScreen(
                 if (filteredStats.isNotEmpty()) {
                     item {
                         Spacer(Modifier.height(20.dp))
-                        FadeIn(visible = started, delayMs = 450) {
+                        FadeIn(visible = true, delayMs = 450) {
                             Column {
                                 Row(Modifier.padding(horizontal = 16.dp)) {
                                     SectionHeader("Рейтинг по спорту")
@@ -347,7 +335,7 @@ fun ProfileScreen(
                 if (team != null) {
                     item {
                         Spacer(Modifier.height(20.dp))
-                        FadeIn(visible = started, delayMs = 500) {
+                        FadeIn(visible = true, delayMs = 500) {
                             Column(Modifier.padding(horizontal = 16.dp)) {
                                 SectionHeader("Команда")
                                 Spacer(Modifier.height(10.dp))
@@ -362,11 +350,11 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(24.dp))
-                    FadeIn(visible = started, delayMs = 520) {
+                    FadeIn(visible = true, delayMs = 520) {
                         Surface(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             shape = RoundedCornerShape(16.dp), color = CardBg,
-                            shadowElevation = if (isDark) 0.dp else 2.dp
+                            shadowElevation = 0.dp
                         ) {
                             Column {
                                 // My Tickets (viewer only)
@@ -394,11 +382,11 @@ fun ProfileScreen(
                 // ═══════════════════════════════════════
                 item {
                     Spacer(Modifier.height(12.dp))
-                    FadeIn(visible = started, delayMs = 560) {
+                    FadeIn(visible = true, delayMs = 560) {
                         Surface(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             shape = RoundedCornerShape(16.dp), color = CardBg,
-                            shadowElevation = if (isDark) 0.dp else 2.dp
+                            shadowElevation = 0.dp
                         ) {
                             Column {
                                 MenuRow(icon = Icons.Outlined.Shield, label = "Конфиденциальность", onClick = { showLegalSheet = true })
@@ -477,12 +465,11 @@ private fun ProfileAvatar(avatarUrl: String?, initials: String, sportName: Strin
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun AnimatedStatItem(icon: ImageVector, targetValue: Int, label: String, started: Boolean, modifier: Modifier = Modifier) {
-    val v by animateFloatAsState(if (started) targetValue.toFloat() else 0f, tween(900, 400, FastOutSlowInEasing), label = "s_$label")
+private fun StaticStatItem(icon: ImageVector, targetValue: Int, label: String, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(icon, null, tint = TextMuted, modifier = Modifier.size(20.dp))
         Spacer(Modifier.height(6.dp))
-        Text("${v.roundToInt()}", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+        Text("$targetValue", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(label, fontSize = 11.sp, color = TextMuted)
     }
 }
@@ -500,7 +487,7 @@ private fun TournamentCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
     Surface(
         Modifier.width(220.dp).clickable(onClick = onClick),
         RoundedCornerShape(16.dp), CardBg,
-        shadowElevation = if (isDark) 0.dp else 3.dp
+        shadowElevation = 0.dp
     ) {
         Column {
             // Image header
@@ -512,12 +499,7 @@ private fun TournamentCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
                     Box(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(sportColor(sportName).copy(0.8f), sportColor(sportName).copy(0.4f)))))
                 }
                 // Sport badge
-                Surface(
-                    Modifier.align(Alignment.TopStart).padding(8.dp),
-                    RoundedCornerShape(50), Color.White.copy(0.2f)
-                ) {
-                    Text("${sportEmoji(sportName)} $sportName", Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-                }
+                SportTag(sportName, Modifier.align(Alignment.TopStart).padding(8.dp), onImage = true)
                 // Status
                 val statusText = when (t.status) {
                     "registration_open" -> "Регистрация"
@@ -565,7 +547,7 @@ private fun ResultCard(r: ResultDto) {
     val posEmoji = when (r.position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "#${r.position}" }
     val sportName = r.tournaments?.sports?.name ?: ""
 
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             // Position
             Box(
@@ -582,7 +564,7 @@ private fun ResultCard(r: ResultDto) {
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (sportName.isNotEmpty()) {
-                        Text("${sportEmoji(sportName)} $sportName", fontSize = 12.sp, color = TextMuted)
+                        Text(sportName, fontSize = 12.sp, color = TextMuted)
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(formatShortDate(r.tournaments?.startDate), fontSize = 12.sp, color = TextMuted)
@@ -606,11 +588,11 @@ private fun ResultCard(r: ResultDto) {
 private fun SportRatingCard(stat: UserSportStatsDto) {
     val isDark = DarkTheme.isDark
     val name = stat.sportName ?: ""
-    Surface(Modifier.width(160.dp), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.width(160.dp), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
-                    Text(sportEmoji(name), fontSize = 18.sp)
+                    Icon(sportIcon(name), null, Modifier.size(18.dp), tint = TextMuted)
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -638,10 +620,10 @@ private fun TeamCard(membership: TeamMembershipDto) {
     val sportName = team.sports?.name ?: ""
     val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
 
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
-                Text(sportEmoji(sportName), fontSize = 24.sp)
+                Icon(sportIcon(sportName), null, Modifier.size(24.dp), tint = TextMuted)
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
@@ -698,7 +680,7 @@ private fun MenuDivider() {
 private fun CompactActionButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
-    Surface(modifier.clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(modifier.clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = Accent, modifier = Modifier.size(18.dp))
@@ -716,7 +698,7 @@ private fun CompactActionButton(icon: ImageVector, label: String, onClick: () ->
 @Composable
 private fun EmptyCard(text: String, icon: ImageVector) {
     val isDark = DarkTheme.isDark
-    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = TextMuted, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
@@ -736,7 +718,7 @@ private fun GoalCard(goal: AthleteGoal, onClick: () -> Unit = {}) {
     val statusColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Accent }
     val progressColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Color(0xFF3B82F6) }
 
-    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(goal.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -821,7 +803,7 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
 private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
-    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = if (isDark) 0.dp else 2.dp) {
+    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))

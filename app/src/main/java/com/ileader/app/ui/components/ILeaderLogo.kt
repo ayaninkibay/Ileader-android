@@ -1,6 +1,5 @@
 package com.ileader.app.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -87,16 +86,7 @@ fun ILeaderBrandHeader(
     val roleIcon = getRoleIcon(role)
     val roleLabel = role.displayName
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val dotAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = EaseInOut),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dotAlpha"
-    )
+    val dotAlpha = 1f
 
     Row(
         modifier = modifier,

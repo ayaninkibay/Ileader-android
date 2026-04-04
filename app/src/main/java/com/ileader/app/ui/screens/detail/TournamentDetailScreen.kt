@@ -1,7 +1,5 @@
 package com.ileader.app.ui.screens.detail
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -21,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
@@ -199,16 +196,11 @@ private fun TournamentContent(
                         val favPref = remember { com.ileader.app.data.preferences.FavoritesPreference(favContext) }
                         val favIds by favPref.favoriteTournamentIds.collectAsState(initial = emptyList())
                         val isFav = tournament.id in favIds
-                        val favScale by animateFloatAsState(
-                            targetValue = if (isFav) 1f else 0.9f,
-                            animationSpec = tween(200), label = "favScale"
-                        )
                         val scope = rememberCoroutineScope()
 
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .scale(favScale)
                                 .clip(CircleShape)
                                 .background(if (isFav) Accent.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.3f))
                                 .clickable { scope.launch { favPref.toggleFavorite(tournament.id) } },
@@ -412,7 +404,7 @@ private fun TournamentContent(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = CardBg,
-                    shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+                    shadowElevation = 0.dp
                 ) {
                     Row(
                         Modifier.padding(14.dp),
@@ -765,12 +757,7 @@ private fun ResultsSection(results: List<ResultDto>, onProfileClick: (String) ->
                     .clickable { r.athleteId?.let { onProfileClick(it) } }
                     .padding(vertical = 6.dp)
             ) {
-                val posEmoji = when (r.position) {
-                    1 -> "\uD83E\uDD47"
-                    2 -> "\uD83E\uDD48"
-                    3 -> "\uD83E\uDD49"
-                    else -> "${r.position}."
-                }
+                val posEmoji = when (r.position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "${r.position}." }
                 Text(
                     text = posEmoji,
                     fontSize = 14.sp,
@@ -967,7 +954,7 @@ private fun QuickInfoCard(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp,
+        shadowElevation = 0.dp,
         border = if (isDark) androidx.compose.foundation.BorderStroke(
             1.dp, com.ileader.app.ui.theme.LocalAppColors.current.border.copy(0.2f)
         ) else null
@@ -1197,12 +1184,7 @@ private fun PrizesSection(prizes: List<String>) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(vertical = 3.dp)
             ) {
-                val medal = when (index) {
-                    0 -> "\uD83E\uDD47"
-                    1 -> "\uD83E\uDD48"
-                    2 -> "\uD83E\uDD49"
-                    else -> "${index + 1}."
-                }
+                val medal = "${index + 1}."
                 Text(
                     text = medal,
                     fontSize = 14.sp,

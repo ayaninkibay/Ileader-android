@@ -206,7 +206,7 @@ fun SportScreen(
                     Surface(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(16.dp), color = CardBg,
-                        shadowElevation = if (isDark) 0.dp else 2.dp
+                        shadowElevation = 0.dp
                     ) {
                         Column(Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -444,7 +444,7 @@ private fun TournamentMiniCard(t: TournamentWithCountsDto, onClick: () -> Unit) 
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(260.dp).clickable(onClick = onClick)
     ) {
         Column {
@@ -499,7 +499,7 @@ private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(110.dp).clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -529,7 +529,7 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(220.dp).clickable(onClick = onClick)
     ) {
         Column {
@@ -572,7 +572,7 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(280.dp).clickable(onClick = onClick)
     ) {
         Column {
@@ -632,7 +632,7 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                     Spacer(Modifier.height(8.dp))
                     league.leaders.forEachIndexed { idx, leader ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${idx + 1}.", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextMuted, modifier = Modifier.width(24.dp))
+                            Text(when (idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }, fontSize = 14.sp, modifier = Modifier.width(24.dp))
                             Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.12f)), contentAlignment = Alignment.Center) {
                                 Text(leader.name.take(1), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
                             }
@@ -668,7 +668,7 @@ private fun RefereeMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(200.dp).height(90.dp).clickable(onClick = onClick)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -708,7 +708,7 @@ private fun TrainerMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(200.dp).height(90.dp).clickable(onClick = onClick)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -749,7 +749,7 @@ private fun TeamMiniCard(team: TeamWithStatsDto, onClick: () -> Unit = {}) {
     val sColor = sportColor(team.sportName)
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        shadowElevation = 0.dp,
         modifier = Modifier.width(170.dp).height(170.dp).clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(14.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {

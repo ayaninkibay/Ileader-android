@@ -1,6 +1,5 @@
 package com.ileader.app.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,8 +18,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.ileader.app.ui.theme.DarkAppColors
 import com.ileader.app.ui.theme.LocalAppColors
-import kotlin.math.PI
-import kotlin.math.sin
 
 private data class FloatingIcon(
     val icon: ImageVector,
@@ -91,24 +88,6 @@ fun AnimatedBackground(modifier: Modifier = Modifier) {
     val glow2Alpha = if (isDark) 0.15f else 0.12f
     val iconColor = Color(0xFFEF4444)
 
-    val infiniteTransition = rememberInfiniteTransition(label = "bg")
-
-    val anim1 = infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart),
-        label = "f1"
-    )
-    val anim2 = infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(25000, easing = LinearEasing), RepeatMode.Restart),
-        label = "f2"
-    )
-    val anim3 = infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing), RepeatMode.Restart),
-        label = "f3"
-    )
-
     val density = LocalDensity.current
 
     // Prepare icon painters
@@ -157,21 +136,11 @@ fun AnimatedBackground(modifier: Modifier = Modifier) {
             center = Offset(0f, h)
         )
 
-        // 3. Floating icons
+        // 3. Static icons (no animation)
         iconPainters.forEach { (item, painter) ->
-            val progress = when (item.animType) {
-                0 -> anim1.value
-                1 -> anim2.value
-                else -> anim3.value
-            }
-
-            val t = ((progress + item.delayFraction) % 1f) * 2f * PI.toFloat()
-            val dx = sin(t) * with(density) { 15.dp.toPx() }
-            val dy = sin(t * 0.7f + 1f) * with(density) { 20.dp.toPx() }
-
             val iconSizePx = with(density) { item.sizeDp.dp.toPx() }
-            val cx = item.xFraction * w + dx
-            val cy = item.yFraction * h + dy
+            val cx = item.xFraction * w
+            val cy = item.yFraction * h
 
             translate(left = cx - iconSizePx / 2f, top = cy - iconSizePx / 2f) {
                 with(painter) {

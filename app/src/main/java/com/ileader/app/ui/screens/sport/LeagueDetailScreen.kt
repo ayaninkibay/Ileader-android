@@ -454,7 +454,7 @@ private fun SectionCard(
             .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Column {
             Row(

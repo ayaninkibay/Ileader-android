@@ -319,7 +319,7 @@ private fun NextInterviewCard(interview: InterviewDto, onClick: () -> Unit) {
         shape = RoundedCornerShape(20.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, InterviewColor.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 4.dp
+        shadowElevation = 0.dp
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             // Countdown circle
@@ -399,7 +399,7 @@ private fun CreateInterviewButton(onClick: () -> Unit) {
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, InterviewColor.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(
             Modifier.padding(16.dp),
@@ -496,7 +496,7 @@ private fun InterviewCard(
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(0.3f)),
-        shadowElevation = if (isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(Modifier.padding(12.dp)) {
             // Avatar or icon

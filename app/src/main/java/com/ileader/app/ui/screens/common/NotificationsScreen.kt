@@ -232,7 +232,7 @@ private fun NotificationCard(notification: NotificationDto, onClick: () -> Unit)
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         color = DarkTheme.CardBg,
-        shadowElevation = if (DarkTheme.isDark) 0.dp else 2.dp
+        shadowElevation = 0.dp
     ) {
         Row(
             Modifier

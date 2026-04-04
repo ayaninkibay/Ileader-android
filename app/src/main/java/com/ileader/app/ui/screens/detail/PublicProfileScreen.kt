@@ -1,8 +1,5 @@
 package com.ileader.app.ui.screens.detail
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,18 +23,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ileader.app.data.remote.UiState
-import com.ileader.app.data.remote.dto.ResultDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.PublicProfileData
 import com.ileader.app.ui.viewmodels.PublicProfileViewModel
-import kotlin.math.roundToInt
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -46,7 +39,6 @@ private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
 private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 private val Accent: Color @Composable get() = DarkTheme.Accent
-private val AccentSoft: Color @Composable get() = DarkTheme.AccentSoft
 private val Border: Color @Composable get() = LocalAppColors.current.border
 
 @Composable
@@ -179,14 +171,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             ) {
                 data.sports.forEach { sport ->
                     val name = sport.sports?.name ?: ""
-                    val emoji = sportEmoji(name)
-                    Surface(shape = RoundedCornerShape(50), color = TextMuted.copy(0.1f)) {
-                        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(emoji, fontSize = 14.sp)
-                            Spacer(Modifier.width(6.dp))
-                            Text(name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextMuted)
-                        }
-                    }
+                    SportTag(name)
                 }
             }
             
@@ -201,7 +186,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+                color = CardBg, shadowElevation = 0.dp
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
@@ -220,132 +205,18 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         }
 
         // ══════════════════════════════════════
-        // SPORTS with ratings
-        // ══════════════════════════════════════
-        if (data.sports.isNotEmpty()) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Виды спорта", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Spacer(Modifier.height(10.dp))
-                    data.sports.forEach { sport ->
-                        val name = sport.sports?.name ?: ""
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                                    .background(TextMuted.copy(0.08f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(sportEmoji(name), fontSize = 18.sp)
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Text(name, fontSize = 14.sp, color = TextPrimary, modifier = Modifier.weight(1f))
-                            Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.12f)) {
-                                Text(
-                                    "${sport.rating}",
-                                    Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            
-            Spacer(Modifier.height(12.dp))
-        }
-
-        // ══════════════════════════════════════
         // BIO
         // ══════════════════════════════════════
         if (!profile.bio.isNullOrEmpty()) {
             Surface(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
+                color = CardBg, shadowElevation = 0.dp
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Text("О себе", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
                     Spacer(Modifier.height(8.dp))
                     Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
-                }
-            }
-            
-            Spacer(Modifier.height(12.dp))
-        }
-
-        // ══════════════════════════════════════
-        // RESULTS
-        // ══════════════════════════════════════
-        if (data.results.isNotEmpty()) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Результаты", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    data.results.take(10).forEachIndexed { i, result ->
-                        if (i > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.2f), modifier = Modifier.padding(vertical = 6.dp))
-                        ResultRow(result)
-                    }
-                }
-            }
-            
-            Spacer(Modifier.height(12.dp))
-        }
-
-        // ══════════════════════════════════════
-        // TEAM
-        // ══════════════════════════════════════
-        data.membership?.let { m ->
-            Surface(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = CardBg, shadowElevation = if (isDark) 0.dp else 2.dp
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Groups, null, tint = TextMuted, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Команда", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        val sportName = m.teams?.sports?.name ?: ""
-                        Box(
-                            Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                                .background(TextMuted.copy(0.08f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(sportEmoji(sportName), fontSize = 22.sp)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(m.teams?.name ?: "—", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                            if (sportName.isNotEmpty()) {
-                                Text(sportName, fontSize = 12.sp, color = TextMuted)
-                            }
-                        }
-                        Surface(shape = RoundedCornerShape(8.dp), color = AccentSoft) {
-                            Text(
-                                when (m.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Резерв"; else -> m.role ?: "" },
-                                Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
-                            )
-                        }
-                    }
                 }
             }
             
@@ -370,70 +241,3 @@ private fun AnimStat(icon: ImageVector, target: Int, label: String) {
     }
 }
 
-// ══════════════════════════════════════════
-// Result Row
-// ══════════════════════════════════════════
-
-@Composable
-private fun ResultRow(result: ResultDto) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        // Position badge
-        val posColor = when (result.position) { 1 -> Color(0xFFCA8A04); 2 -> Color(0xFF6B7280); 3 -> Color(0xFFB45309); else -> TextMuted }
-        val posBg = when (result.position) {
-            1 -> if (DarkTheme.isDark) Color(0xFFCA8A04).copy(0.15f) else Color(0xFFFEF9C3)
-            2 -> if (DarkTheme.isDark) Color(0xFF6B7280).copy(0.15f) else Color(0xFFF1F5F9)
-            3 -> if (DarkTheme.isDark) Color(0xFFB45309).copy(0.15f) else Color(0xFFFEF3C7)
-            else -> Color.Transparent
-        }
-        Box(
-            Modifier.size(32.dp).then(
-                if (result.position <= 3) Modifier.background(posBg, RoundedCornerShape(8.dp))
-                else Modifier
-            ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                if (result.position <= 3) "${result.position}" else "${result.position}.",
-                fontSize = if (result.position <= 3) 14.sp else 13.sp,
-                fontWeight = if (result.position <= 3) FontWeight.ExtraBold else FontWeight.Medium,
-                color = posColor
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-
-        // Tournament info
-        Column(Modifier.weight(1f)) {
-            val sportName = result.tournaments?.sports?.name ?: ""
-            Text(
-                result.tournaments?.name ?: "—", fontSize = 14.sp,
-                fontWeight = FontWeight.Medium, color = TextPrimary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (sportName.isNotEmpty()) {
-                    Text("${sportEmoji(sportName)} $sportName", fontSize = 11.sp, color = TextMuted)
-                    Spacer(Modifier.width(6.dp))
-                }
-                result.tournaments?.startDate?.let {
-                    Text(formatDateCompact(it), fontSize = 11.sp, color = TextMuted)
-                }
-            }
-        }
-
-        // Points
-        result.points?.let { pts ->
-            Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(alpha = 0.12f)) {
-                Text(
-                    "$pts", Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent
-                )
-            }
-        }
-    }
-}
-
-private fun formatDateCompact(dateStr: String): String {
-    val parts = dateStr.take(10).split("-")
-    if (parts.size < 3) return dateStr
-    return "${parts[2]}.${parts[1]}.${parts[0]}"
-}

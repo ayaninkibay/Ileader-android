@@ -267,7 +267,7 @@ fun MediaInterviewEditorScreen(
                             color = CardBg,
                             border = if (isDark) DarkTheme.cardBorderStroke
                             else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(0.3f)),
-                            shadowElevation = if (isDark) 0.dp else 4.dp
+                            shadowElevation = 0.dp
                         ) {
                             Column(Modifier.heightIn(max = 200.dp)) {
                                 athleteResults.take(8).forEach { athlete ->
