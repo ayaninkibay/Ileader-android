@@ -50,7 +50,7 @@ private val Accent: Color @Composable get() = DarkTheme.Accent
 private val Border: Color @Composable get() = LocalAppColors.current.border
 
 private enum class Tab(val label: String) {
-    MY("Мои турниры"), FAVORITES("Избранные ★")
+    MY("Мои турниры"), FAVORITES("Избранные ♡")
 }
 
 private enum class Filter(val label: String) {
@@ -273,7 +273,7 @@ fun MyTournamentsScreen(
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        if (selectedTab == Tab.FAVORITES) "Нажмите ★ на турнире, чтобы добавить"
+                        if (selectedTab == Tab.FAVORITES) "Нажмите ♡ на турнире, чтобы добавить"
                         else "Зарегистрируйтесь на турнир на вкладке Спорт",
                         fontSize = 14.sp, color = TextMuted,
                         modifier = Modifier.padding(horizontal = 16.dp),
