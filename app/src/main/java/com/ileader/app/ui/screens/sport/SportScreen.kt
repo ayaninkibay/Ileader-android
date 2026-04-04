@@ -122,78 +122,48 @@ fun SportScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        // ── 2 Secondary + "Ещё" button ──
+        // ── Sport selector row ──
         item {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(100.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            var showSheet by remember { mutableStateOf(false) }
+            val selectedNames = s.selectedIndices.mapNotNull { s.sports.getOrNull(it)?.name }
+            val label = if (selectedNames.isEmpty()) "Выбрать вид спорта" else selectedNames.joinToString(", ")
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = CardBg,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.3f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(52.dp)
+                    .clickable { showSheet = true }
             ) {
-                secondarySports.forEach { sport ->
-                    val idx = s.sports.indexOf(sport)
-                    SportImageCard(
-                        sport = sport, isSelected = idx in s.selectedIndices,
-                        onClick = { viewModel.toggleSport(idx) },
-                        modifier = Modifier.weight(1f)
+                Row(
+                    Modifier.fillMaxSize().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Search, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        label, fontSize = 14.sp,
+                        color = if (selectedNames.isEmpty()) TextMuted else TextPrimary,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
-                }
-                Box(Modifier.weight(1f).fillMaxHeight()) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp), color = CardBg,
-                        modifier = Modifier.fillMaxSize().clickable { showAllSports = !showAllSports }
-                    ) {
-                        Column(
-                            Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                if (showAllSports) Icons.Default.Close else Icons.Default.Tune,
-                                null, tint = Accent, modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                if (showAllSports) "Скрыть" else "Ещё",
-                                color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = showAllSports,
-                        onDismissRequest = { showAllSports = false },
-                        modifier = Modifier.background(CardBg)
-                    ) {
-                        s.sports.drop(4).forEach { sport ->
-                            val idx = s.sports.indexOf(sport)
-                            val isSelected = idx in s.selectedIndices
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            sportIcon(sport.name), null,
-                                            tint = if (isSelected) Accent else TextSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(Modifier.width(10.dp))
-                                        Text(
-                                            sport.name,
-                                            color = if (isSelected) Accent else TextPrimary,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    viewModel.toggleSport(idx)
-                                    showAllSports = false
-                                },
-                                trailingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.Check, null, tint = Accent, modifier = Modifier.size(16.dp)) }
-                                } else null
-                            )
-                        }
-                    }
+                    Icon(Icons.Default.KeyboardArrowDown, null, tint = TextMuted, modifier = Modifier.size(22.dp))
                 }
             }
+
+            if (showSheet) {
+                SportPickerSheet(
+                    sports = s.sports,
+                    selectedIndices = s.selectedIndices,
+                    onToggle = { viewModel.toggleSport(it) },
+                    onDismiss = { showSheet = false }
+                )
+            }
+
             Spacer(Modifier.height(20.dp))
         }
 
@@ -786,6 +756,67 @@ private fun TeamMiniCard(team: TeamWithStatsDto, onClick: () -> Unit = {}) {
                         Icon(Icons.Outlined.LocationOn, null, tint = TextMuted, modifier = Modifier.size(13.dp))
                         Spacer(Modifier.width(2.dp))
                         Text(city, fontSize = 11.sp, color = TextMuted, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// Sport Picker Bottom Sheet
+// ═══════════════════════════════════════════════════
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SportPickerSheet(
+    sports: List<SportDto>,
+    selectedIndices: Set<Int>,
+    onToggle: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = CardBg,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)
+        ) {
+            Text("Выберите вид спорта", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(4.dp))
+            Text("Нажмите для выбора", fontSize = 13.sp, color = TextMuted)
+            Spacer(Modifier.height(16.dp))
+
+            sports.forEachIndexed { idx, sport ->
+                val isSelected = idx in selectedIndices
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSelected) Accent.copy(0.15f) else Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                        .clickable { onToggle(idx); onDismiss() }
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            sportIcon(sport.name), null,
+                            tint = if (isSelected) Accent else TextSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            sport.name, fontSize = 15.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Accent else TextPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Icon(Icons.Default.CheckCircle, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
