@@ -135,18 +135,19 @@ fun MyTournamentsScreen(
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         // ══════════════════════════════════════
-        // HERO
+        // HERO (hidden for viewer)
         // ══════════════════════════════════════
-        item {
-            HeroSection(
-                user = user,
-                total = myAll.size,
-                active = active.size,
-                completed = completed.size,
-                heroImageUrl = heroImageUrl,
-                isDark = isDark
-            )
-            
+        if (user.role != UserRole.USER) {
+            item {
+                HeroSection(
+                    user = user,
+                    total = myAll.size,
+                    active = active.size,
+                    completed = completed.size,
+                    heroImageUrl = heroImageUrl,
+                    isDark = isDark
+                )
+            }
         }
 
         // ══════════════════════════════════════
