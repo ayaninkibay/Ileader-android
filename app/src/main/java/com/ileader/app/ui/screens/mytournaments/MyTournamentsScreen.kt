@@ -125,6 +125,7 @@ fun MyTournamentsScreen(
 
     val heroSport = myAll.firstOrNull()?.sportName ?: favAll.firstOrNull()?.sportName
     val heroImageUrl = heroSport?.let { SportViewModel.getFallbackImage(SportDto(id = "", name = it)) }
+        ?: "https://ileader.kz/img/karting/karting-07-1280x853.jpeg"
 
     val isLoading = (selectedTab == Tab.MY && roleTournaments is UiState.Loading) ||
         (selectedTab == Tab.FAVORITES && favoriteTournaments is UiState.Loading && favoriteIds.isNotEmpty())
