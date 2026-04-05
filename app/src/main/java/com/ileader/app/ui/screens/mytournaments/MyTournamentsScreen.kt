@@ -151,9 +151,9 @@ fun MyTournamentsScreen(
         }
 
         // ══════════════════════════════════════
-        // TAB SWITCHER (Мои / Избранные)
+        // TAB SWITCHER (hidden for viewer — only Favorites)
         // ══════════════════════════════════════
-        item {
+        if (user.role != UserRole.USER) item {
             Spacer(Modifier.height(16.dp))
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp),
