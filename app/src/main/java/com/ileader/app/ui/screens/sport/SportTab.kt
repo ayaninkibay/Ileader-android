@@ -54,7 +54,8 @@ fun SportTab(user: User) {
             is SportNavState.TournamentDetail -> TournamentDetailScreen(
                 tournamentId = currentState.id,
                 user = user,
-                onBack = { navState = SportNavState.Search }
+                onBack = { navState = SportNavState.Search },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
             )
             is SportNavState.ArticleDetail -> ArticleDetailScreen(
                 articleId = currentState.id,

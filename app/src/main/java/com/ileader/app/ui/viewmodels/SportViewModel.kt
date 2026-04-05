@@ -129,12 +129,22 @@ class SportViewModel : ViewModel() {
     }
 
     fun applyFilters(filters: SportFilterState) {
-        state = state.copy(filters = filters)
+        // Sync selectedIndices with sportId
+        val idx = if (filters.sportId != null) {
+            state.sports.indexOfFirst { it.id == filters.sportId }.takeIf { it >= 0 }
+        } else null
+        state = state.copy(
+            filters = filters,
+            selectedIndices = if (idx != null) setOf(idx) else emptySet()
+        )
         applyClientFilters()
     }
 
     fun resetFilters() {
-        state = state.copy(filters = SportFilterState())
+        state = state.copy(
+            filters = SportFilterState(),
+            selectedIndices = emptySet()
+        )
         applyClientFilters()
     }
 

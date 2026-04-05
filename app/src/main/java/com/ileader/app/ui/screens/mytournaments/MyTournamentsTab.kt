@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.common.ManualCheckInScreen
 import com.ileader.app.ui.screens.common.QrScannerScreen
+import com.ileader.app.ui.screens.detail.PublicProfileScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
 private sealed class MyTournamentsNavState {
@@ -17,6 +18,7 @@ private sealed class MyTournamentsNavState {
     data class ManualCheckIn(val tournamentId: String, val tournamentName: String = "") : MyTournamentsNavState()
     data class TournamentEdit(val id: String) : MyTournamentsNavState()
     data class HelperManagement(val tournamentId: String, val tournamentName: String) : MyTournamentsNavState()
+    data class PublicProfile(val id: String) : MyTournamentsNavState()
 }
 
 @Composable
@@ -40,7 +42,14 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 tournamentId = state.id,
                 user = user,
                 onBack = { navState = MyTournamentsNavState.List },
-                onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) }
+                onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            )
+        }
+        is MyTournamentsNavState.PublicProfile -> {
+            PublicProfileScreen(
+                userId = state.id,
+                onBack = { navState = MyTournamentsNavState.List }
             )
         }
         is MyTournamentsNavState.QrScanner -> {

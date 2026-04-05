@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
+import com.ileader.app.ui.screens.detail.PublicProfileScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
 sealed class MediaNavState {
@@ -15,6 +16,7 @@ sealed class MediaNavState {
     data class ArticleEditor(val articleId: String? = null) : MediaNavState()
     data object Interviews : MediaNavState()
     data class InterviewEditor(val interviewId: String? = null) : MediaNavState()
+    data class PublicProfile(val id: String) : MediaNavState()
 }
 
 @Composable
@@ -33,6 +35,13 @@ fun MediaTab(user: User) {
             TournamentDetailScreen(
                 tournamentId = state.id,
                 user = user,
+                onBack = { navState = MediaNavState.Accreditations },
+                onProfileClick = { navState = MediaNavState.PublicProfile(it) }
+            )
+        }
+        is MediaNavState.PublicProfile -> {
+            PublicProfileScreen(
+                userId = state.id,
                 onBack = { navState = MediaNavState.Accreditations }
             )
         }
