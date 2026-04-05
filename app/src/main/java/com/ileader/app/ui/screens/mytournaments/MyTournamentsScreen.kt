@@ -398,7 +398,7 @@ private fun HeroSection(
         }
 
         Column(
-            Modifier.statusBarsPadding().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 20.dp)
+            Modifier.statusBarsPadding().padding(horizontal = 20.dp).padding(top = 32.dp, bottom = 20.dp)
         ) {
             // Title row
             Row(verticalAlignment = Alignment.CenterVertically) {
