@@ -71,8 +71,16 @@ fun SportScreen(
         return
     }
 
-    val topSports = s.sports.take(2)
-    val secondarySports = s.sports.drop(2).take(2)
+    val topSports = remember(s.sports, s.selectedIndices) {
+        val default = s.sports.take(2)
+        val selectedIdx = s.selectedIndices.firstOrNull()
+        if (selectedIdx != null && selectedIdx >= 2 && selectedIdx < s.sports.size) {
+            val selected = s.sports[selectedIdx]
+            listOf(selected, default.getOrElse(1) { default.getOrElse(0) { selected } })
+        } else {
+            default
+        }
+    }
 
     // Mock leagues
     // Leagues from ViewModel
@@ -114,7 +122,8 @@ fun SportScreen(
         // ── Accordion: "Все спорты" ──
         item {
             var expanded by remember { mutableStateOf(false) }
-            val restSports = s.sports.drop(2)
+            val topIds = topSports.map { it.id }.toSet()
+            val restSports = s.sports.filter { it.id !in topIds }
 
             // Button
             Surface(
