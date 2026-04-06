@@ -244,6 +244,8 @@ fun SportScreen(
             }
         }
 
+        if (s.selectedIndices.isNotEmpty()) {
+
         // ── Турниры ──
         item {
             SectionTitle(title = "Турниры", action = "Все", onAction = {})
@@ -357,6 +359,7 @@ fun SportScreen(
             Spacer(Modifier.height(20.dp))
         }
 
+        } // end if (selectedIndices.isNotEmpty())
     }
 }
 
