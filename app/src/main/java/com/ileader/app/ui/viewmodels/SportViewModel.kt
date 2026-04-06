@@ -87,6 +87,8 @@ class SportViewModel : ViewModel() {
 
                 state = state.copy(
                     sports = sports,
+                    selectedIndices = if (sports.isNotEmpty()) setOf(0) else emptySet(),
+                    filters = state.filters.copy(sportId = sports.firstOrNull()?.id),
                     tournaments = UiState.Success(tournaments),
                     athletes = UiState.Success(athletes),
                     trainers = UiState.Success(trainers),
@@ -97,6 +99,7 @@ class SportViewModel : ViewModel() {
                     hasMoreTournaments = false,
                     hasMoreNews = articles.size >= PAGE_SIZE
                 )
+                if (sports.isNotEmpty()) applyClientFilters()
             } catch (e: Exception) {
                 val msg = e.message ?: "Ошибка загрузки"
                 state = state.copy(
@@ -261,18 +264,10 @@ class SportViewModel : ViewModel() {
 
     fun toggleSport(index: Int) {
         val sport = state.sports.getOrNull(index) ?: return
-        val current = state.selectedIndices
-        val newSet = if (index in current) {
-            current - index
-        } else if (current.size < 2) {
-            current + index
-        } else {
-            setOf(index)
-        }
-        val sportIds = newSet.mapNotNull { state.sports.getOrNull(it)?.id }
+        val newSet = if (index in state.selectedIndices) state.selectedIndices else setOf(index)
         state = state.copy(
             selectedIndices = newSet,
-            filters = state.filters.copy(sportId = sportIds.firstOrNull())
+            filters = state.filters.copy(sportId = sport.id)
         )
         applyClientFilters()
     }
