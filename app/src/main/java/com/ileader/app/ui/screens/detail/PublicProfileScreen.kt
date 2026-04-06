@@ -85,28 +85,28 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // HERO BANNER
         // ══════════════════════════════════════
         Box(modifier = Modifier.fillMaxWidth()) {
+            // Hero background — always dark so white text is readable in both themes
+            val heroShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             if (bannerUrl != null) {
                 AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(240.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)), contentScale = ContentScale.Crop)
-                Box(Modifier.fillMaxWidth().height(240.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(Brush.verticalGradient(listOf(Color.Black.copy(0.3f), Color.Black.copy(0.7f)))))
+                    .clip(heroShape), contentScale = ContentScale.Crop)
+                Box(Modifier.fillMaxWidth().height(240.dp).clip(heroShape)
+                    .background(Color.Black.copy(0.7f)))
             } else {
-                Box(Modifier.fillMaxWidth().height(240.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
-                    .background(Brush.verticalGradient(listOf(Accent.copy(0.9f), Accent.copy(0.4f)))))
+                Box(Modifier.fillMaxWidth().height(240.dp).clip(heroShape)
+                    .background(Brush.verticalGradient(listOf(Color(0xFF1a1a1a), Color(0xFF2d1a1a)))))
             }
 
             // Back button
             Box(
                 Modifier.statusBarsPadding().padding(16.dp).size(40.dp)
-                    .clip(CircleShape).background(Color.Black.copy(0.3f)).clickable(onClick = onBack),
+                    .clip(CircleShape).background(Color.White.copy(0.15f)).clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White, modifier = Modifier.size(20.dp))
             }
 
-            // Avatar + name
+            // Avatar + name — always white text on dark hero
             Column(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(top = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -115,8 +115,8 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 val borderColors = listOf(sColor, sColor.copy(0.5f), Accent, sColor)
                 Box(contentAlignment = Alignment.Center) {
                     Box(Modifier.size(112.dp).background(Brush.sweepGradient(borderColors), CircleShape))
-                    Box(Modifier.size(106.dp).clip(CircleShape).background(Bg))
-                    Box(Modifier.size(100.dp).clip(CircleShape).background(CardBg), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(106.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
+                    Box(Modifier.size(100.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
                         if (!profile.avatarUrl.isNullOrEmpty()) {
                             AsyncImage(profile.avatarUrl, null, Modifier.size(100.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                         } else {
@@ -127,15 +127,14 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                val onImage = bannerUrl != null
                 Text(profile.name ?: "Пользователь", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                    color = if (onImage) Color.White else TextPrimary)
+                    color = Color.White)
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RoleBadge(role = user.role)
                     if (!profile.city.isNullOrEmpty()) {
-                        Text("·", fontSize = 14.sp, color = if (onImage) Color.White.copy(0.7f) else TextMuted)
-                        Text(profile.city, fontSize = 13.sp, color = if (onImage) Color.White.copy(0.7f) else TextMuted)
+                        Text("·", fontSize = 14.sp, color = Color.White.copy(0.7f))
+                        Text(profile.city, fontSize = 13.sp, color = Color.White.copy(0.7f))
                     }
                 }
             }
