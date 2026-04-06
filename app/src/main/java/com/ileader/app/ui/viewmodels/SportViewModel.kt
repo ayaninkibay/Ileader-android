@@ -299,8 +299,8 @@ class SportViewModel : ViewModel() {
             "boxing", "бокс" -> "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&q=80"
             "swimming", "плавание" -> "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&q=80"
             "athletics", "атлетика", "лёгкая атлетика", "легкая атлетика" -> "https://images.unsplash.com/photo-1532444458054-01a7dd3e9fca?w=800&q=80"
-            "rowing", "гребля" -> "https://images.unsplash.com/photo-1594623274890-6b45ce7cf44a?w=800&q=80"
-            "strayk-bol", "страйк бол" -> "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80"
+            "rowing", "гребля" -> "https://clkbmjsmfzjuqdwnoejv.supabase.co/storage/v1/object/public/sport-images/rowing.jpg"
+            "strayk-bol", "страйк бол" -> "https://clkbmjsmfzjuqdwnoejv.supabase.co/storage/v1/object/public/sport-images/strikeball.jpg"
             "sportivnoe-rybolovstvo", "спортивное рыболовство" -> "https://images.unsplash.com/photo-1504309092620-4d0ec726efa4?w=800&q=80"
             else -> null
         }
