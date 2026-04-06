@@ -129,7 +129,9 @@ fun LeagueDetailScreen(
                 )
                 Box(
                     Modifier.fillMaxWidth().height(280.dp)
-                        .background(Color.Black.copy(0.7f))
+                        .background(Brush.verticalGradient(
+                            listOf(Color.Black.copy(0.2f), Color.Black.copy(0.75f))
+                        ))
                 )
             } else {
                 Box(
