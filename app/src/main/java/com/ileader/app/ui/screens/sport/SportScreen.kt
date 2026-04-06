@@ -196,6 +196,23 @@ fun SportScreen(
             Spacer(Modifier.height(16.dp))
         }
 
+        // ── Empty state when no sport selected ──
+        if (s.selectedIndices.isEmpty()) {
+            item {
+                Spacer(Modifier.height(40.dp))
+                Column(
+                    Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.TouchApp, null, tint = TextMuted.copy(0.4f), modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("Выберите вид спорта", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Нажмите на бокс сверху или откройте список", fontSize = 13.sp, color = TextMuted)
+                }
+            }
+        }
+
         // ── Description (when sport selected) ──
         val selectedSports = s.selectedSports
         if (selectedSports.isNotEmpty()) {
@@ -339,6 +356,7 @@ fun SportScreen(
             }
             Spacer(Modifier.height(20.dp))
         }
+
     }
 }
 

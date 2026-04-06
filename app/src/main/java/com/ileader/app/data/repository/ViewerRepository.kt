@@ -367,6 +367,17 @@ class ViewerRepository {
         } catch (_: Exception) { null }
     }
 
+    suspend fun getTeamTournamentIds(teamId: String): List<String> {
+        return try {
+            client.from("tournament_participants")
+                .select(Columns.raw("tournament_id"))
+                { filter { eq("team_id", teamId) } }
+                .decodeList<ParticipantTournamentIdDto>()
+                .mapNotNull { it.tournamentId }
+                .distinct()
+        } catch (_: Exception) { emptyList() }
+    }
+
     suspend fun getTeamDetail(teamId: String): TeamDto {
         return client.from("teams")
             .select(Columns.raw("*, sports(id, name), profiles!owner_id(name, avatar_url)"))
