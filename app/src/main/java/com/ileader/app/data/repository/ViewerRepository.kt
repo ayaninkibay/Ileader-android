@@ -350,10 +350,20 @@ class ViewerRepository {
 
     suspend fun getAthleteMembership(athleteId: String): TeamMembershipDto? {
         return try {
-            client.from("team_members")
+            val membership = client.from("team_members")
                 .select(Columns.raw("*, teams(id, name, city, sports(id, name))"))
                 { filter { eq("user_id", athleteId) } }
                 .decodeSingleOrNull<TeamMembershipDto>()
+            if (membership != null) return membership
+
+            // Fallback: trainer is team owner but not in team_members
+            val ownedTeam = client.from("teams")
+                .select(Columns.raw("id, name, city, sports(id, name)"))
+                { filter { eq("owner_id", athleteId); eq("is_active", true) }; limit(1) }
+                .decodeSingleOrNull<TeamNameWithSportDto>()
+            if (ownedTeam != null) {
+                TeamMembershipDto(teamId = ownedTeam.id, userId = athleteId, role = "captain", teams = ownedTeam)
+            } else null
         } catch (_: Exception) { null }
     }
 
