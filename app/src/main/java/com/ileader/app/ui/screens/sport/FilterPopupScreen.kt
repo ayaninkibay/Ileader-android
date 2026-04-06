@@ -28,8 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFilterChip
@@ -44,7 +45,7 @@ private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
 private val TextSecondary: Color @Composable get() = DarkTheme.TextSecondary
 private val Accent: Color @Composable get() = DarkTheme.Accent
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun FilterPopupScreen(
     activeTab: SportSubTab,
@@ -59,16 +60,18 @@ fun FilterPopupScreen(
     val sportItems = listOf("" to "Все виды спорта") + sports.map { it.id to it.name }
     val selectedSportName = sports.find { it.id == localFilters.sportId }?.name ?: ""
 
-    Dialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Bg,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Bg)
-        ) {
-            BackHeader(title = "Фильтры", onBack = onDismiss)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "Фильтры", fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                color = TextPrimary, modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(12.dp))
 
             Column(
                 modifier = Modifier

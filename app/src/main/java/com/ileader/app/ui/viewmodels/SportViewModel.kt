@@ -85,14 +85,8 @@ class SportViewModel : ViewModel() {
                 tournamentOffset = tournaments.size
                 newsOffset = articles.size
 
-                // Auto-select first sport
-                val autoIndices = if (sports.isNotEmpty()) setOf(0) else emptySet()
-                val autoSportId = sports.firstOrNull()?.id
-
                 state = state.copy(
                     sports = sports,
-                    selectedIndices = autoIndices,
-                    filters = state.filters.copy(sportId = autoSportId),
                     tournaments = UiState.Success(tournaments),
                     athletes = UiState.Success(athletes),
                     trainers = UiState.Success(trainers),
@@ -103,8 +97,6 @@ class SportViewModel : ViewModel() {
                     hasMoreTournaments = false,
                     hasMoreNews = articles.size >= PAGE_SIZE
                 )
-                // Apply filter for auto-selected sport
-                if (autoSportId != null) applyClientFilters()
             } catch (e: Exception) {
                 val msg = e.message ?: "Ошибка загрузки"
                 state = state.copy(
