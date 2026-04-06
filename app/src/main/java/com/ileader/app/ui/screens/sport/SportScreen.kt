@@ -72,13 +72,15 @@ fun SportScreen(
     }
 
     val topSports = remember(s.sports, s.selectedIndices) {
-        val default = s.sports.take(2)
-        val selectedIdx = s.selectedIndices.firstOrNull()
-        if (selectedIdx != null && selectedIdx >= 2 && selectedIdx < s.sports.size) {
-            val selected = s.sports[selectedIdx]
-            listOf(selected, default.getOrElse(1) { default.getOrElse(0) { selected } })
-        } else {
-            default
+        val selected = s.selectedIndices.sorted().mapNotNull { s.sports.getOrNull(it) }
+        when {
+            selected.size >= 2 -> selected.take(2)
+            selected.size == 1 -> {
+                val first = selected[0]
+                val second = s.sports.firstOrNull { it != first } ?: first
+                listOf(first, second)
+            }
+            else -> s.sports.take(2)
         }
     }
 
