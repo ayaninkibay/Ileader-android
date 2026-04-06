@@ -174,23 +174,23 @@ fun TeamDetailScreen(
                             Text(team.description, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
                             Spacer(Modifier.height(12.dp))
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             team.foundedYear?.let {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Outlined.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(4.dp))
-                                    Text("Основана в $it", fontSize = 12.sp, color = TextMuted)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Основана в $it", fontSize = 13.sp, color = TextMuted)
                                 }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("${data.members.size} участников", fontSize = 12.sp, color = TextMuted)
+                                Spacer(Modifier.width(6.dp))
+                                Text("${data.members.size} участников", fontSize = 13.sp, color = TextMuted)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.EmojiEvents, null, tint = TextMuted, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("${data.tournaments.size} турниров", fontSize = 12.sp, color = TextMuted)
+                                Spacer(Modifier.width(6.dp))
+                                Text("${data.tournaments.size} турниров", fontSize = 13.sp, color = TextMuted)
                             }
                         }
                     }
