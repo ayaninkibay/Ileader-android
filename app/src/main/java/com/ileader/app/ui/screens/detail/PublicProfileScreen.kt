@@ -77,12 +77,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         if (primarySportName.isNotEmpty()) sportImageUrl(primarySportName) else null
     }
 
-    // Podium counts from results
-    val gold = results.count { it.position == 1 }
-    val silver = results.count { it.position == 2 }
-    val bronze = results.count { it.position == 3 }
-    val hasPodiums = gold + silver + bronze > 0
-
     Column(
         modifier = Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
     ) {
@@ -163,7 +157,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             val totalTournaments = stats.sumOf { it.tournaments }
             val totalWins = stats.sumOf { it.wins }
-            val totalPodiums = stats.sumOf { it.podiums }
             val topRating = stats.maxOf { it.rating }
 
             Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -173,28 +166,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
                     StatItem(Icons.Outlined.MilitaryTech, totalWins, "Победы", Modifier.weight(1f))
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    StatItem(Icons.Outlined.WorkspacePremium, totalPodiums, "Подиумы", Modifier.weight(1f))
-                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
                     StatItem(Icons.Outlined.Leaderboard, topRating, "Рейтинг", Modifier.weight(1f))
-                }
-            }
-        }
-
-        // ══════════════════════════════════════
-        // PODIUMS BAR (🥇 X  🥈 Y  🥉 Z)
-        // ══════════════════════════════════════
-        if (hasPodiums) {
-            Spacer(Modifier.height(12.dp))
-            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(14.dp), color = CardBg) {
-                Row(
-                    Modifier.padding(horizontal = 16.dp, vertical = 14.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PodiumBadge("🥇", gold, Color(0xFFCA8A04))
-                    PodiumBadge("🥈", silver, Color(0xFF94A3B8))
-                    PodiumBadge("🥉", bronze, Color(0xFFB45309))
                 }
             }
         }
@@ -358,14 +330,6 @@ private fun StatItem(icon: ImageVector, value: Int, label: String, modifier: Mod
         Spacer(Modifier.height(4.dp))
         Text("$value", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
         Text(label, fontSize = 10.sp, color = TextMuted)
-    }
-}
-
-@Composable
-private fun PodiumBadge(emoji: String, count: Int, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(emoji, fontSize = 20.sp)
-        Text("$count", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
     }
 }
 
