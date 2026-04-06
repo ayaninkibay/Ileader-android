@@ -291,15 +291,17 @@ class SportViewModel : ViewModel() {
     companion object {
         private const val PAGE_SIZE = 50
 
-        fun getFallbackImage(sport: SportDto): String? = when (sport.slug ?: sport.name.lowercase()) {
+        fun getFallbackImage(sport: SportDto): String? = when (sport.slug ?: sport.name.lowercase().trim()) {
             "karting", "картинг" -> "https://ileader.kz/img/karting/karting-04-1280x853.jpeg"
             "shooting", "стрельба" -> "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg"
-            "tennis", "теннис" -> "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80"
-            "football", "soccer", "футбол" -> "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80"
+            "tennis", "теннис" -> "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=800&q=80"
+            "football", "soccer", "футбол" -> "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&q=80"
             "boxing", "бокс" -> "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&q=80"
             "swimming", "плавание" -> "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=800&q=80"
             "athletics", "атлетика", "лёгкая атлетика", "легкая атлетика" -> "https://images.unsplash.com/photo-1532444458054-01a7dd3e9fca?w=800&q=80"
-            "rowing", "гребля" -> "https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=800&q=80"
+            "rowing", "гребля" -> "https://images.unsplash.com/photo-1594623274890-6b45ce7cf44a?w=800&q=80"
+            "strayk-bol", "страйк бол" -> "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80"
+            "sportivnoe-rybolovstvo", "спортивное рыболовство" -> "https://images.unsplash.com/photo-1504309092620-4d0ec726efa4?w=800&q=80"
             else -> null
         }
     }
