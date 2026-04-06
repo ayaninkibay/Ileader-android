@@ -73,7 +73,8 @@ fun ProfileScreen(
     onGoalCreate: () -> Unit = {},
     onSettings: () -> Unit = {},
     onTournamentClick: (String) -> Unit = {},
-    onArticles: () -> Unit = {}
+    onArticles: () -> Unit = {},
+    onTeamClick: (String) -> Unit = {}
 ) {
     val vm: ProfileViewModel = viewModel()
     val profileState by vm.profile.collectAsState()
@@ -340,7 +341,7 @@ fun ProfileScreen(
                                 Column(Modifier.padding(horizontal = 16.dp)) {
                                     SectionHeader("Команда")
                                     Spacer(Modifier.height(10.dp))
-                                    TeamCard(team)
+                                    TeamCard(team, onClick = { team.teams?.id?.let { onTeamClick(it) } })
                                 }
                             }
                         }
@@ -616,13 +617,13 @@ private fun SportRatingCard(stat: UserSportStatsDto) {
 // ═══════════════════════════════════════════════════════════
 
 @Composable
-private fun TeamCard(membership: TeamMembershipDto) {
+private fun TeamCard(membership: TeamMembershipDto, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val team = membership.teams ?: return
     val sportName = team.sports?.name ?: ""
     val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
 
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
                 Icon(sportIcon(sportName), null, Modifier.size(24.dp), tint = TextMuted)

@@ -10,6 +10,7 @@ import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.ui.screens.common.MyTicketsScreen
 import com.ileader.app.ui.screens.common.NotificationsScreen
+import com.ileader.app.ui.screens.detail.TeamDetailScreen
 import com.ileader.app.ui.screens.media.MediaArticlesScreen
 import com.ileader.app.ui.screens.media.MediaArticleEditorScreen
 
@@ -22,6 +23,7 @@ private sealed class ProfileNavState {
     data object GoalCreate : ProfileNavState()
     data object Articles : ProfileNavState()
     data class ArticleEditor(val articleId: String? = null) : ProfileNavState()
+    data class TeamDetail(val teamId: String) : ProfileNavState()
 }
 
 @Composable
@@ -38,7 +40,8 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 onNotifications = { navState = ProfileNavState.Notifications },
                 onGoalClick = { goal -> navState = ProfileNavState.GoalDetail(goal) },
                 onGoalCreate = { navState = ProfileNavState.GoalCreate },
-                onArticles = { navState = ProfileNavState.Articles }
+                onArticles = { navState = ProfileNavState.Articles },
+                onTeamClick = { navState = ProfileNavState.TeamDetail(it) }
             )
         }
         is ProfileNavState.Edit -> {
@@ -69,6 +72,12 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 userId = user.id,
                 articleId = state.articleId,
                 onBack = { navState = ProfileNavState.Articles }
+            )
+        }
+        is ProfileNavState.TeamDetail -> {
+            TeamDetailScreen(
+                teamId = state.teamId,
+                onBack = { navState = ProfileNavState.Main }
             )
         }
     }
