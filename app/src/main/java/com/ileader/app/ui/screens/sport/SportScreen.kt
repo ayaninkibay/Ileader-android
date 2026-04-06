@@ -278,17 +278,37 @@ fun SportScreen(
             Spacer(Modifier.height(20.dp))
         }
 
-        // ── СМИ ──
+        // ── СМИ (video cards) ──
         item {
             SectionTitle(title = "СМИ", action = "Все", onAction = {})
-            SportSection(state = s.news) { list ->
+            val hasRealNews = s.news is UiState.Success && (s.news as UiState.Success).data.isNotEmpty()
+            if (hasRealNews) {
+                SportSection(state = s.news) { list ->
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(list, key = { it.id }) { a ->
+                            ArticleMiniCard(a, onClick = { onArticleClick(a.id) })
+                        }
+                    }
+                }
+            } else {
+                val selectedName = s.selectedSports.firstOrNull()?.name ?: "Спорт"
+                val selectedImg = s.selectedSports.firstOrNull()?.let { SportViewModel.getFallbackImage(it) }
+                val mockVideos: List<MockVideo> = remember(selectedName) {
+                    listOf(
+                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", selectedImg),
+                        MockVideo("Обзор сезона $selectedName", "5:18", selectedImg),
+                        MockVideo("Интервью с чемпионом", "2:55", selectedImg),
+                        MockVideo("Топ-5 голов/финишей", "4:10", selectedImg)
+                    )
+                }
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(list, key = { it.id }) { a ->
-                        ArticleMiniCard(a, onClick = { onArticleClick(a.id) })
-                    }
+                    items(mockVideos.size) { i -> VideoMiniCard(mockVideos[i]) }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -858,5 +878,52 @@ private fun SportPickerSheet(
                 }
             }
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// Video Mini Card
+// ═══════════════════════════════════════════════════
+
+private data class MockVideo(val title: String, val duration: String, val imageUrl: String?)
+
+@Composable
+private fun VideoMiniCard(video: MockVideo) {
+    Box(
+        modifier = Modifier
+            .width(200.dp)
+            .height(140.dp)
+            .clip(RoundedCornerShape(16.dp))
+    ) {
+        if (video.imageUrl != null) {
+            AsyncImage(video.imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        } else {
+            Box(Modifier.fillMaxSize().background(TextMuted.copy(0.15f)))
+        }
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(0.5f)))
+
+        // Play button
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.25f)).align(Alignment.Center),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(28.dp))
+        }
+
+        // Duration
+        Surface(
+            shape = RoundedCornerShape(6.dp), color = Color.Black.copy(0.6f),
+            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+        ) {
+            Text(video.duration, Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+        }
+
+        // Title
+        Text(
+            video.title, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
+            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 17.sp
+        )
     }
 }
