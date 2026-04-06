@@ -36,11 +36,13 @@ import com.ileader.app.data.models.BracketMatch
 import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.ParticipantDto
 import com.ileader.app.data.remote.dto.ResultDto
 import com.ileader.app.data.remote.dto.ScheduleItemDto
 import com.ileader.app.data.remote.dto.TournamentDto
+import com.ileader.app.data.remote.dto.TournamentSponsorshipDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.components.bracket.BracketView
 import com.ileader.app.ui.components.bracket.MatchDetailDialog
@@ -512,7 +514,7 @@ private fun TournamentContent(
             if (data.participants.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 ParticipantsSection(data.participants, onProfileClick)
-                
+
             }
 
             // ── Podium (top 3) ──

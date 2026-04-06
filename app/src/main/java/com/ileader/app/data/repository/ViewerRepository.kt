@@ -143,6 +143,24 @@ class ViewerRepository {
             .decodeList<TournamentGroupDto>()
     }
 
+    suspend fun getTournamentSponsors(tournamentId: String): List<TournamentSponsorshipDto> {
+        return client.from("tournament_sponsorships")
+            .select(Columns.raw("sponsor_id, tournament_id, tier, amount, profiles!sponsor_id(id, name, avatar_url)"))
+            { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<TournamentSponsorshipDto>()
+    }
+
+    suspend fun getTournamentArticles(tournamentId: String, limit: Int = 10): List<ArticleDto> {
+        return client.from("articles")
+            .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, created_at"))
+            {
+                filter { eq("tournament_id", tournamentId); eq("status", "published") }
+                order("published_at", Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList<ArticleDto>()
+    }
+
     // ══════════════════════════════════════════════════════════
     // SPECTATORS
     // ══════════════════════════════════════════════════════════
@@ -312,6 +330,19 @@ class ViewerRepository {
             .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, created_at, profiles!author_id(id, name), sports(id, name)"))
             { filter { eq("status", "published"); eq("sport_id", sportId) }; order("published_at", Order.DESCENDING); limit(limit.toLong()) }
             .decodeList<ArticleDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // REFEREE
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getRefereeAssignments(userId: String): List<RefereeAssignmentDto> {
+        return try {
+            client.from("tournament_referees")
+                .select(Columns.raw("tournament_id, referee_id, role, tournaments(id, name, status, start_date, sports(id, name))"))
+                { filter { eq("referee_id", userId) } }
+                .decodeList<RefereeAssignmentDto>()
+        } catch (_: Exception) { emptyList() }
     }
 
     // ══════════════════════════════════════════════════════════

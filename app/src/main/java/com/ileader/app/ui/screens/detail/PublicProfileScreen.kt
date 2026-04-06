@@ -282,6 +282,79 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
             }
         }
 
+        // ══════════════════════════════════════
+        // REFEREE ASSIGNMENTS (if referee)
+        // ══════════════════════════════════════
+        if (data.refereeAssignments.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            FadeIn(visible = true, delayMs = 500) {
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    SectionHeader("Судейство")
+                    Spacer(Modifier.height(10.dp))
+                    Surface(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = CardBg,
+                        shadowElevation = 0.dp
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            // Stats row
+                            val totalJudged = data.refereeAssignments.size
+                            val completed = data.refereeAssignments.count { it.tournaments?.status == "completed" }
+                            val upcoming = data.refereeAssignments.count { it.tournaments?.status in listOf("registration_open", "in_progress", "check_in") }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("$totalJudged", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                    Text("Всего", fontSize = 11.sp, color = TextMuted)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("$completed", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                    Text("Отсужено", fontSize = 11.sp, color = TextMuted)
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("$upcoming", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                    Text("Активных", fontSize = 11.sp, color = TextMuted)
+                                }
+                            }
+
+                            Spacer(Modifier.height(14.dp))
+                            HorizontalDivider(color = Border.copy(0.15f))
+                            Spacer(Modifier.height(10.dp))
+
+                            // Tournament list
+                            data.refereeAssignments.sortedByDescending { it.tournaments?.startDate }.take(5).forEachIndexed { idx, assignment ->
+                                if (idx > 0) Spacer(Modifier.height(8.dp))
+                                val t = assignment.tournaments
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(t?.name ?: "—", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            t?.sports?.name?.let { Text(it, fontSize = 12.sp, color = TextMuted) }
+                                            t?.startDate?.let { date ->
+                                                val parts = date.take(10).split("-")
+                                                if (parts.size >= 3) {
+                                                    val months = listOf("", "янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
+                                                    Text(" · ${parts[2].toIntOrNull() ?: 0} ${months.getOrElse(parts[1].toIntOrNull() ?: 0) { "" }}", fontSize = 12.sp, color = TextMuted)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // Role badge
+                                    val roleLabel = when (assignment.role) { "head_referee" -> "Главный"; "assistant" -> "Помощник"; else -> "Судья" }
+                                    Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
+                                        Text(roleLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(100.dp))
     }
 }

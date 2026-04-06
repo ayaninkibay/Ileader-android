@@ -84,6 +84,7 @@ fun ProfileScreen(
     val myTournaments by vm.myTournaments.collectAsState()
     val myResults by vm.myResults.collectAsState()
     val myTeam by vm.myTeam.collectAsState()
+    val refereeAssignments by vm.refereeAssignments.collectAsState()
 
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showSportSheet by remember { mutableStateOf(false) }
@@ -342,6 +343,63 @@ fun ProfileScreen(
                                     SectionHeader("Команда")
                                     Spacer(Modifier.height(10.dp))
                                     TeamCard(team, onClick = { team.teams?.id?.let { onTeamClick(it) } })
+                                }
+                            }
+                        }
+                    }
+
+                    // ═══════════════════════════════════════
+                    // REFEREE ASSIGNMENTS (if referee)
+                    // ═══════════════════════════════════════
+                    if (user.role == UserRole.REFEREE && refereeAssignments.isNotEmpty()) {
+                        item {
+                            Spacer(Modifier.height(20.dp))
+                            FadeIn(visible = true, delayMs = 520) {
+                                Column(Modifier.padding(horizontal = 16.dp)) {
+                                    SectionHeader("Судейство")
+                                    Spacer(Modifier.height(10.dp))
+                                    Surface(
+                                        Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = CardBg, shadowElevation = 0.dp
+                                    ) {
+                                        Column(Modifier.padding(16.dp)) {
+                                            val totalJudged = refereeAssignments.size
+                                            val completedCount = refereeAssignments.count { it.tournaments?.status == "completed" }
+                                            val activeCount = refereeAssignments.count { it.tournaments?.status in listOf("registration_open", "in_progress", "check_in") }
+                                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("$totalJudged", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                                    Text("Всего", fontSize = 11.sp, color = TextMuted)
+                                                }
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("$completedCount", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                                    Text("Отсужено", fontSize = 11.sp, color = TextMuted)
+                                                }
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("$activeCount", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                                                    Text("Активных", fontSize = 11.sp, color = TextMuted)
+                                                }
+                                            }
+                                            Spacer(Modifier.height(12.dp))
+                                            HorizontalDivider(color = Border.copy(0.15f))
+                                            Spacer(Modifier.height(10.dp))
+                                            refereeAssignments.sortedByDescending { it.tournaments?.startDate }.take(5).forEachIndexed { idx, a ->
+                                                if (idx > 0) Spacer(Modifier.height(8.dp))
+                                                val t = a.tournaments
+                                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                                    Column(Modifier.weight(1f)) {
+                                                        Text(t?.name ?: "—", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                        Text(t?.sports?.name ?: "", fontSize = 12.sp, color = TextMuted)
+                                                    }
+                                                    val roleLabel = when (a.role) { "head_referee" -> "Главный"; "assistant" -> "Помощник"; else -> "Судья" }
+                                                    Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
+                                                        Text(roleLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

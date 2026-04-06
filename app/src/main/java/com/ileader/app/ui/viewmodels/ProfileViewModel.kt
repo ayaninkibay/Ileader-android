@@ -38,6 +38,9 @@ class ProfileViewModel : ViewModel() {
     private val _myTeam = MutableStateFlow<TeamMembershipDto?>(null)
     val myTeam: StateFlow<TeamMembershipDto?> = _myTeam
 
+    private val _refereeAssignments = MutableStateFlow<List<RefereeAssignmentDto>>(emptyList())
+    val refereeAssignments: StateFlow<List<RefereeAssignmentDto>> = _refereeAssignments
+
     private val _saveState = MutableStateFlow<UiState<Unit>?>(null)
     val saveState: StateFlow<UiState<Unit>?> = _saveState
 
@@ -100,6 +103,15 @@ class ProfileViewModel : ViewModel() {
                 try {
                     _myTeam.value = viewerRepo.getAthleteMembership(userId)
                 } catch (_: Exception) {}
+            }
+
+            // Load referee assignments
+            if (role == UserRole.REFEREE) {
+                launch {
+                    try {
+                        _refereeAssignments.value = viewerRepo.getRefereeAssignments(userId)
+                    } catch (_: Exception) {}
+                }
             }
         }
     }
