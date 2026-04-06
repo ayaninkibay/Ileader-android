@@ -9,6 +9,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.data.repository.ViewerRepository
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 data class HomeTournamentDetailData(
@@ -16,7 +17,9 @@ data class HomeTournamentDetailData(
     val participants: List<ParticipantDto>,
     val results: List<ResultDto>,
     val bracket: List<BracketMatchDto>,
-    val groups: List<TournamentGroupDto> = emptyList()
+    val groups: List<TournamentGroupDto> = emptyList(),
+    val sponsors: List<TournamentSponsorshipDto> = emptyList(),
+    val articles: List<ArticleDto> = emptyList()
 )
 
 sealed class RegistrationState {
@@ -45,14 +48,24 @@ class TournamentDetailViewModel : ViewModel() {
         viewModelScope.launch {
             state = UiState.Loading
             try {
-                val tournament = viewerRepo.getTournamentDetail(tournamentId)
-                val participants = viewerRepo.getTournamentParticipants(tournamentId)
-                val results = viewerRepo.getTournamentResults(tournamentId)
-                val bracket = viewerRepo.getTournamentBracket(tournamentId)
-                val groups = viewerRepo.getTournamentGroups(tournamentId)
+                val tournamentDef = async { viewerRepo.getTournamentDetail(tournamentId) }
+                val participantsDef = async { viewerRepo.getTournamentParticipants(tournamentId) }
+                val resultsDef = async { viewerRepo.getTournamentResults(tournamentId) }
+                val bracketDef = async { viewerRepo.getTournamentBracket(tournamentId) }
+                val groupsDef = async { viewerRepo.getTournamentGroups(tournamentId) }
+                val sponsorsDef = async { try { viewerRepo.getTournamentSponsors(tournamentId) } catch (_: Exception) { emptyList() } }
+                val articlesDef = async { try { viewerRepo.getTournamentArticles(tournamentId) } catch (_: Exception) { emptyList() } }
 
                 state = UiState.Success(
-                    HomeTournamentDetailData(tournament, participants, results, bracket, groups)
+                    HomeTournamentDetailData(
+                        tournament = tournamentDef.await(),
+                        participants = participantsDef.await(),
+                        results = resultsDef.await(),
+                        bracket = bracketDef.await(),
+                        groups = groupsDef.await(),
+                        sponsors = sponsorsDef.await(),
+                        articles = articlesDef.await()
+                    )
                 )
             } catch (e: Exception) {
                 state = UiState.Error(e.message ?: "Ошибка загрузки")

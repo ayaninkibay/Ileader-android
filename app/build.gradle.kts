@@ -123,6 +123,10 @@ dependencies {
     // ML Kit barcode scanning
     implementation(libs.mlkit.barcode.scanning)
 
+    // Media3 (Video Player)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
