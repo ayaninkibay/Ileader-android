@@ -371,7 +371,7 @@ fun ProfileScreen(
                                     MenuDivider()
                                 }
                                 // My Team (trainer)
-                                if (user.role == UserRole.TRAINER && myTeam != null) {
+                                if (user.role == UserRole.TRAINER) {
                                     MenuRow(icon = Icons.Outlined.Groups, label = "Команда", onClick = { myTeam?.teams?.id?.let { onTeamClick(it) } })
                                     MenuDivider()
                                 }
