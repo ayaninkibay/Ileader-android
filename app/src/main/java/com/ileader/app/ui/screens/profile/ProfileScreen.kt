@@ -370,6 +370,11 @@ fun ProfileScreen(
                                     MenuRow(icon = Icons.AutoMirrored.Filled.Article, label = "Мои статьи", onClick = onArticles)
                                     MenuDivider()
                                 }
+                                // My Team (trainer)
+                                if (user.role == UserRole.TRAINER && myTeam != null) {
+                                    MenuRow(icon = Icons.Outlined.Groups, label = "Команда", onClick = { myTeam?.teams?.id?.let { onTeamClick(it) } })
+                                    MenuDivider()
+                                }
                                 // Notifications
                                 MenuRow(icon = Icons.Outlined.Notifications, label = "Уведомления", onClick = onNotifications)
                                 MenuDivider()
