@@ -135,9 +135,9 @@ fun LeagueDetailScreen(
                 )
             } else {
                 Box(
-                    Modifier.fillMaxWidth().height(200.dp)
+                    Modifier.fillMaxWidth().height(280.dp)
                         .background(Brush.verticalGradient(
-                            listOf(Accent.copy(0.15f), Bg)
+                            listOf(Color(0xFF1a1a2e), Color(0xFF16213e), Color(0xFF0f3460))
                         ))
                 )
             }
@@ -152,54 +152,44 @@ fun LeagueDetailScreen(
                 // Back
                 Box(
                     Modifier.size(40.dp).clip(CircleShape)
-                        .background(if (imageUrl != null) Color.Black.copy(0.3f) else CardBg)
+                        .background(Color.Black.copy(0.3f))
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад",
-                        tint = if (imageUrl != null) Color.White else TextPrimary,
-                        modifier = Modifier.size(20.dp))
+                        tint = Color.White, modifier = Modifier.size(20.dp))
                 }
 
-                Spacer(Modifier.height(if (imageUrl != null) 80.dp else 20.dp))
+                Spacer(Modifier.height(80.dp))
 
-                // Badges row (like website)
+                // Badges row
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     StatusPill("Идёт", ILeaderColors.Success)
-                    Pill(sportName, if (imageUrl != null) Color.White.copy(0.9f) else TextSecondary,
-                        if (imageUrl != null) Color.White.copy(0.15f) else TextMuted.copy(0.15f))
-                    Pill("Весна 2026", if (imageUrl != null) Color.White.copy(0.7f) else TextMuted,
-                        if (imageUrl != null) Color.White.copy(0.1f) else TextMuted.copy(0.15f))
+                    Pill(sportName, Color.White.copy(0.9f), Color.White.copy(0.15f))
+                    Pill("Весна 2026", Color.White.copy(0.7f), Color.White.copy(0.1f))
                 }
 
                 Spacer(Modifier.height(10.dp))
 
                 // Name
-                val textOnImage = imageUrl != null
                 Text(
                     leagueName, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold,
-                    color = if (textOnImage) Color.White else TextPrimary,
-                    lineHeight = 32.sp, letterSpacing = (-0.5).sp
+                    color = Color.White, lineHeight = 32.sp, letterSpacing = (-0.5).sp
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    "Организатор: Турниры Про", fontSize = 13.sp,
-                    color = if (textOnImage) Color.White.copy(0.7f) else TextMuted
-                )
+                Text("Организатор: Турниры Про", fontSize = 13.sp, color = Color.White.copy(0.7f))
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "Серия турниров по картингу по всему Казахстану. 5 этапов, лучшие набирают очки.",
-                    fontSize = 14.sp,
-                    color = if (textOnImage) Color.White.copy(0.8f) else TextSecondary,
-                    lineHeight = 20.sp
+                    fontSize = 14.sp, color = Color.White.copy(0.8f), lineHeight = 20.sp
                 )
 
-                // Stats row (like website)
+                // Stats row
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    StatLabel(Icons.Outlined.People, "24", "участников", textOnImage)
-                    StatLabel(Icons.Outlined.Layers, "3 / 5", "этапов", textOnImage)
-                    StatLabel(Icons.Outlined.EmojiEvents, "Лучшие 3", "из 5", textOnImage)
+                    StatLabel(Icons.Outlined.People, "24", "участников")
+                    StatLabel(Icons.Outlined.Layers, "3 / 5", "этапов")
+                    StatLabel(Icons.Outlined.EmojiEvents, "Лучшие 3", "из 5")
                 }
             }
         }
@@ -498,12 +488,12 @@ private fun Pill(label: String, textColor: Color, bgColor: Color) {
 }
 
 @Composable
-private fun StatLabel(icon: ImageVector, value: String, label: String, onImage: Boolean) {
+private fun StatLabel(icon: ImageVector, value: String, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = if (onImage) Color.White.copy(0.7f) else TextMuted, modifier = Modifier.size(16.dp))
+        Icon(icon, null, tint = Color.White.copy(0.7f), modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (onImage) Color.White else TextPrimary)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(Modifier.width(3.dp))
-        Text(label, fontSize = 13.sp, color = if (onImage) Color.White.copy(0.7f) else TextMuted)
+        Text(label, fontSize = 13.sp, color = Color.White.copy(0.7f))
     }
 }
