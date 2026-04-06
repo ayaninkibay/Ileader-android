@@ -71,6 +71,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     val stats = data.stats
     val results = data.results
     val membership = data.membership
+    val isReferee = data.refereeAssignments.isNotEmpty() && results.isEmpty()
 
     val primarySportName = remember(sports) { sports.firstOrNull()?.sports?.name ?: "" }
     val bannerUrl = remember(primarySportName) {
@@ -151,10 +152,27 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         }
 
         // ══════════════════════════════════════
-        // STATS (4 columns: Турниры, Победы, Подиумы, Рейтинг)
+        // STATS
         // ══════════════════════════════════════
-        if (stats.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
+        if (isReferee) {
+            // Referee stats
+            val totalJudged = data.refereeAssignments.size
+            val completed = data.refereeAssignments.count { it.tournaments?.status == "completed" }
+            val active = data.refereeAssignments.count { it.tournaments?.status in listOf("registration_open", "in_progress", "check_in") }
+
+            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(16.dp), color = CardBg) {
+                Row(Modifier.padding(vertical = 20.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
+                    StatItem(Icons.Outlined.Gavel, totalJudged, "Турниров", Modifier.weight(1f))
+                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                    StatItem(Icons.Outlined.CheckCircle, completed, "Отсужено", Modifier.weight(1f))
+                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                    StatItem(Icons.Outlined.PlayArrow, active, "Активных", Modifier.weight(1f))
+                }
+            }
+        } else if (stats.isNotEmpty()) {
+            // Athlete stats
             val totalTournaments = stats.sumOf { it.tournaments }
             val totalWins = stats.sumOf { it.wins }
             val topRating = stats.maxOf { it.rating }
@@ -187,9 +205,57 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         }
 
         // ══════════════════════════════════════
-        // UPCOMING TOURNAMENTS
+        // REFEREE TOURNAMENTS (right after bio for referees)
         // ══════════════════════════════════════
-        if (data.upcomingTournaments.isNotEmpty()) {
+        if (isReferee && data.refereeAssignments.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader("Назначенные турниры")
+                Spacer(Modifier.height(10.dp))
+                data.refereeAssignments.sortedByDescending { it.tournaments?.startDate }.forEach { a ->
+                    val t = a.tournaments
+                    Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp), RoundedCornerShape(14.dp), CardBg) {
+                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                            // Sport icon
+                            Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
+                                Icon(sportIcon(t?.sports?.name ?: ""), null, Modifier.size(20.dp), tint = TextMuted)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(t?.name ?: "—", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    t?.sports?.name?.let { Text(it, fontSize = 12.sp, color = TextMuted) }
+                                    t?.startDate?.let { date ->
+                                        val parts = date.take(10).split("-")
+                                        if (parts.size >= 3) {
+                                            val months = listOf("", "янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
+                                            Text(" · ${parts[2].toIntOrNull() ?: 0} ${months.getOrElse(parts[1].toIntOrNull() ?: 0) { "" }}", fontSize = 12.sp, color = TextMuted)
+                                        }
+                                    }
+                                }
+                            }
+                            // Role + status
+                            Column(horizontalAlignment = Alignment.End) {
+                                val rl = when (a.role) { "head_referee" -> "Главный"; "assistant" -> "Помощник"; else -> "Судья" }
+                                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
+                                    Text(rl, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
+                                }
+                                Spacer(Modifier.height(2.dp))
+                                val statusLabel = when (t?.status) { "completed" -> "Завершён"; "in_progress" -> "Идёт"; "registration_open" -> "Регистрация"; else -> "" }
+                                if (statusLabel.isNotEmpty()) {
+                                    Text(statusLabel, fontSize = 10.sp, color = TextMuted)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // UPCOMING TOURNAMENTS (athlete only)
+        // ══════════════════════════════════════
+        if (!isReferee && data.upcomingTournaments.isNotEmpty()) {
             val upcoming = data.upcomingTournaments.filter { it.status in listOf("registration_open", "in_progress", "check_in") }
             if (upcoming.isNotEmpty()) {
                 Spacer(Modifier.height(20.dp))
@@ -209,25 +275,27 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         }
 
         // ══════════════════════════════════════
-        // RESULTS
+        // RESULTS (athlete only)
         // ══════════════════════════════════════
-        Spacer(Modifier.height(20.dp))
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            SectionHeader("Результаты")
-            Spacer(Modifier.height(10.dp))
-            if (results.isEmpty()) {
-                EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    results.take(5).forEach { r -> ResultCard(r) }
+        if (!isReferee) {
+            Spacer(Modifier.height(20.dp))
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader("Результаты")
+                Spacer(Modifier.height(10.dp))
+                if (results.isEmpty()) {
+                    EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        results.take(5).forEach { r -> ResultCard(r) }
+                    }
                 }
             }
         }
 
         // ══════════════════════════════════════
-        // RATING BY SPORT
+        // RATING BY SPORT (athlete only)
         // ══════════════════════════════════════
-        if (stats.isNotEmpty()) {
+        if (!isReferee && stats.isNotEmpty()) {
             Spacer(Modifier.height(20.dp))
             Column {
                 Row(Modifier.padding(horizontal = 16.dp)) { SectionHeader("Рейтинг по спорту") }
@@ -250,49 +318,6 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 SectionHeader("Команда")
                 Spacer(Modifier.height(10.dp))
                 TeamCard(membership)
-            }
-        }
-
-        // ══════════════════════════════════════
-        // REFEREE (if referee)
-        // ══════════════════════════════════════
-        if (data.refereeAssignments.isNotEmpty()) {
-            Spacer(Modifier.height(20.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader("Судейство")
-                Spacer(Modifier.height(10.dp))
-                Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg) {
-                    Column(Modifier.padding(16.dp)) {
-                        val total = data.refereeAssignments.size
-                        val done = data.refereeAssignments.count { it.tournaments?.status == "completed" }
-                        Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("$total", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                                Text("Всего", fontSize = 11.sp, color = TextMuted)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("$done", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-                                Text("Отсужено", fontSize = 11.sp, color = TextMuted)
-                            }
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        HorizontalDivider(color = Border.copy(0.15f))
-                        Spacer(Modifier.height(8.dp))
-                        data.refereeAssignments.sortedByDescending { it.tournaments?.startDate }.take(3).forEach { a ->
-                            val t = a.tournaments
-                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(t?.name ?: "—", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(t?.sports?.name ?: "", fontSize = 12.sp, color = TextMuted)
-                                }
-                                val rl = when (a.role) { "head_referee" -> "Главный"; "assistant" -> "Помощник"; else -> "Судья" }
-                                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
-                                    Text(rl, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
 
