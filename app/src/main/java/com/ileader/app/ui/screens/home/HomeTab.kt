@@ -59,17 +59,13 @@ fun HomeTab(user: User) {
             user = user,
             onBack = { navState = HomeNavState.Home }
         )
-        is HomeNavState.AthleteProfile -> AthleteProfilePage(
-            athleteId = state.id,
-            onBack = { navState = HomeNavState.Home },
-            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
-            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        is HomeNavState.AthleteProfile -> PublicProfileScreen(
+            userId = state.id,
+            onBack = { navState = HomeNavState.Home }
         )
-        is HomeNavState.RefereeProfile -> RefereeProfilePage(
-            refereeId = state.id,
-            onBack = { navState = HomeNavState.Home },
-            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
-            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        is HomeNavState.RefereeProfile -> PublicProfileScreen(
+            userId = state.id,
+            onBack = { navState = HomeNavState.Home }
         )
         is HomeNavState.TrainerProfile -> TrainerProfilePage(
             trainerId = state.id,

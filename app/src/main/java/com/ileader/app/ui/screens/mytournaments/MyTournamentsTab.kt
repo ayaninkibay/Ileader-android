@@ -90,19 +90,15 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
             )
         }
         is MyTournamentsNavState.AthleteProfile -> {
-            AthleteProfilePage(
-                athleteId = state.id,
-                onBack = { navState = MyTournamentsNavState.List },
-                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
-                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            PublicProfileScreen(
+                userId = state.id,
+                onBack = { navState = MyTournamentsNavState.List }
             )
         }
         is MyTournamentsNavState.RefereeProfile -> {
-            RefereeProfilePage(
-                refereeId = state.id,
-                onBack = { navState = MyTournamentsNavState.List },
-                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
-                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            PublicProfileScreen(
+                userId = state.id,
+                onBack = { navState = MyTournamentsNavState.List }
             )
         }
         is MyTournamentsNavState.TrainerProfile -> {

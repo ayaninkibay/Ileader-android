@@ -87,18 +87,13 @@ fun SportTab(user: User) {
                 teamId = currentState.id,
                 onBack = { navState = SportNavState.Search }
             )
-            is SportNavState.AthleteProfile -> AthleteProfilePage(
-                athleteId = currentState.id,
-                onBack = { navState = SportNavState.Search },
-                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
-                onTeamClick = { navState = SportNavState.TeamDetail(it) },
-                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+            is SportNavState.AthleteProfile -> PublicProfileScreen(
+                userId = currentState.id,
+                onBack = { navState = SportNavState.Search }
             )
-            is SportNavState.RefereeProfile -> RefereeProfilePage(
-                refereeId = currentState.id,
-                onBack = { navState = SportNavState.Search },
-                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
-                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+            is SportNavState.RefereeProfile -> PublicProfileScreen(
+                userId = currentState.id,
+                onBack = { navState = SportNavState.Search }
             )
             is SportNavState.TrainerProfile -> TrainerProfilePage(
                 trainerId = currentState.id,
