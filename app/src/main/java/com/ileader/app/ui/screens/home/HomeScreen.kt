@@ -175,18 +175,16 @@ fun HomeScreen(
             
         }
 
-        // ── Люди ──
+        // ── Сообщество (лента активности) ──
         item {
             Spacer(Modifier.height(24.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
                 SectionHeader(title = "Сообщество", action = "Все", onAction = onAllPeopleClick)
                 Spacer(Modifier.height(12.dp))
             }
-            
         }
         item {
-            PeopleContent(state = state.people, onProfileClick = onProfileClick)
-            
+            CommunityFeed(onProfileClick = onProfileClick)
         }
     }
 }
@@ -388,7 +386,7 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
                 }
 
                 // Nearest tournament teaser (when no day selected)
-                if (selectedDate == null && nearestTournament != null && daysUntilNearest != null) {
+                if (nearestTournament != null && daysUntilNearest != null) {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -923,152 +921,125 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
 }
 
 // ══════════════════════════════════════════════════════════
-// People
+// Community Feed (activity feed)
 // ══════════════════════════════════════════════════════════
 
+private enum class FeedEventType { RESULT, NEW_USER, REGISTRATION, NEW_TEAM, ACHIEVEMENT }
+
+private data class MockFeedEvent(
+    val type: FeedEventType,
+    val name: String,
+    val description: String,
+    val avatarLetter: String,
+    val timeAgo: String,
+    val sportName: String? = null
+)
+
+private val mockFeedEvents = listOf(
+    MockFeedEvent(FeedEventType.RESULT, "Алихан Тлеубаев", "Занял 🥇 на Кубке Алматы 2026", "А", "2ч назад", "Картинг"),
+    MockFeedEvent(FeedEventType.REGISTRATION, "Red Racers", "Зарегистрировались на Чемпионат РК", "R", "4ч назад", "Картинг"),
+    MockFeedEvent(FeedEventType.ACHIEVEMENT, "Марат Касымов", "Достиг рейтинга 1500", "М", "5ч назад", "Картинг"),
+    MockFeedEvent(FeedEventType.NEW_USER, "Данияр Серикбаев", "Присоединился к платформе", "Д", "вчера"),
+    MockFeedEvent(FeedEventType.RESULT, "Серик Абдуллаев", "Занял 🥈 на Весеннем Гран-При", "С", "вчера", "Картинг"),
+    MockFeedEvent(FeedEventType.NEW_TEAM, "Storm Eagles", "Новая команда на платформе", "S", "2 дня назад", "Стрельба"),
+    MockFeedEvent(FeedEventType.REGISTRATION, "Тимур Нурланов", "Зарегистрировался на Summer Cup", "Т", "2 дня назад", "Картинг")
+)
+
 @Composable
-private fun PeopleContent(
-    state: UiState<List<CommunityProfileDto>>,
-    onProfileClick: (String) -> Unit
-) {
-    when (state) {
-        is UiState.Loading -> Box(
-            Modifier.fillMaxWidth().height(150.dp),
-            contentAlignment = Alignment.Center
-        ) { LoadingScreen() }
-
-        is UiState.Error -> Box(Modifier.padding(horizontal = 16.dp)) {
-            EmptyState(title = "Ошибка загрузки", subtitle = state.message)
-        }
-
-        is UiState.Success -> {
-            if (state.data.isEmpty()) {
-                Box(Modifier.padding(horizontal = 16.dp)) {
-                    EmptyState(title = "Нет людей", subtitle = "Данные появятся позже")
-                }
-            } else {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    itemsIndexed(
-                        state.data,
-                        key = { _, it -> it.id }) { index, profile ->
-                        PersonCard(
-                            profile = profile,
-                            onClick = { onProfileClick(profile.id) }
-                        )
-                    }
-                }
-            }
+private fun CommunityFeed(onProfileClick: (String) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        mockFeedEvents.forEach { event ->
+            FeedEventCard(event, onClick = { onProfileClick("mock-${event.name}") })
         }
     }
 }
 
 @Composable
-private fun PersonCard(profile: CommunityProfileDto, onClick: () -> Unit) {
-    val colors = LocalAppColors.current
-    val isDark = DarkTheme.isDark
+private fun FeedEventCard(event: MockFeedEvent, onClick: () -> Unit) {
+    val eventColor = when (event.type) {
+        FeedEventType.RESULT -> Color(0xFFCA8A04)
+        FeedEventType.NEW_USER -> Color(0xFF3B82F6)
+        FeedEventType.REGISTRATION -> Color(0xFF22C55E)
+        FeedEventType.NEW_TEAM -> Color(0xFF7C3AED)
+        FeedEventType.ACHIEVEMENT -> Color(0xFFEF4444)
+    }
+    val eventIcon = when (event.type) {
+        FeedEventType.RESULT -> Icons.Default.EmojiEvents
+        FeedEventType.NEW_USER -> Icons.Default.PersonAdd
+        FeedEventType.REGISTRATION -> Icons.Default.HowToReg
+        FeedEventType.NEW_TEAM -> Icons.Default.Groups
+        FeedEventType.ACHIEVEMENT -> Icons.Default.Star
+    }
 
     Surface(
-        modifier = Modifier
-            .width(140.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = CardBg,
-        border = if (isDark) DarkTheme.cardBorderStroke
-        else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
-        shadowElevation = 0.dp
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar
-            UserAvatar(
-                avatarUrl = profile.avatarUrl,
-                name = profile.name ?: "?",
-                size = 56.dp,
-                showGradientBorder = profile.primaryRating > 0
-            )
-
-            Spacer(Modifier.height(10.dp))
-
-            // Name
-            Text(
-                text = profile.name ?: "",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Subtype or sport
-            val subtitle = profile.subtypeLabel ?: profile.primarySportName.ifEmpty { null }
-            if (subtitle != null) {
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (profile.primarySportName.isNotEmpty()) {
-                        Icon(
-                            sportIcon(profile.primarySportName), null,
-                            tint = TextMuted,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(Modifier.width(3.dp))
-                    }
-                    Text(
-                        text = subtitle,
-                        fontSize = 11.sp,
-                        color = TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // City
-            if (!profile.city.isNullOrEmpty()) {
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn, null,
-                        tint = TextMuted.copy(alpha = 0.7f),
-                        modifier = Modifier.size(11.dp)
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        text = profile.city,
-                        fontSize = 10.sp,
-                        color = TextMuted.copy(alpha = 0.7f),
-                        maxLines = 1
-                    )
-                }
-            }
-
-            // Rating badge
-            if (profile.primaryRating > 0) {
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Accent.copy(alpha = 0.15f)
+            // Avatar with event color ring
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier.size(46.dp).background(eventColor.copy(0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Star, null,
-                            tint = Accent,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = "${profile.primaryRating}",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Accent
-                        )
+                    Text(
+                        event.avatarLetter,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = eventColor
+                    )
+                }
+                // Event type icon badge
+                Box(
+                    Modifier
+                        .size(20.dp)
+                        .align(Alignment.BottomEnd)
+                        .background(eventColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(eventIcon, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(Modifier.weight(1f)) {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+                    Text(
+                        event.name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(event.timeAgo, fontSize = 11.sp, color = TextMuted)
+                }
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        event.description,
+                        fontSize = 13.sp,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (event.sportName != null) {
+                        Spacer(Modifier.width(6.dp))
+                        Surface(shape = RoundedCornerShape(50), color = eventColor.copy(0.1f)) {
+                            Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(sportIcon(event.sportName), null, tint = eventColor, modifier = Modifier.size(10.dp))
+                                Spacer(Modifier.width(3.dp))
+                                Text(event.sportName, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = eventColor)
+                            }
+                        }
                     }
                 }
             }

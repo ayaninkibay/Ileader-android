@@ -50,6 +50,7 @@ fun SportTab(user: User) {
                 onProfileClick = { navState = SportNavState.PublicProfile(it) },
                 onLeagueClick = { name, sport, img -> navState = SportNavState.LeagueDetail(name, sport, img) },
                 onTeamClick = { id, _, _ -> navState = SportNavState.TeamDetail(id) },
+                onAthleteProfileClick = { navState = SportNavState.AthleteProfile(it) },
                 onRefereeProfileClick = { navState = SportNavState.RefereeProfile(it) },
                 onTrainerProfileClick = { navState = SportNavState.TrainerProfile(it) },
                 onRankingsClick = { navState = SportNavState.Rankings }
@@ -66,7 +67,8 @@ fun SportTab(user: User) {
                 onProfileClick = { navState = SportNavState.PublicProfile(it) },
                 onAthleteProfileClick = { navState = SportNavState.AthleteProfile(it) },
                 onRefereeProfileClick = { navState = SportNavState.RefereeProfile(it) },
-                onTrainerProfileClick = { navState = SportNavState.TrainerProfile(it) }
+                onTrainerProfileClick = { navState = SportNavState.TrainerProfile(it) },
+                onTeamClick = { navState = SportNavState.TeamDetail(it) }
             )
             is SportNavState.ArticleDetail -> ArticleDetailScreen(
                 articleId = currentState.id,
@@ -87,13 +89,18 @@ fun SportTab(user: User) {
                 teamId = currentState.id,
                 onBack = { navState = SportNavState.Search }
             )
-            is SportNavState.AthleteProfile -> PublicProfileScreen(
-                userId = currentState.id,
-                onBack = { navState = SportNavState.Search }
+            is SportNavState.AthleteProfile -> AthleteProfilePage(
+                athleteId = currentState.id,
+                onBack = { navState = SportNavState.Search },
+                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
+                onTeamClick = { navState = SportNavState.TeamDetail(it) },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
             )
-            is SportNavState.RefereeProfile -> PublicProfileScreen(
-                userId = currentState.id,
-                onBack = { navState = SportNavState.Search }
+            is SportNavState.RefereeProfile -> RefereeProfilePage(
+                refereeId = currentState.id,
+                onBack = { navState = SportNavState.Search },
+                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
             )
             is SportNavState.TrainerProfile -> TrainerProfilePage(
                 trainerId = currentState.id,

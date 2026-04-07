@@ -57,6 +57,7 @@ fun SportScreen(
     onProfileClick: (String) -> Unit,
     onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
     onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
+    onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
     onTrainerProfileClick: (String) -> Unit = {},
     onRankingsClick: () -> Unit = {},
@@ -90,7 +91,7 @@ fun SportScreen(
             .fillMaxSize()
             .background(Bg)
             .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 100.dp)
+        contentPadding = PaddingValues(bottom = 40.dp)
     ) {
         // ── Title ──
         item {
@@ -290,7 +291,7 @@ fun SportScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(list, key = { it.id }) { p ->
-                        PersonMiniCard(p, onClick = { onProfileClick(p.id) })
+                        PersonMiniCard(p, onClick = { onAthleteProfileClick(p.id) })
                     }
                 }
             }
@@ -314,14 +315,13 @@ fun SportScreen(
                 }
             } else {
                 val selectedName = s.selectedSports.firstOrNull()?.name ?: "Спорт"
-                val selectedImg = s.selectedSports.firstOrNull()?.let { SportViewModel.getFallbackImage(it) }
                 val mockVideos: List<MockVideo> = remember(selectedName) {
                     listOf(
-                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", selectedImg, isVideo = true),
-                        MockVideo("Фотоотчёт: $selectedName", "12 фото", selectedImg, isVideo = false),
-                        MockVideo("Обзор сезона $selectedName", "5:18", selectedImg, isVideo = true),
-                        MockVideo("Интервью с чемпионом", "2:55", selectedImg, isVideo = true),
-                        MockVideo("Топ-5 голов/финишей", "4:10", selectedImg, isVideo = true)
+                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", sportImageUrl(selectedName, 0), isVideo = true),
+                        MockVideo("Фотоотчёт: $selectedName", "12 фото", sportImageUrl(selectedName, 1), isVideo = false),
+                        MockVideo("Обзор сезона $selectedName", "5:18", sportImageUrl(selectedName, 2), isVideo = true),
+                        MockVideo("Интервью с чемпионом", "2:55", sportImageUrl(selectedName, 3), isVideo = true),
+                        MockVideo("Топ-5 голов/финишей", "4:10", sportImageUrl(selectedName, 4), isVideo = true)
                     )
                 }
                 LazyRow(

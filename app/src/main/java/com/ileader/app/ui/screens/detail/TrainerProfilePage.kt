@@ -117,10 +117,10 @@ fun TrainerProfilePage(
         Box(modifier = Modifier.fillMaxWidth()) {
             val heroShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             if (bannerUrl != null) {
-                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(260.dp).clip(heroShape), contentScale = ContentScale.Crop)
-                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape).background(Color.Black.copy(0.7f)))
+                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(320.dp).clip(heroShape), contentScale = ContentScale.Crop)
+                Box(Modifier.fillMaxWidth().height(320.dp).clip(heroShape).background(Color.Black.copy(0.7f)))
             } else {
-                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape)
+                Box(Modifier.fillMaxWidth().height(320.dp).clip(heroShape)
                     .background(Brush.verticalGradient(listOf(Color(0xFF1a1a1a), Color(0xFF1a2d1a)))))
             }
 
@@ -135,20 +135,20 @@ fun TrainerProfilePage(
 
             // Avatar + info
             Column(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 56.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 64.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(112.dp).background(Brush.sweepGradient(listOf(trainerColor, trainerColor.copy(0.5f), Color(0xFF10B981), trainerColor)), CircleShape))
-                    Box(Modifier.size(106.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
-                    Box(Modifier.size(100.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
-                        Box(Modifier.size(100.dp).clip(CircleShape).background(trainerColor.copy(0.8f)), contentAlignment = Alignment.Center) {
-                            Text(data.name.take(1).uppercase(), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Box(Modifier.size(104.dp).background(Brush.sweepGradient(listOf(trainerColor, trainerColor.copy(0.5f), Color(0xFF10B981), trainerColor)), CircleShape))
+                    Box(Modifier.size(98.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
+                    Box(Modifier.size(92.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(92.dp).clip(CircleShape).background(trainerColor.copy(0.8f)), contentAlignment = Alignment.Center) {
+                            Text(data.name.take(1).uppercase(), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text(data.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(data.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(Modifier.height(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -335,7 +335,7 @@ fun TrainerProfilePage(
             }
         }
 
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 

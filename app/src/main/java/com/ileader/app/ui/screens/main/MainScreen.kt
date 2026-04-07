@@ -140,7 +140,7 @@ private fun ILeaderBottomBar(
             shadowElevation = 0.dp
         ) {
             Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -191,7 +191,7 @@ private fun BottomBarItem(
                 .alpha(pillAlpha)
                 .clip(RoundedCornerShape(18.dp))
                 .background(pillBg)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(

@@ -164,7 +164,7 @@ fun GoalDetailScreen(
         }
         InfoRow(icon = Icons.Default.AccessTime, label = "Создана", value = goal.createdAt.take(10))
 
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(32.dp))
     }
 
     // Delete dialog

@@ -395,7 +395,7 @@ private fun MediaDetailContent(media: MediaDetail, onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         StatsFooter(media = media)
 
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 

@@ -12,6 +12,7 @@ import com.ileader.app.ui.screens.detail.AthleteProfilePage
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
 import com.ileader.app.ui.screens.detail.RefereeProfilePage
 import com.ileader.app.ui.screens.detail.TrainerProfilePage
+import com.ileader.app.ui.screens.detail.TeamDetailScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
 private sealed class MyTournamentsNavState {
@@ -25,6 +26,7 @@ private sealed class MyTournamentsNavState {
     data class AthleteProfile(val id: String) : MyTournamentsNavState()
     data class RefereeProfile(val id: String) : MyTournamentsNavState()
     data class TrainerProfile(val id: String) : MyTournamentsNavState()
+    data class TeamDetail(val id: String) : MyTournamentsNavState()
 }
 
 @Composable
@@ -52,7 +54,8 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) },
                 onAthleteProfileClick = { navState = MyTournamentsNavState.AthleteProfile(it) },
                 onRefereeProfileClick = { navState = MyTournamentsNavState.RefereeProfile(it) },
-                onTrainerProfileClick = { navState = MyTournamentsNavState.TrainerProfile(it) }
+                onTrainerProfileClick = { navState = MyTournamentsNavState.TrainerProfile(it) },
+                onTeamClick = { navState = MyTournamentsNavState.TeamDetail(it) }
             )
         }
         is MyTournamentsNavState.PublicProfile -> {
@@ -90,9 +93,11 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
             )
         }
         is MyTournamentsNavState.AthleteProfile -> {
-            PublicProfileScreen(
-                userId = state.id,
-                onBack = { navState = MyTournamentsNavState.List }
+            AthleteProfilePage(
+                athleteId = state.id,
+                onBack = { navState = MyTournamentsNavState.List },
+                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
             )
         }
         is MyTournamentsNavState.RefereeProfile -> {
@@ -108,6 +113,12 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
                 onAthleteClick = { navState = MyTournamentsNavState.AthleteProfile(it) },
                 onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            )
+        }
+        is MyTournamentsNavState.TeamDetail -> {
+            TeamDetailScreen(
+                teamId = state.id,
+                onBack = { navState = MyTournamentsNavState.List }
             )
         }
     }

@@ -282,7 +282,7 @@ fun HelperManagementScreen(
                         }
                     }
 
-                    item { Spacer(Modifier.height(100.dp)) }
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
             }
         }

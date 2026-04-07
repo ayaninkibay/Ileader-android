@@ -86,6 +86,7 @@ fun TournamentDetailScreen(
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
     onTrainerProfileClick: (String) -> Unit = {},
+    onTeamClick: (String) -> Unit = {},
     viewModel: TournamentDetailViewModel = viewModel()
 ) {
     LaunchedEffect(tournamentId) {
@@ -118,7 +119,8 @@ fun TournamentDetailScreen(
                     onProfileClick = onProfileClick,
                     onAthleteProfileClick = onAthleteProfileClick,
                     onRefereeProfileClick = onRefereeProfileClick,
-                    onTrainerProfileClick = onTrainerProfileClick
+                    onTrainerProfileClick = onTrainerProfileClick,
+                    onTeamClick = onTeamClick
                 )
             }
         }
@@ -139,7 +141,8 @@ private fun TournamentContent(
     onProfileClick: (String) -> Unit = {},
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
-    onTrainerProfileClick: (String) -> Unit = {}
+    onTrainerProfileClick: (String) -> Unit = {},
+    onTeamClick: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
     val accentColor = Accent
@@ -171,12 +174,12 @@ private fun TournamentContent(
             // TAB CONTENT
             // ══════════════════════════════════════
             when (tabs.getOrNull(selectedTab)?.type) {
-                TabType.OVERVIEW -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick)
+                TabType.OVERVIEW -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick, onTeamClick)
                 TabType.PARTICIPANTS -> ParticipantsTab(data.participants, tournament, onProfileClick)
                 TabType.BRACKET -> BracketTab(data)
                 TabType.RESULTS -> ResultsTab(data, onProfileClick)
                 TabType.NEWS -> NewsTab(data.articles)
-                else -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick)
+                else -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick, onTeamClick)
             }
 
             Spacer(Modifier.height(80.dp))
@@ -589,7 +592,8 @@ private fun OverviewTab(
     onProfileClick: (String) -> Unit,
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
-    onTrainerProfileClick: (String) -> Unit = {}
+    onTrainerProfileClick: (String) -> Unit = {},
+    onTeamClick: (String) -> Unit = {}
 ) {
     Column {
         // ── Organizer ──
@@ -691,7 +695,7 @@ private fun OverviewTab(
             }
         }
         Spacer(Modifier.height(8.dp))
-        MockTeamsSection(teams, onAthleteProfileClick)
+        MockTeamsSection(teams, onAthleteProfileClick, onTeamClick)
 
         // ── Referees ──
         val referees = remember(data.referees) {
@@ -1121,53 +1125,58 @@ private data class MockTrainer(val name: String, val teamName: String, val avata
 @Composable
 private fun MockTeamsSection(
     teams: List<Triple<String, String, List<Pair<String, String?>>>>,
-    onProfileClick: (String) -> Unit
+    onProfileClick: (String) -> Unit,
+    onTeamClick: (String) -> Unit = {}
 ) {
     SectionCard(title = "Команды") {
-        teams.forEachIndexed { idx, (_, teamName, members) ->
+        teams.forEachIndexed { idx, (teamId, teamName, members) ->
             if (idx > 0) {
                 HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 10.dp))
             }
 
-            // Team header
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(44.dp).background(Accent.copy(0.1f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        teamName.take(1).uppercase(),
-                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(teamName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("${members.size} участников", fontSize = 12.sp, color = TextMuted)
-                }
-                Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.08f)) {
-                    Icon(
-                        Icons.Outlined.People, null, tint = Accent,
-                        modifier = Modifier.padding(6.dp).size(18.dp)
-                    )
-                }
-            }
-
-            // Team members (clickable — opens athlete profile)
-            Spacer(Modifier.height(10.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy((-6).dp),
-                modifier = Modifier.clickable { onProfileClick("mock-athlete") }
+            // Whole team block clickable
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onTeamClick(teamId) }
+                    .padding(vertical = 4.dp)
             ) {
-                members.take(5).forEach { (name, avatar) ->
-                    UserAvatar(avatarUrl = avatar, name = name, size = 34.dp)
-                }
-                if (members.size > 5) {
+                // Team header
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        Modifier.size(34.dp).background(TextMuted.copy(0.15f), CircleShape),
+                        Modifier.size(44.dp).background(Accent.copy(0.1f), RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("+${members.size - 5}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                        Text(
+                            teamName.take(1).uppercase(),
+                            fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(teamName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("${members.size} участников", fontSize = 12.sp, color = TextMuted)
+                    }
+                    Icon(
+                        Icons.Outlined.ChevronRight, null, tint = TextMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Team members avatars
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+                    members.take(5).forEach { (name, avatar) ->
+                        UserAvatar(avatarUrl = avatar, name = name, size = 34.dp)
+                    }
+                    if (members.size > 5) {
+                        Box(
+                            Modifier.size(34.dp).background(TextMuted.copy(0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("+${members.size - 5}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                        }
                     }
                 }
             }

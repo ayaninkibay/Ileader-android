@@ -132,7 +132,7 @@ fun MyTournamentsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Bg),
-        contentPadding = PaddingValues(bottom = 100.dp)
+        contentPadding = PaddingValues(bottom = 40.dp)
     ) {
         // ══════════════════════════════════════
         // HERO

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -27,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ileader.app.ui.components.*
-import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -50,21 +50,24 @@ private data class MockAthleteData(
     val country: String = "Казахстан",
     val phone: String = "+7 707 123 45 67",
     val email: String = "alikhan@demo.com",
-    val teamName: String = "Red Racers",
-    val teamRole: String = "captain",
-    val participantNumber: Int = 7,
-    val seed: Int = 3,
-    val checkInStatus: String = "checked_in",
     val sportName: String = "Картинг",
-    val ageCategory: String = "adult",
+    val subtype: String = "Пилот",
+    val ageCategory: String = "Взрослый",
     val rating: Int = 1450,
     val totalTournaments: Int = 24,
     val wins: Int = 8,
     val podiums: Int = 14,
     val totalPoints: Int = 3200,
+    val teamName: String = "Red Racers",
+    val teamCity: String = "Алматы",
+    val teamRole: String = "captain",
+    val teamFoundedYear: Int = 2019,
+    val teamDescription: String = "Профессиональная картинг-команда, многократные чемпионы Казахстана",
+    val teamMembers: Int = 6,
     val licenseNumber: String = "KZ-2025-0147",
     val licenseCategory: String = "Профессионал",
     val licenseClass: String = "A",
+    val licenseStatus: String = "active",
     val activeTournaments: List<MockTournamentItem> = listOf(
         MockTournamentItem("Кубок Алматы 2026", "Картинг", "in_progress", "2026-04-05", "Almaty Karting Center"),
         MockTournamentItem("Весенний Гран-При", "Картинг", "check_in", "2026-04-12", "Speed Arena")
@@ -78,7 +81,7 @@ private data class MockAthleteData(
         MockTournamentResult("Осенний Чемпионат", "Картинг", 2, 350, "2025-10-15"),
         MockTournamentResult("Кубок Астаны", "Картинг", 3, 250, "2025-08-22"),
         MockTournamentResult("Летний Гран-При", "Картинг", 1, 500, "2025-07-10"),
-        MockTournamentResult("Весенний Кубок", "Картинг", 5, 150, "2025-04-18")
+        MockTournamentResult("Весенний Кубок", "Картинг", 4, 150, "2025-04-18")
     ),
     val achievements: List<MockAchievement> = listOf(
         MockAchievement("Чемпион сезона", "Победа в чемпионате 2025", "legendary"),
@@ -91,12 +94,8 @@ private data class MockAthleteData(
     )
 )
 
-private data class MockTournamentItem(
-    val name: String, val sport: String, val status: String, val date: String, val location: String
-)
-private data class MockTournamentResult(
-    val name: String, val sport: String, val position: Int, val points: Int, val date: String
-)
+private data class MockTournamentItem(val name: String, val sport: String, val status: String, val date: String, val location: String)
+private data class MockTournamentResult(val name: String, val sport: String, val position: Int, val points: Int, val date: String)
 private data class MockAchievement(val title: String, val description: String, val rarity: String)
 private data class MockGoal(val title: String, val current: Int, val target: Int, val status: String)
 
@@ -114,6 +113,7 @@ fun AthleteProfilePage(
 ) {
     val data = remember { MockAthleteData() }
     val bannerUrl = remember { sportImageUrl(data.sportName) }
+    val athleteColor = Accent
 
     Column(
         modifier = Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
@@ -122,10 +122,10 @@ fun AthleteProfilePage(
         Box(modifier = Modifier.fillMaxWidth()) {
             val heroShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             if (bannerUrl != null) {
-                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(260.dp).clip(heroShape), contentScale = ContentScale.Crop)
-                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape).background(Color.Black.copy(0.7f)))
+                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(350.dp).clip(heroShape), contentScale = ContentScale.Crop)
+                Box(Modifier.fillMaxWidth().height(350.dp).clip(heroShape).background(Color.Black.copy(0.7f)))
             } else {
-                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape)
+                Box(Modifier.fillMaxWidth().height(350.dp).clip(heroShape)
                     .background(Brush.verticalGradient(listOf(Color(0xFF1a1a1a), Color(0xFF2d1a1a)))))
             }
 
@@ -140,40 +140,49 @@ fun AthleteProfilePage(
 
             // Avatar + info
             Column(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 56.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 64.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar
                 Box(contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(112.dp).background(Brush.sweepGradient(listOf(Accent, Accent.copy(0.5f), Color(0xFF3B82F6), Accent)), CircleShape))
-                    Box(Modifier.size(106.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
-                    Box(Modifier.size(100.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
-                        Box(Modifier.size(100.dp).clip(CircleShape).background(Accent), contentAlignment = Alignment.Center) {
-                            Text(data.name.take(1).uppercase(), fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Box(Modifier.size(104.dp).background(Brush.sweepGradient(listOf(athleteColor, athleteColor.copy(0.5f), Color(0xFF3B82F6), athleteColor)), CircleShape))
+                    Box(Modifier.size(98.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
+                    Box(Modifier.size(92.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(92.dp).clip(CircleShape).background(athleteColor.copy(0.8f)), contentAlignment = Alignment.Center) {
+                            Text(data.name.take(1).uppercase(), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text(data.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(data.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(Modifier.height(4.dp))
                 Text("@${data.nickname}", fontSize = 14.sp, color = Color.White.copy(0.6f))
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     RoleBadge(role = com.ileader.app.data.models.UserRole.ATHLETE)
-                    Text("·", fontSize = 14.sp, color = Color.White.copy(0.7f))
-                    Text("${data.city}, ${data.country}", fontSize = 13.sp, color = Color.White.copy(0.7f))
+                    Surface(shape = RoundedCornerShape(50), color = athleteColor.copy(0.25f)) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text(data.subtype, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
+                    }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text("${data.city}, ${data.country}", fontSize = 13.sp, color = Color.White.copy(0.7f))
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // ── SPORT TAG ──
+        // ── SPORT TAG + AGE ──
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SportTag(data.sportName)
             Surface(shape = RoundedCornerShape(50), color = Color(0xFF3B82F6).copy(0.12f)) {
-                Text(data.ageCategory.let { when (it) { "junior" -> "Юниор"; "adult" -> "Взрослый"; "senior" -> "Ветеран"; else -> it } },
-                    Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3B82F6))
+                Text(data.ageCategory, Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3B82F6))
             }
         }
 
@@ -187,7 +196,7 @@ fun AthleteProfilePage(
                 Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
                 StatColumn(data.podiums.toString(), "Подиумов")
                 Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                StatColumn(data.rating.toString(), "Рейтинг")
+                StatColumn("${data.rating}", "Рейтинг")
             }
         }
 
@@ -201,18 +210,8 @@ fun AthleteProfilePage(
             ContactRow(Icons.Outlined.LocationOn, "Город", "${data.city}, ${data.country}")
         }
 
-        // ── TOURNAMENT PARTICIPATION ──
-        Spacer(Modifier.height(12.dp))
-        SectionCard("Участие в турнире") {
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
-                InfoChip("Номер", "#${data.participantNumber}")
-                InfoChip("Seed", "#${data.seed}")
-                InfoChip("Check-in", when (data.checkInStatus) { "checked_in" -> "✓"; "pending" -> "⏳"; else -> "—" })
-            }
-        }
-
         // ── TEAM ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Команда") {
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
@@ -220,23 +219,32 @@ fun AthleteProfilePage(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    Modifier.size(48.dp).background(Accent.copy(0.1f), RoundedCornerShape(14.dp)),
+                    Modifier.size(56.dp).background(Accent.copy(0.1f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(data.teamName.take(1).uppercase(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Accent)
+                    Text(data.teamName.take(1).uppercase(), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Accent)
                 }
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(data.teamName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text(when (data.teamRole) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> data.teamRole },
-                        fontSize = 13.sp, color = TextMuted)
+                    Text(data.teamName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    val roleLabel = when (data.teamRole) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> data.teamRole }
+                    Text("$roleLabel · ${data.teamCity} · осн. ${data.teamFoundedYear}", fontSize = 12.sp, color = TextMuted)
+                    Spacer(Modifier.height(2.dp))
+                    Text(data.teamDescription, fontSize = 12.sp, color = TextSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 16.sp)
                 }
                 Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(Modifier.fillMaxWidth(), Arrangement.SpaceEvenly) {
+                InfoChip("Участников", "${data.teamMembers}")
+                InfoChip("Спорт", data.sportName)
             }
         }
 
         // ── LICENSE ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Лицензия") {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                 Column {
@@ -264,40 +272,34 @@ fun AthleteProfilePage(
         }
 
         // ── ACTIVE TOURNAMENTS ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Активные турниры") {
             data.activeTournaments.forEachIndexed { idx, t ->
-                if (idx > 0) {
-                    HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                }
+                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
                 TournamentRow(t.name, t.sport, t.location, t.date, t.status) { onTournamentClick("mock-id") }
             }
         }
 
         // ── UPCOMING TOURNAMENTS ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Предстоящие турниры") {
             data.upcomingTournaments.forEachIndexed { idx, t ->
-                if (idx > 0) {
-                    HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                }
+                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
                 TournamentRow(t.name, t.sport, t.location, t.date, t.status) { onTournamentClick("mock-id") }
             }
         }
 
         // ── HISTORY ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("История турниров") {
             data.historyTournaments.forEachIndexed { idx, r ->
-                if (idx > 0) {
-                    HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                }
+                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
                 ResultRow(r.name, r.sport, r.position, r.points, r.date)
             }
         }
 
         // ── ACHIEVEMENTS ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Достижения") {
             data.achievements.forEachIndexed { idx, a ->
                 if (idx > 0) Spacer(Modifier.height(8.dp))
@@ -323,11 +325,11 @@ fun AthleteProfilePage(
         }
 
         // ── GOALS ──
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         SectionCard("Цели") {
             data.goals.forEachIndexed { idx, g ->
                 if (idx > 0) Spacer(Modifier.height(10.dp))
-                val progress = (g.current.toFloat() / g.target).coerceIn(0f, 1f)
+                val progress = if (g.target > 0) (g.current.toFloat() / g.target).coerceIn(0f, 1f) else 0f
                 Column {
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text(g.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
@@ -339,13 +341,13 @@ fun AthleteProfilePage(
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                         color = Color(0xFF3B82F6),
                         trackColor = Color(0xFF3B82F6).copy(0.12f),
-                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                        strokeCap = StrokeCap.Round
                     )
                 }
             }
         }
 
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 

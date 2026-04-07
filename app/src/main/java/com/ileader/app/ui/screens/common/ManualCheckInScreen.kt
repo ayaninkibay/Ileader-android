@@ -163,7 +163,7 @@ fun ManualCheckInScreen(
                     results.forEach { attendee ->
                         AttendeeCard(attendee, onCheckIn = { doCheckIn(attendee) })
                     }
-                    Spacer(Modifier.height(100.dp))
+                    Spacer(Modifier.height(32.dp))
                 }
             }
         }

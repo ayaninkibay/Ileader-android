@@ -107,7 +107,7 @@ fun MediaAccreditationsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(Bg),
-        contentPadding = PaddingValues(bottom = 100.dp)
+        contentPadding = PaddingValues(bottom = 40.dp)
     ) {
         // ── 1. Hero ──
         item {

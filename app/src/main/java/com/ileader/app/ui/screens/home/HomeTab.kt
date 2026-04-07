@@ -7,6 +7,7 @@ import com.ileader.app.ui.screens.detail.AthleteProfilePage
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
 import com.ileader.app.ui.screens.detail.RefereeProfilePage
 import com.ileader.app.ui.screens.detail.TrainerProfilePage
+import com.ileader.app.ui.screens.detail.TeamDetailScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 import com.ileader.app.ui.screens.sport.RankingsScreen
 
@@ -18,6 +19,7 @@ sealed class HomeNavState {
     data class AthleteProfile(val id: String) : HomeNavState()
     data class RefereeProfile(val id: String) : HomeNavState()
     data class TrainerProfile(val id: String) : HomeNavState()
+    data class TeamDetail(val id: String) : HomeNavState()
     object Rankings : HomeNavState()
     object Notifications : HomeNavState()
 }
@@ -49,7 +51,8 @@ fun HomeTab(user: User) {
             onProfileClick = { navState = HomeNavState.PublicProfile(it) },
             onAthleteProfileClick = { navState = HomeNavState.AthleteProfile(it) },
             onRefereeProfileClick = { navState = HomeNavState.RefereeProfile(it) },
-            onTrainerProfileClick = { navState = HomeNavState.TrainerProfile(it) }
+            onTrainerProfileClick = { navState = HomeNavState.TrainerProfile(it) },
+            onTeamClick = { navState = HomeNavState.TeamDetail(it) }
         )
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
@@ -59,9 +62,11 @@ fun HomeTab(user: User) {
             user = user,
             onBack = { navState = HomeNavState.Home }
         )
-        is HomeNavState.AthleteProfile -> PublicProfileScreen(
-            userId = state.id,
-            onBack = { navState = HomeNavState.Home }
+        is HomeNavState.AthleteProfile -> AthleteProfilePage(
+            athleteId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
         )
         is HomeNavState.RefereeProfile -> PublicProfileScreen(
             userId = state.id,
@@ -73,6 +78,10 @@ fun HomeTab(user: User) {
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
             onAthleteClick = { navState = HomeNavState.AthleteProfile(it) },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        )
+        is HomeNavState.TeamDetail -> TeamDetailScreen(
+            teamId = state.id,
+            onBack = { navState = HomeNavState.Home }
         )
         is HomeNavState.Rankings -> RankingsScreen(
             userId = user.id,

@@ -98,7 +98,7 @@ fun MyTicketsScreen(user: User, onBack: (() -> Unit)? = null) {
             }
         }
 
-        Spacer(Modifier.height(100.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 
