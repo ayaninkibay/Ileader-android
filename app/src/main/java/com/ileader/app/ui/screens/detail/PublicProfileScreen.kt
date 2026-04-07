@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,7 +22,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.ui.components.*
@@ -71,29 +73,34 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
     val stats = data.stats
     val results = data.results
     val membership = data.membership
-    val isReferee = data.refereeAssignments.isNotEmpty() && results.isEmpty()
+    val license = data.license
+    val goals = data.goals
+    val isReferee = user.role == UserRole.REFEREE
 
     val primarySportName = remember(sports) { sports.firstOrNull()?.sports?.name ?: "" }
     val bannerUrl = remember(primarySportName) {
         if (primarySportName.isNotEmpty()) sportImageUrl(primarySportName) else null
     }
 
+    // Aggregate stats
+    val totalTournaments = stats.sumOf { it.tournaments }
+    val totalWins = stats.sumOf { it.wins }
+    val totalPodiums = stats.sumOf { it.podiums }
+    val topRating = if (stats.isNotEmpty()) stats.maxOf { it.rating } else 0
+
     Column(
         modifier = Modifier.fillMaxSize().background(Bg).verticalScroll(rememberScrollState())
     ) {
         // ══════════════════════════════════════
-        // HERO BANNER
+        // HERO BANNER (260dp like AthleteProfilePage)
         // ══════════════════════════════════════
         Box(modifier = Modifier.fillMaxWidth()) {
-            // Hero background — always dark so white text is readable in both themes
             val heroShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
             if (bannerUrl != null) {
-                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(240.dp)
-                    .clip(heroShape), contentScale = ContentScale.Crop)
-                Box(Modifier.fillMaxWidth().height(240.dp).clip(heroShape)
-                    .background(Color.Black.copy(0.7f)))
+                AsyncImage(bannerUrl, null, Modifier.fillMaxWidth().height(260.dp).clip(heroShape), contentScale = ContentScale.Crop)
+                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape).background(Color.Black.copy(0.7f)))
             } else {
-                Box(Modifier.fillMaxWidth().height(240.dp).clip(heroShape)
+                Box(Modifier.fillMaxWidth().height(260.dp).clip(heroShape)
                     .background(Brush.verticalGradient(listOf(Color(0xFF1a1a1a), Color(0xFF2d1a1a)))))
             }
 
@@ -106,15 +113,15 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White, modifier = Modifier.size(20.dp))
             }
 
-            // Avatar + name — always white text on dark hero
+            // Avatar + name + nickname
             Column(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(top = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Avatar with sweep gradient border
                 val sColor = if (primarySportName.isNotEmpty()) sportColor(primarySportName) else Accent
-                val borderColors = listOf(sColor, sColor.copy(0.5f), Accent, sColor)
                 Box(contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(112.dp).background(Brush.sweepGradient(borderColors), CircleShape))
+                    Box(Modifier.size(112.dp).background(Brush.sweepGradient(listOf(sColor, sColor.copy(0.5f), Color(0xFF3B82F6), sColor)), CircleShape))
                     Box(Modifier.size(106.dp).clip(CircleShape).background(Color(0xFF1a1a1a)))
                     Box(Modifier.size(100.dp).clip(CircleShape).background(Color(0xFF252525)), contentAlignment = Alignment.Center) {
                         if (!profile.avatarUrl.isNullOrEmpty()) {
@@ -127,63 +134,71 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text(profile.name ?: "Пользователь", fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                    color = Color.White)
-                Spacer(Modifier.height(4.dp))
+                Text(profile.name ?: "Пользователь", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                if (!profile.nickname.isNullOrEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("@${profile.nickname}", fontSize = 14.sp, color = Color.White.copy(0.6f))
+                }
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     RoleBadge(role = user.role)
                     if (!profile.city.isNullOrEmpty()) {
                         Text("·", fontSize = 14.sp, color = Color.White.copy(0.7f))
-                        Text(profile.city, fontSize = 13.sp, color = Color.White.copy(0.7f))
+                        val location = buildString {
+                            append(profile.city)
+                            if (!profile.country.isNullOrEmpty()) append(", ${profile.country}")
+                        }
+                        Text(location, fontSize = 13.sp, color = Color.White.copy(0.7f))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ══════════════════════════════════════
+        // SPORT TAGS + AGE CATEGORY
+        // ══════════════════════════════════════
+        if (sports.isNotEmpty() || profile.ageCategory != null) {
+            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                sports.forEach { sport -> SportTag(sport.sports?.name ?: "") }
+                profile.ageCategory?.let { age ->
+                    val ageLabel = when (age) { "junior" -> "Юниор"; "adult" -> "Взрослый"; "senior" -> "Ветеран"; else -> age }
+                    Surface(shape = RoundedCornerShape(50), color = Color(0xFF3B82F6).copy(0.12f)) {
+                        Text(ageLabel, Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3B82F6))
                     }
                 }
             }
         }
 
         // ══════════════════════════════════════
-        // SPORT CHIPS
-        // ══════════════════════════════════════
-        if (sports.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                sports.forEach { sport -> SportTag(sport.sports?.name ?: "") }
-            }
-        }
-
-        // ══════════════════════════════════════
-        // STATS
+        // STATS (4 columns like AthleteProfilePage)
         // ══════════════════════════════════════
         Spacer(Modifier.height(16.dp))
         if (isReferee) {
-            // Referee stats
             val totalJudged = data.refereeAssignments.size
             val completed = data.refereeAssignments.count { it.tournaments?.status == "completed" }
             val active = data.refereeAssignments.count { it.tournaments?.status in listOf("registration_open", "in_progress", "check_in") }
-
-            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp), color = CardBg) {
+            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), color = CardBg) {
                 Row(Modifier.padding(vertical = 20.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-                    StatItem(Icons.Outlined.Gavel, totalJudged, "Турниров", Modifier.weight(1f))
+                    StatColumn(totalJudged.toString(), "Всего")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    StatItem(Icons.Outlined.CheckCircle, completed, "Отсужено", Modifier.weight(1f))
+                    StatColumn(completed.toString(), "Отсужено")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    StatItem(Icons.Outlined.PlayArrow, active, "Активных", Modifier.weight(1f))
+                    StatColumn(active.toString(), "Активных")
                 }
             }
         } else if (stats.isNotEmpty()) {
-            // Athlete stats
-            val totalTournaments = stats.sumOf { it.tournaments }
-            val totalWins = stats.sumOf { it.wins }
-            val topRating = stats.maxOf { it.rating }
-
-            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp), color = CardBg) {
+            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = RoundedCornerShape(16.dp), color = CardBg) {
                 Row(Modifier.padding(vertical = 20.dp), Arrangement.SpaceEvenly, Alignment.CenterVertically) {
-                    StatItem(Icons.Outlined.EmojiEvents, totalTournaments, "Турниры", Modifier.weight(1f))
+                    StatColumn(totalTournaments.toString(), "Турниров")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    StatItem(Icons.Outlined.MilitaryTech, totalWins, "Победы", Modifier.weight(1f))
+                    StatColumn(totalWins.toString(), "Побед")
                     Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
-                    StatItem(Icons.Outlined.Leaderboard, topRating, "Рейтинг", Modifier.weight(1f))
+                    StatColumn(totalPodiums.toString(), "Подиумов")
+                    Box(Modifier.width(1.dp).height(40.dp).background(Border.copy(0.3f)))
+                    StatColumn(topRating.toString(), "Рейтинг")
                 }
             }
         }
@@ -193,117 +208,38 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // ══════════════════════════════════════
         if (!profile.bio.isNullOrEmpty()) {
             Spacer(Modifier.height(16.dp))
-            Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp), color = CardBg) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("О себе", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Spacer(Modifier.height(8.dp))
-                    Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
-                }
+            SectionCard("О себе") {
+                Text(profile.bio, fontSize = 14.sp, color = TextSecondary, lineHeight = 21.sp)
             }
         }
 
         // ══════════════════════════════════════
-        // REFEREE TOURNAMENTS (right after bio for referees)
+        // CONTACTS
         // ══════════════════════════════════════
-        if (isReferee && data.refereeAssignments.isNotEmpty()) {
-            Spacer(Modifier.height(16.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader("Назначенные турниры")
-                Spacer(Modifier.height(10.dp))
-                data.refereeAssignments.sortedByDescending { it.tournaments?.startDate }.forEach { a ->
-                    val t = a.tournaments
-                    Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp), RoundedCornerShape(14.dp), CardBg) {
-                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            // Sport icon
-                            Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
-                                Icon(sportIcon(t?.sports?.name ?: ""), null, Modifier.size(20.dp), tint = TextMuted)
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(t?.name ?: "—", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    t?.sports?.name?.let { Text(it, fontSize = 12.sp, color = TextMuted) }
-                                    t?.startDate?.let { date ->
-                                        val parts = date.take(10).split("-")
-                                        if (parts.size >= 3) {
-                                            val months = listOf("", "янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
-                                            Text(" · ${parts[2].toIntOrNull() ?: 0} ${months.getOrElse(parts[1].toIntOrNull() ?: 0) { "" }}", fontSize = 12.sp, color = TextMuted)
-                                        }
-                                    }
-                                }
-                            }
-                            // Role + status
-                            Column(horizontalAlignment = Alignment.End) {
-                                val rl = when (a.role) { "head_referee" -> "Главный"; "assistant" -> "Помощник"; else -> "Судья" }
-                                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.1f)) {
-                                    Text(rl, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
-                                }
-                                Spacer(Modifier.height(2.dp))
-                                val statusLabel = when (t?.status) { "completed" -> "Завершён"; "in_progress" -> "Идёт"; "registration_open" -> "Регистрация"; else -> "" }
-                                if (statusLabel.isNotEmpty()) {
-                                    Text(statusLabel, fontSize = 10.sp, color = TextMuted)
-                                }
-                            }
-                        }
+        if (!profile.phone.isNullOrEmpty() || !profile.email.isNullOrEmpty() || !profile.city.isNullOrEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Контакты") {
+                var hasItem = false
+                profile.phone?.let { phone ->
+                    if (phone.isNotEmpty()) {
+                        ContactRow(Icons.Outlined.Phone, "Телефон", phone)
+                        hasItem = true
                     }
                 }
-            }
-        }
-
-        // ══════════════════════════════════════
-        // UPCOMING TOURNAMENTS (athlete only)
-        // ══════════════════════════════════════
-        if (!isReferee && data.upcomingTournaments.isNotEmpty()) {
-            val upcoming = data.upcomingTournaments.filter { it.status in listOf("registration_open", "in_progress", "check_in") }
-            if (upcoming.isNotEmpty()) {
-                Spacer(Modifier.height(20.dp))
-                Column {
-                    Row(Modifier.padding(horizontal = 16.dp)) { SectionHeader("Ближайшие турниры") }
-                    Spacer(Modifier.height(10.dp))
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(upcoming.take(5)) { t ->
-                            UpcomingTournamentCard(t)
-                        }
+                profile.email?.let { email ->
+                    if (email.isNotEmpty()) {
+                        if (hasItem) Spacer(Modifier.height(8.dp))
+                        ContactRow(Icons.Outlined.Email, "Email", email)
+                        hasItem = true
                     }
                 }
-            }
-        }
-
-        // ══════════════════════════════════════
-        // RESULTS (athlete only)
-        // ══════════════════════════════════════
-        if (!isReferee) {
-            Spacer(Modifier.height(20.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader("Результаты")
-                Spacer(Modifier.height(10.dp))
-                if (results.isEmpty()) {
-                    EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        results.take(5).forEach { r -> ResultCard(r) }
+                if (!profile.city.isNullOrEmpty()) {
+                    if (hasItem) Spacer(Modifier.height(8.dp))
+                    val location = buildString {
+                        append(profile.city)
+                        if (!profile.country.isNullOrEmpty()) append(", ${profile.country}")
                     }
-                }
-            }
-        }
-
-        // ══════════════════════════════════════
-        // RATING BY SPORT (athlete only)
-        // ══════════════════════════════════════
-        if (!isReferee && stats.isNotEmpty()) {
-            Spacer(Modifier.height(20.dp))
-            Column {
-                Row(Modifier.padding(horizontal = 16.dp)) { SectionHeader("Рейтинг по спорту") }
-                Spacer(Modifier.height(10.dp))
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(stats) { sportStat -> SportRatingCard(sportStat) }
+                    ContactRow(Icons.Outlined.LocationOn, "Город", location)
                 }
             }
         }
@@ -312,16 +248,242 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // TEAM
         // ══════════════════════════════════════
         if (membership != null) {
-            Spacer(Modifier.height(20.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader("Команда")
-                Spacer(Modifier.height(10.dp))
-                TeamCard(membership)
+            val team = membership.teams
+            if (team != null) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("Команда") {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(48.dp).background(Accent.copy(0.1f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text((team.name ?: "?").take(1).uppercase(), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Accent)
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(team.name ?: "Команда", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
+                            if (roleName.isNotEmpty()) {
+                                Text(roleName, fontSize = 13.sp, color = TextMuted)
+                            }
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                    }
+                }
             }
         }
 
         // ══════════════════════════════════════
-        // MESSAGE BUTTON (placeholder)
+        // LICENSE
+        // ══════════════════════════════════════
+        if (license != null) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Лицензия") {
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Номер", fontSize = 12.sp, color = TextMuted)
+                        Text(license.number ?: "—", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Категория", fontSize = 12.sp, color = TextMuted)
+                        Text(license.category ?: "—", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Класс", fontSize = 12.sp, color = TextMuted)
+                        Text(license.licenseClass ?: "—", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Статус", fontSize = 12.sp, color = TextMuted)
+                        val statusColor = when (license.status) { "active" -> Color(0xFF22C55E); "expired" -> Color(0xFFEF4444); else -> TextMuted }
+                        val statusLabel = when (license.status) { "active" -> "Активна"; "expired" -> "Истекла"; "suspended" -> "Приостановлена"; else -> license.status ?: "—" }
+                        Surface(shape = RoundedCornerShape(50), color = statusColor.copy(0.12f)) {
+                            Text(statusLabel, Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // UPCOMING TOURNAMENTS (active + upcoming)
+        // ══════════════════════════════════════
+        if (!isReferee && data.upcomingTournaments.isNotEmpty()) {
+            val active = data.upcomingTournaments.filter { it.status in listOf("in_progress", "check_in") }
+            val upcoming = data.upcomingTournaments.filter { it.status in listOf("registration_open") }
+
+            if (active.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("Активные турниры") {
+                    active.forEachIndexed { idx, t ->
+                        if (idx > 0) {
+                            HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                        TournamentRow(
+                            name = t.name,
+                            sport = t.sportName ?: "",
+                            location = t.locationName ?: "",
+                            date = t.startDate ?: "",
+                            status = t.status ?: "",
+                            onClick = {}
+                        )
+                    }
+                }
+            }
+
+            if (upcoming.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("Предстоящие турниры") {
+                    upcoming.forEachIndexed { idx, t ->
+                        if (idx > 0) {
+                            HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                        TournamentRow(
+                            name = t.name,
+                            sport = t.sportName ?: "",
+                            location = t.locationName ?: "",
+                            date = t.startDate ?: "",
+                            status = t.status ?: "",
+                            onClick = {}
+                        )
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // REFEREE TOURNAMENTS
+        // ══════════════════════════════════════
+        if (isReferee && data.refereeAssignments.isNotEmpty()) {
+            val activeRef = data.refereeAssignments.filter { it.tournaments?.status in listOf("in_progress", "check_in", "registration_open") }
+            val completedRef = data.refereeAssignments.filter { it.tournaments?.status == "completed" }
+
+            if (activeRef.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("Активные турниры") {
+                    activeRef.forEachIndexed { idx, a ->
+                        if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                        TournamentRow(
+                            name = a.tournaments?.name ?: "—",
+                            sport = a.tournaments?.sports?.name ?: "",
+                            location = "",
+                            date = a.tournaments?.startDate ?: "",
+                            status = a.tournaments?.status ?: "",
+                            onClick = {}
+                        )
+                    }
+                }
+            }
+
+            if (completedRef.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("История судейства") {
+                    completedRef.take(5).forEachIndexed { idx, a ->
+                        if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                        TournamentRow(
+                            name = a.tournaments?.name ?: "—",
+                            sport = a.tournaments?.sports?.name ?: "",
+                            location = "",
+                            date = a.tournaments?.startDate ?: "",
+                            status = a.tournaments?.status ?: "",
+                            onClick = {}
+                        )
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // RESULTS (history)
+        // ══════════════════════════════════════
+        if (!isReferee && results.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("История турниров") {
+                results.forEachIndexed { idx, r ->
+                    if (idx > 0) {
+                        HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    ResultRow(
+                        name = r.tournaments?.name ?: "Турнир",
+                        sport = r.tournaments?.sports?.name ?: "",
+                        position = r.position,
+                        points = r.points ?: 0,
+                        date = r.tournaments?.startDate ?: ""
+                    )
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // GOALS
+        // ══════════════════════════════════════
+        if (goals.isNotEmpty()) {
+            val activeGoals = goals.filter { it.status == "active" }
+            if (activeGoals.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionCard("Цели") {
+                    activeGoals.forEachIndexed { idx, g ->
+                        if (idx > 0) Spacer(Modifier.height(10.dp))
+                        val target = g.targetRating ?: g.targetWins ?: g.targetPoints ?: g.targetPodiums ?: 100
+                        val current = when {
+                            g.targetRating != null -> topRating
+                            g.targetWins != null -> g.currentWins ?: 0
+                            g.targetPoints != null -> g.currentPoints ?: 0
+                            g.targetPodiums != null -> g.currentPodiums ?: 0
+                            else -> g.progress
+                        }
+                        val progress = if (target > 0) (current.toFloat() / target).coerceIn(0f, 1f) else 0f
+                        Column {
+                            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                                Text(g.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                                Text("$current/$target", fontSize = 12.sp, color = TextMuted)
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                color = Color(0xFF3B82F6),
+                                trackColor = Color(0xFF3B82F6).copy(0.12f),
+                                strokeCap = StrokeCap.Round
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // RATING BY SPORT (keep — useful extra)
+        // ══════════════════════════════════════
+        if (!isReferee && stats.size > 1) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Рейтинг по спорту") {
+                stats.forEachIndexed { idx, sportStat ->
+                    if (idx > 0) Spacer(Modifier.height(10.dp))
+                    val name = sportStat.sportName ?: ""
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
+                            Icon(sportIcon(name), null, Modifier.size(18.dp), tint = TextMuted)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Text("${sportStat.tournaments} турн. · ${sportStat.wins} поб.", fontSize = 12.sp, color = TextMuted)
+                        }
+                        Text("${sportStat.rating}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent)
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // MESSAGE BUTTON
         // ══════════════════════════════════════
         Spacer(Modifier.height(20.dp))
         Surface(
@@ -341,182 +503,4 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
 
         Spacer(Modifier.height(100.dp))
     }
-}
-
-// ═══════════════════════════════════════════════════════════
-// COMPONENTS
-// ═══════════════════════════════════════════════════════════
-
-@Composable
-private fun StatItem(icon: ImageVector, value: Int, label: String, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, tint = TextMuted, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.height(4.dp))
-        Text("$value", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-        Text(label, fontSize = 10.sp, color = TextMuted)
-    }
-}
-
-@Composable
-private fun UpcomingTournamentCard(t: TournamentWithCountsDto) {
-    val sportName = t.sportName ?: ""
-    val imgUrl = t.imageUrl ?: SportViewModel.getFallbackImage(SportDto(id = "", name = sportName))
-
-    Surface(shape = RoundedCornerShape(16.dp), color = CardBg, modifier = Modifier.width(220.dp)) {
-        Column {
-            Box(Modifier.fillMaxWidth().height(100.dp).clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))) {
-                if (imgUrl != null) {
-                    AsyncImage(imgUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.5f)))))
-                } else {
-                    Box(Modifier.fillMaxSize().background(Accent.copy(0.3f)))
-                }
-                // Status badge
-                val statusColor = when (t.status) {
-                    "in_progress" -> Color(0xFF3B82F6); "registration_open" -> Color(0xFF22C55E)
-                    "check_in" -> Color(0xFF8B5CF6); else -> Color(0xFF6B7280)
-                }
-                val statusLabel = when (t.status) {
-                    "in_progress" -> "Идёт"; "registration_open" -> "Регистрация"
-                    "check_in" -> "Check-in"; else -> t.status ?: ""
-                }
-                Surface(
-                    Modifier.align(Alignment.TopEnd).padding(8.dp),
-                    shape = RoundedCornerShape(50), color = statusColor.copy(0.85f)
-                ) {
-                    Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-            Column(Modifier.padding(12.dp)) {
-                Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 2, lineHeight = 18.sp)
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.CalendarMonth, null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(formatShortDate(t.startDate), fontSize = 12.sp, color = TextMuted)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ResultCard(r: ResultDto) {
-    val posEmoji = when (r.position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "#${r.position}" }
-    val sportName = r.tournaments?.sports?.name ?: ""
-
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
-                    .background(if (r.position <= 3) Accent.copy(0.15f) else Border.copy(0.2f)),
-                Alignment.Center
-            ) {
-                Text(posEmoji, fontSize = if (r.position <= 3) 20.sp else 14.sp, fontWeight = FontWeight.Bold,
-                    color = if (r.position <= 3) Accent else TextMuted)
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(r.tournaments?.name ?: "Турнир", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (sportName.isNotEmpty()) { Text(sportName, fontSize = 12.sp, color = TextMuted); Spacer(Modifier.width(8.dp)) }
-                    Text(formatShortDate(r.tournaments?.startDate), fontSize = 12.sp, color = TextMuted)
-                }
-            }
-            if (r.points != null && r.points > 0) {
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("${r.points}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent)
-                    Text("очки", fontSize = 10.sp, color = TextMuted)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SportRatingCard(stat: UserSportStatsDto) {
-    val name = stat.sportName ?: ""
-    val progress = (stat.rating.toFloat() / 2000f).coerceIn(0f, 1f)
-
-    Surface(Modifier.width(170.dp), RoundedCornerShape(16.dp), CardBg) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
-                    Icon(sportIcon(name), null, Modifier.size(18.dp), tint = TextMuted)
-                }
-                Spacer(Modifier.width(10.dp))
-                Text(name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(12.dp))
-            Text("${stat.rating}", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
-            Spacer(Modifier.height(6.dp))
-            // Rating progress bar
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                color = Accent, trackColor = Border.copy(0.2f), strokeCap = StrokeCap.Round
-            )
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${stat.tournaments} турн.", fontSize = 12.sp, color = TextMuted)
-                Spacer(Modifier.width(8.dp))
-                Text("${stat.wins} поб.", fontSize = 12.sp, color = TextMuted)
-                if (stat.podiums > 0) {
-                    Spacer(Modifier.width(8.dp))
-                    Text("${stat.podiums} под.", fontSize = 12.sp, color = TextMuted)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TeamCard(membership: TeamMembershipDto) {
-    val team = membership.teams ?: return
-    val sportName = team.sports?.name ?: ""
-    val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
-
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
-                Icon(sportIcon(sportName), null, Modifier.size(24.dp), tint = TextMuted)
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(team.name ?: "Команда", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (sportName.isNotEmpty()) { Text(sportName, fontSize = 12.sp, color = TextMuted); Spacer(Modifier.width(8.dp)) }
-                    team.city?.let { Text(it, fontSize = 12.sp, color = TextMuted) }
-                }
-            }
-            if (roleName.isNotEmpty()) {
-                Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.18f)) {
-                    Text(roleName, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Accent)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyCard(text: String, icon: ImageVector) {
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg) {
-        Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = TextMuted, modifier = Modifier.size(22.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(text, fontSize = 14.sp, color = TextMuted)
-        }
-    }
-}
-
-private fun formatShortDate(dateStr: String?): String {
-    if (dateStr == null) return ""
-    val parts = dateStr.take(10).split("-")
-    if (parts.size < 3) return dateStr
-    val day = parts[2].toIntOrNull() ?: return dateStr
-    val months = listOf("", "янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
-    val month = parts[1].toIntOrNull() ?: return dateStr
-    return "$day ${months.getOrElse(month) { "" }}"
 }

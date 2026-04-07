@@ -18,7 +18,9 @@ data class PublicProfileData(
     val results: List<ResultDto>,
     val membership: TeamMembershipDto?,
     val refereeAssignments: List<RefereeAssignmentDto> = emptyList(),
-    val upcomingTournaments: List<TournamentWithCountsDto> = emptyList()
+    val upcomingTournaments: List<TournamentWithCountsDto> = emptyList(),
+    val license: LicenseDto? = null,
+    val goals: List<GoalDto> = emptyList()
 )
 
 class PublicProfileViewModel : ViewModel() {
@@ -38,6 +40,8 @@ class PublicProfileViewModel : ViewModel() {
                 val memberDef = async { repo.getAthleteMembership(userId) }
                 val refereeDef = async { repo.getRefereeAssignments(userId) }
                 val tournamentsDef = async { repo.getUserTournaments(userId, 5) }
+                val licenseDef = async { repo.getUserLicense(userId) }
+                val goalsDef = async { repo.getUserGoals(userId) }
 
                 state = UiState.Success(
                     PublicProfileData(
@@ -47,7 +51,9 @@ class PublicProfileViewModel : ViewModel() {
                         results = resultsDef.await(),
                         membership = memberDef.await(),
                         refereeAssignments = refereeDef.await(),
-                        upcomingTournaments = tournamentsDef.await()
+                        upcomingTournaments = tournamentsDef.await(),
+                        license = licenseDef.await(),
+                        goals = goalsDef.await()
                     )
                 )
             } catch (e: Exception) {

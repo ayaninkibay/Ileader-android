@@ -371,6 +371,17 @@ class ViewerRepository {
         } catch (_: Exception) { null }
     }
 
+    suspend fun getUserGoals(userId: String): List<GoalDto> {
+        return try {
+            client.from("athlete_goals")
+                .select {
+                    filter { eq("athlete_id", userId) }
+                    order("created_at", Order.DESCENDING)
+                }
+                .decodeList<GoalDto>()
+        } catch (_: Exception) { emptyList() }
+    }
+
     // ══════════════════════════════════════════════════════════
     // PUBLIC PROFILES
     // ══════════════════════════════════════════════════════════
