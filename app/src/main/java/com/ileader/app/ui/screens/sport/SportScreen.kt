@@ -71,17 +71,13 @@ fun SportScreen(
         return
     }
 
-    val topSports = remember(s.sports, s.selectedIndices) {
-        val selected = s.selectedIndices.sorted().mapNotNull { s.sports.getOrNull(it) }
-        when {
-            selected.size >= 2 -> selected.take(2)
-            selected.size == 1 -> {
-                val first = selected[0]
-                val second = s.sports.firstOrNull { it != first } ?: first
-                listOf(first, second)
-            }
-            else -> s.sports.take(2)
-        }
+    // Top 2 sports are always fixed — first 2 from the list, never swap
+    val topSports = remember(s.sports) { s.sports.take(2) }
+
+    // Whether selected sport is inside "Все спорты" accordion (not in top 2)
+    val topIds = remember(topSports) { topSports.map { it.id }.toSet() }
+    val selectedInAccordion = s.selectedIndices.any { idx ->
+        s.sports.getOrNull(idx)?.id?.let { it !in topIds } == true
     }
 
     // Mock leagues
@@ -124,14 +120,16 @@ fun SportScreen(
         // ── Accordion: "Все спорты" ──
         item {
             var expanded by remember { mutableStateOf(false) }
-            val topIds = topSports.map { it.id }.toSet()
             val restSports = s.sports.filter { it.id !in topIds }
 
             // Button
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 color = CardBg,
-                border = androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.3f)),
+                border = androidx.compose.foundation.BorderStroke(
+                    if (selectedInAccordion) 1.5.dp else 1.dp,
+                    if (selectedInAccordion) Accent else Border.copy(0.3f)
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -141,18 +139,37 @@ fun SportScreen(
                     Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Apps, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Apps, null, tint = if (selectedInAccordion) Accent else TextMuted, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Text("Все спорты", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary, modifier = Modifier.weight(1f))
+                    if (selectedInAccordion) {
+                        // Show selected sport name
+                        val selectedName = s.selectedSports.firstOrNull()?.name ?: ""
+                        Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.15f)) {
+                            Text(selectedName, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Icon(
                         if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        null, tint = TextMuted, modifier = Modifier.size(22.dp)
+                        null, tint = if (selectedInAccordion) Accent else TextMuted, modifier = Modifier.size(22.dp)
                     )
                 }
             }
 
             // Expandable grid
-            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = expanded,
+                enter = androidx.compose.animation.expandVertically(
+                    expandFrom = Alignment.Top,
+                    animationSpec = androidx.compose.animation.core.tween(250)
+                ) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(200)),
+                exit = androidx.compose.animation.shrinkVertically(
+                    shrinkTowards = Alignment.Top,
+                    animationSpec = androidx.compose.animation.core.tween(200)
+                ) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(150))
+            ) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     restSports.chunked(3).forEach { row ->
                         Row(
@@ -298,17 +315,18 @@ fun SportScreen(
                 val selectedImg = s.selectedSports.firstOrNull()?.let { SportViewModel.getFallbackImage(it) }
                 val mockVideos: List<MockVideo> = remember(selectedName) {
                     listOf(
-                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", selectedImg),
-                        MockVideo("Обзор сезона $selectedName", "5:18", selectedImg),
-                        MockVideo("Интервью с чемпионом", "2:55", selectedImg),
-                        MockVideo("Топ-5 голов/финишей", "4:10", selectedImg)
+                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", selectedImg, isVideo = true),
+                        MockVideo("Фотоотчёт: $selectedName", "12 фото", selectedImg, isVideo = false),
+                        MockVideo("Обзор сезона $selectedName", "5:18", selectedImg, isVideo = true),
+                        MockVideo("Интервью с чемпионом", "2:55", selectedImg, isVideo = true),
+                        MockVideo("Топ-5 голов/финишей", "4:10", selectedImg, isVideo = true)
                     )
                 }
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(mockVideos.size) { i -> VideoMiniCard(mockVideos[i]) }
+                    items(mockVideos.size) { i -> VideoMiniCard(mockVideos[i], onClick = { onArticleClick("mock_$i") }) }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -408,13 +426,15 @@ private fun SportImageCard(
         }
         Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (isSelected) 0.25f else 0.45f)))
 
-        // Selection indicator
-        if (isSelected) {
-            Box(
-                Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp).clip(CircleShape).background(Accent),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+        // Radio indicator (top-end)
+        Box(
+            Modifier.align(Alignment.TopEnd).padding(8.dp)
+                .size(22.dp)
+                .border(2.dp, if (isSelected) Accent else Color.White.copy(0.6f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Box(Modifier.size(12.dp).clip(CircleShape).background(Accent))
             }
         }
 
@@ -558,6 +578,16 @@ private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
 @Composable
 private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
+    // Detect content type
+    val cat = a.category?.lowercase() ?: ""
+    val content = a.content?.lowercase() ?: ""
+    val titleLc = a.title.lowercase()
+    val isVideo = cat in listOf("video", "highlight", "review") ||
+            content.contains("youtube.com") || content.contains(".mp4") ||
+            titleLc.contains("видео") || titleLc.contains("обзор")
+    val isPhoto = cat in listOf("photo", "gallery") ||
+            titleLc.contains("фото") || content.contains("фотоотчёт")
+
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
         shadowElevation = 0.dp,
@@ -576,6 +606,38 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
                     }
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.4f)))))
+
+                // Content type badge
+                val (badgeIcon, badgeLabel, badgeColor) = when {
+                    isVideo -> Triple(Icons.Filled.PlayCircle, "Видео", Color(0xFF3B82F6))
+                    isPhoto -> Triple(Icons.Filled.PhotoLibrary, "Фото", Color(0xFF22C55E))
+                    else -> Triple(Icons.Filled.Article, "Статья", Color(0xFFE53535))
+                }
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = badgeColor.copy(0.9f)
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Icon(badgeIcon, null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Text(badgeLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+
+                // Play overlay for video
+                if (isVideo) {
+                    Box(
+                        Modifier.size(36.dp).clip(CircleShape)
+                            .background(Color.White.copy(0.25f)).align(Alignment.Center),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                }
             }
             Column(Modifier.padding(14.dp)) {
                 Text(a.title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp,
@@ -871,8 +933,14 @@ private fun SportPickerSheet(
                             color = if (isSelected) Accent else TextPrimary,
                             modifier = Modifier.weight(1f)
                         )
-                        if (isSelected) {
-                            Icon(Icons.Default.CheckCircle, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        Box(
+                            Modifier.size(20.dp)
+                                .border(2.dp, if (isSelected) Accent else TextMuted.copy(0.3f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Box(Modifier.size(10.dp).clip(CircleShape).background(Accent))
+                            }
                         }
                     }
                 }
@@ -885,15 +953,19 @@ private fun SportPickerSheet(
 // Video Mini Card
 // ═══════════════════════════════════════════════════
 
-private data class MockVideo(val title: String, val duration: String, val imageUrl: String?)
+private data class MockVideo(
+    val title: String, val duration: String, val imageUrl: String?,
+    val isVideo: Boolean = true
+)
 
 @Composable
-private fun VideoMiniCard(video: MockVideo) {
+private fun VideoMiniCard(video: MockVideo, onClick: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .width(200.dp)
             .height(140.dp)
             .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
     ) {
         if (video.imageUrl != null) {
             AsyncImage(video.imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -902,15 +974,43 @@ private fun VideoMiniCard(video: MockVideo) {
         }
         Box(Modifier.fillMaxSize().background(Color.Black.copy(0.5f)))
 
-        // Play button
-        Box(
-            Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.25f)).align(Alignment.Center),
-            contentAlignment = Alignment.Center
+        // Content type badge
+        val (badgeIcon, badgeLabel, badgeColor) = if (video.isVideo)
+            Triple(Icons.Filled.PlayCircle, "Видео", Color(0xFF3B82F6))
+        else
+            Triple(Icons.Filled.PhotoLibrary, "Фото", Color(0xFF22C55E))
+        Surface(
+            shape = RoundedCornerShape(6.dp), color = badgeColor.copy(0.9f),
+            modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
         ) {
-            Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(28.dp))
+            Row(
+                Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Icon(badgeIcon, null, tint = Color.White, modifier = Modifier.size(11.dp))
+                Text(badgeLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
         }
 
-        // Duration
+        // Center play/photo icon
+        if (video.isVideo) {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.25f)).align(Alignment.Center),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+        } else {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.15f)).align(Alignment.Center),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.PhotoLibrary, null, tint = Color.White, modifier = Modifier.size(24.dp))
+            }
+        }
+
+        // Duration / photo count
         Surface(
             shape = RoundedCornerShape(6.dp), color = Color.Black.copy(0.6f),
             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)

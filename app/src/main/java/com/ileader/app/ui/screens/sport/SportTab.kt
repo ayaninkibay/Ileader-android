@@ -12,6 +12,9 @@ import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.detail.ArticleDetailScreen
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
+import com.ileader.app.ui.screens.detail.AthleteProfilePage
+import com.ileader.app.ui.screens.detail.RefereeProfilePage
+import com.ileader.app.ui.screens.detail.TrainerProfilePage
 import com.ileader.app.ui.screens.detail.TeamDetailScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
@@ -23,6 +26,9 @@ sealed class SportNavState {
     data class PublicProfile(val id: String) : SportNavState()
     data class LeagueDetail(val name: String, val sportName: String, val imageUrl: String?) : SportNavState()
     data class TeamDetail(val id: String) : SportNavState()
+    data class AthleteProfile(val id: String) : SportNavState()
+    data class RefereeProfile(val id: String) : SportNavState()
+    data class TrainerProfile(val id: String) : SportNavState()
 }
 
 @Composable
@@ -55,7 +61,10 @@ fun SportTab(user: User) {
                 tournamentId = currentState.id,
                 user = user,
                 onBack = { navState = SportNavState.Search },
-                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+                onProfileClick = { navState = SportNavState.PublicProfile(it) },
+                onAthleteProfileClick = { navState = SportNavState.AthleteProfile(it) },
+                onRefereeProfileClick = { navState = SportNavState.RefereeProfile(it) },
+                onTrainerProfileClick = { navState = SportNavState.TrainerProfile(it) }
             )
             is SportNavState.ArticleDetail -> ArticleDetailScreen(
                 articleId = currentState.id,
@@ -75,6 +84,27 @@ fun SportTab(user: User) {
             is SportNavState.TeamDetail -> TeamDetailScreen(
                 teamId = currentState.id,
                 onBack = { navState = SportNavState.Search }
+            )
+            is SportNavState.AthleteProfile -> AthleteProfilePage(
+                athleteId = currentState.id,
+                onBack = { navState = SportNavState.Search },
+                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
+                onTeamClick = { navState = SportNavState.TeamDetail(it) },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+            )
+            is SportNavState.RefereeProfile -> RefereeProfilePage(
+                refereeId = currentState.id,
+                onBack = { navState = SportNavState.Search },
+                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
+            )
+            is SportNavState.TrainerProfile -> TrainerProfilePage(
+                trainerId = currentState.id,
+                onBack = { navState = SportNavState.Search },
+                onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
+                onAthleteClick = { navState = SportNavState.AthleteProfile(it) },
+                onTeamClick = { navState = SportNavState.TeamDetail(it) },
+                onProfileClick = { navState = SportNavState.PublicProfile(it) }
             )
         }
     }

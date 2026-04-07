@@ -1501,7 +1501,7 @@ fun LanguageSwitcherCard() {
                     LanguageSwitcherOption(
                         modifier = Modifier.weight(1f),
                         flag = lang.flag,
-                        label = if (isSelected) lang.label else "",
+                        label = lang.label,
                         selected = isSelected
                     ) {
                         scope.launch { langPref.setLanguage(lang) }

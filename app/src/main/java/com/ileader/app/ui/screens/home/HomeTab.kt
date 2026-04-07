@@ -3,7 +3,10 @@ package com.ileader.app.ui.screens.home
 import androidx.compose.runtime.*
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.detail.ArticleDetailScreen
+import com.ileader.app.ui.screens.detail.AthleteProfilePage
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
+import com.ileader.app.ui.screens.detail.RefereeProfilePage
+import com.ileader.app.ui.screens.detail.TrainerProfilePage
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 import com.ileader.app.ui.screens.sport.RankingsScreen
 
@@ -12,6 +15,9 @@ sealed class HomeNavState {
     data class ArticleDetail(val id: String) : HomeNavState()
     data class TournamentDetail(val id: String) : HomeNavState()
     data class PublicProfile(val id: String) : HomeNavState()
+    data class AthleteProfile(val id: String) : HomeNavState()
+    data class RefereeProfile(val id: String) : HomeNavState()
+    data class TrainerProfile(val id: String) : HomeNavState()
     object Rankings : HomeNavState()
     object Notifications : HomeNavState()
 }
@@ -40,7 +46,10 @@ fun HomeTab(user: User) {
             tournamentId = state.id,
             user = user,
             onBack = { navState = HomeNavState.Home },
-            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) },
+            onAthleteProfileClick = { navState = HomeNavState.AthleteProfile(it) },
+            onRefereeProfileClick = { navState = HomeNavState.RefereeProfile(it) },
+            onTrainerProfileClick = { navState = HomeNavState.TrainerProfile(it) }
         )
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
@@ -49,6 +58,25 @@ fun HomeTab(user: User) {
         is HomeNavState.Notifications -> com.ileader.app.ui.screens.common.NotificationsScreen(
             user = user,
             onBack = { navState = HomeNavState.Home }
+        )
+        is HomeNavState.AthleteProfile -> AthleteProfilePage(
+            athleteId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        )
+        is HomeNavState.RefereeProfile -> RefereeProfilePage(
+            refereeId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        )
+        is HomeNavState.TrainerProfile -> TrainerProfilePage(
+            trainerId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
+            onAthleteClick = { navState = HomeNavState.AthleteProfile(it) },
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
         )
         is HomeNavState.Rankings -> RankingsScreen(
             userId = user.id,

@@ -19,7 +19,8 @@ data class HomeTournamentDetailData(
     val bracket: List<BracketMatchDto>,
     val groups: List<TournamentGroupDto> = emptyList(),
     val sponsors: List<TournamentSponsorshipDto> = emptyList(),
-    val articles: List<ArticleDto> = emptyList()
+    val articles: List<ArticleDto> = emptyList(),
+    val referees: List<RefereeAssignmentDto> = emptyList()
 )
 
 sealed class RegistrationState {
@@ -55,6 +56,7 @@ class TournamentDetailViewModel : ViewModel() {
                 val groupsDef = async { viewerRepo.getTournamentGroups(tournamentId) }
                 val sponsorsDef = async { try { viewerRepo.getTournamentSponsors(tournamentId) } catch (_: Exception) { emptyList() } }
                 val articlesDef = async { try { viewerRepo.getTournamentArticles(tournamentId) } catch (_: Exception) { emptyList() } }
+                val refereesDef = async { try { viewerRepo.getTournamentReferees(tournamentId) } catch (_: Exception) { emptyList() } }
 
                 state = UiState.Success(
                     HomeTournamentDetailData(
@@ -64,7 +66,8 @@ class TournamentDetailViewModel : ViewModel() {
                         bracket = bracketDef.await(),
                         groups = groupsDef.await(),
                         sponsors = sponsorsDef.await(),
-                        articles = articlesDef.await()
+                        articles = articlesDef.await(),
+                        referees = refereesDef.await()
                     )
                 )
             } catch (e: Exception) {

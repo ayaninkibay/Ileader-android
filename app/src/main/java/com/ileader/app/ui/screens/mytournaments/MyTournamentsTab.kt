@@ -8,7 +8,10 @@ import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.common.ManualCheckInScreen
 import com.ileader.app.ui.screens.common.QrScannerScreen
+import com.ileader.app.ui.screens.detail.AthleteProfilePage
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
+import com.ileader.app.ui.screens.detail.RefereeProfilePage
+import com.ileader.app.ui.screens.detail.TrainerProfilePage
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
 private sealed class MyTournamentsNavState {
@@ -19,6 +22,9 @@ private sealed class MyTournamentsNavState {
     data class TournamentEdit(val id: String) : MyTournamentsNavState()
     data class HelperManagement(val tournamentId: String, val tournamentName: String) : MyTournamentsNavState()
     data class PublicProfile(val id: String) : MyTournamentsNavState()
+    data class AthleteProfile(val id: String) : MyTournamentsNavState()
+    data class RefereeProfile(val id: String) : MyTournamentsNavState()
+    data class TrainerProfile(val id: String) : MyTournamentsNavState()
 }
 
 @Composable
@@ -43,7 +49,10 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 user = user,
                 onBack = { navState = MyTournamentsNavState.List },
                 onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
-                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) },
+                onAthleteProfileClick = { navState = MyTournamentsNavState.AthleteProfile(it) },
+                onRefereeProfileClick = { navState = MyTournamentsNavState.RefereeProfile(it) },
+                onTrainerProfileClick = { navState = MyTournamentsNavState.TrainerProfile(it) }
             )
         }
         is MyTournamentsNavState.PublicProfile -> {
@@ -78,6 +87,31 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 tournamentName = state.tournamentName,
                 userId = user.id,
                 onBack = { navState = MyTournamentsNavState.List }
+            )
+        }
+        is MyTournamentsNavState.AthleteProfile -> {
+            AthleteProfilePage(
+                athleteId = state.id,
+                onBack = { navState = MyTournamentsNavState.List },
+                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            )
+        }
+        is MyTournamentsNavState.RefereeProfile -> {
+            RefereeProfilePage(
+                refereeId = state.id,
+                onBack = { navState = MyTournamentsNavState.List },
+                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
+            )
+        }
+        is MyTournamentsNavState.TrainerProfile -> {
+            TrainerProfilePage(
+                trainerId = state.id,
+                onBack = { navState = MyTournamentsNavState.List },
+                onTournamentClick = { navState = MyTournamentsNavState.TournamentDetail(it) },
+                onAthleteClick = { navState = MyTournamentsNavState.AthleteProfile(it) },
+                onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) }
             )
         }
     }

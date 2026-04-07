@@ -45,6 +45,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.ParticipantDto
+import com.ileader.app.data.remote.dto.RefereeAssignmentDto
 import com.ileader.app.data.remote.dto.ResultDto
 import com.ileader.app.data.remote.dto.ScheduleItemDto
 import com.ileader.app.data.remote.dto.TournamentDto
@@ -82,6 +83,9 @@ fun TournamentDetailScreen(
     onBack: () -> Unit,
     onEditTournament: (String) -> Unit = {},
     onProfileClick: (String) -> Unit = {},
+    onAthleteProfileClick: (String) -> Unit = {},
+    onRefereeProfileClick: (String) -> Unit = {},
+    onTrainerProfileClick: (String) -> Unit = {},
     viewModel: TournamentDetailViewModel = viewModel()
 ) {
     LaunchedEffect(tournamentId) {
@@ -111,7 +115,10 @@ fun TournamentDetailScreen(
                     viewModel = viewModel,
                     onBack = onBack,
                     onEditTournament = onEditTournament,
-                    onProfileClick = onProfileClick
+                    onProfileClick = onProfileClick,
+                    onAthleteProfileClick = onAthleteProfileClick,
+                    onRefereeProfileClick = onRefereeProfileClick,
+                    onTrainerProfileClick = onTrainerProfileClick
                 )
             }
         }
@@ -129,7 +136,10 @@ private fun TournamentContent(
     viewModel: TournamentDetailViewModel,
     onBack: () -> Unit,
     onEditTournament: (String) -> Unit = {},
-    onProfileClick: (String) -> Unit = {}
+    onProfileClick: (String) -> Unit = {},
+    onAthleteProfileClick: (String) -> Unit = {},
+    onRefereeProfileClick: (String) -> Unit = {},
+    onTrainerProfileClick: (String) -> Unit = {}
 ) {
     val tournament = data.tournament
     val accentColor = Accent
@@ -161,12 +171,12 @@ private fun TournamentContent(
             // TAB CONTENT
             // ══════════════════════════════════════
             when (tabs.getOrNull(selectedTab)?.type) {
-                TabType.OVERVIEW -> OverviewTab(data, tournament, onProfileClick)
+                TabType.OVERVIEW -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick)
                 TabType.PARTICIPANTS -> ParticipantsTab(data.participants, tournament, onProfileClick)
                 TabType.BRACKET -> BracketTab(data)
                 TabType.RESULTS -> ResultsTab(data, onProfileClick)
                 TabType.NEWS -> NewsTab(data.articles)
-                else -> OverviewTab(data, tournament, onProfileClick)
+                else -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick)
             }
 
             Spacer(Modifier.height(80.dp))
@@ -329,6 +339,30 @@ private fun HeroHeader(
             }
 
             Spacer(Modifier.height(14.dp))
+
+            // Date badge
+            tournament.startDate?.let { start ->
+                val dateText = buildString {
+                    append(formatDateFull(start))
+                    tournament.endDate?.let { end ->
+                        if (end != start) append(" — ${formatDateFull(end)}")
+                    }
+                }
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.White.copy(alpha = 0.12f)
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Outlined.CalendarMonth, null, tint = Color.White.copy(0.9f), modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(dateText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(0.95f))
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            }
 
             // Tournament name
             Text(
@@ -552,7 +586,10 @@ private fun TabBar(tabs: List<TabItem>, selectedIndex: Int, onSelect: (Int) -> U
 private fun OverviewTab(
     data: HomeTournamentDetailData,
     tournament: TournamentDto,
-    onProfileClick: (String) -> Unit
+    onProfileClick: (String) -> Unit,
+    onAthleteProfileClick: (String) -> Unit = {},
+    onRefereeProfileClick: (String) -> Unit = {},
+    onTrainerProfileClick: (String) -> Unit = {}
 ) {
     Column {
         // ── Organizer ──
@@ -636,6 +673,49 @@ private fun OverviewTab(
             Spacer(Modifier.height(8.dp))
             ScheduleSection(tournament.schedule)
         }
+
+        // ── Teams ──
+        val teams = remember(data.participants) {
+            val real = data.participants.filter { it.teams?.name != null }
+                .groupBy { it.teamId }
+                .mapNotNull { (teamId, members) ->
+                    val teamName = members.firstOrNull()?.teams?.name ?: return@mapNotNull null
+                    Triple(teamId ?: "", teamName, members.map { (it.profiles?.name ?: "?") to it.profiles?.avatarUrl })
+                }
+            real.ifEmpty {
+                // Mock teams
+                listOf(
+                    Triple("1", "Red Racers", listOf("Алихан Т." to null, "Марат К." to null, "Данияр С." to null, "Тимур Н." to null)),
+                    Triple("2", "Storm Eagles", listOf("Аян Б." to null, "Ерлан Ж." to null, "Нурлан А." to null))
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        MockTeamsSection(teams, onAthleteProfileClick)
+
+        // ── Referees ──
+        val referees = remember(data.referees) {
+            data.referees.ifEmpty {
+                // Mock referees
+                listOf(
+                    MockReferee("Серик Абдуллаев", "head", null),
+                    MockReferee("Кайрат Жумабеков", "assistant", null),
+                    MockReferee("Бауыржан Тулеев", "line", null)
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        MockRefereesSection(referees, data.referees.isEmpty(), onRefereeProfileClick)
+
+        // ── Trainers ──
+        val mockTrainers = remember {
+            listOf(
+                MockTrainer("Ержан Каримов", "Red Racers", null),
+                MockTrainer("Алмас Сулейменов", "Storm Eagles", null)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        MockTrainersSection(mockTrainers, onTrainerProfileClick)
 
         // ── Sponsors ──
         if (data.sponsors.isNotEmpty()) {
@@ -1021,6 +1101,188 @@ private fun ResultsSection(results: List<ResultDto>, onProfileClick: (String) ->
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
                     }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Mock data classes
+// ══════════════════════════════════════════════════════════
+
+private data class MockReferee(val name: String, val role: String, val avatarUrl: String?)
+private data class MockTrainer(val name: String, val teamName: String, val avatarUrl: String?)
+
+// ══════════════════════════════════════════════════════════
+// TEAMS SECTION (mock-compatible)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun MockTeamsSection(
+    teams: List<Triple<String, String, List<Pair<String, String?>>>>,
+    onProfileClick: (String) -> Unit
+) {
+    SectionCard(title = "Команды") {
+        teams.forEachIndexed { idx, (_, teamName, members) ->
+            if (idx > 0) {
+                HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 10.dp))
+            }
+
+            // Team header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(44.dp).background(Accent.copy(0.1f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        teamName.take(1).uppercase(),
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Accent
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(teamName, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                    Text("${members.size} участников", fontSize = 12.sp, color = TextMuted)
+                }
+                Surface(shape = RoundedCornerShape(8.dp), color = Accent.copy(0.08f)) {
+                    Icon(
+                        Icons.Outlined.People, null, tint = Accent,
+                        modifier = Modifier.padding(6.dp).size(18.dp)
+                    )
+                }
+            }
+
+            // Team members (clickable — opens athlete profile)
+            Spacer(Modifier.height(10.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy((-6).dp),
+                modifier = Modifier.clickable { onProfileClick("mock-athlete") }
+            ) {
+                members.take(5).forEach { (name, avatar) ->
+                    UserAvatar(avatarUrl = avatar, name = name, size = 34.dp)
+                }
+                if (members.size > 5) {
+                    Box(
+                        Modifier.size(34.dp).background(TextMuted.copy(0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("+${members.size - 5}", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// REFEREES SECTION (mock-compatible)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun MockRefereesSection(
+    referees: Any, // List<RefereeAssignmentDto> or List<MockReferee>
+    isMock: Boolean,
+    onProfileClick: (String) -> Unit
+) {
+    SectionCard(title = "Судьи") {
+        @Suppress("UNCHECKED_CAST")
+        if (isMock) {
+            val mocks = referees as List<MockReferee>
+            mocks.forEachIndexed { idx, ref ->
+                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
+                RefereeRow(name = ref.name, role = ref.role, avatarUrl = ref.avatarUrl, onClick = { onProfileClick("mock-referee-$idx") })
+            }
+        } else {
+            val real = referees as List<RefereeAssignmentDto>
+            real.forEachIndexed { idx, ref ->
+                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
+                RefereeRow(
+                    name = ref.profiles?.name ?: "Судья",
+                    role = ref.role ?: "referee",
+                    avatarUrl = ref.profiles?.avatarUrl,
+                    onClick = { ref.refereeId?.let { onProfileClick(it) } }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RefereeRow(name: String, role: String, avatarUrl: String?, onClick: () -> Unit) {
+    val roleLabel = when (role) {
+        "head" -> "Главный судья"
+        "assistant" -> "Помощник судьи"
+        "line" -> "Линейный судья"
+        else -> "Судья"
+    }
+    val roleColor = when (role) {
+        "head" -> Color(0xFFEF4444)
+        "assistant" -> Color(0xFF7C3AED)
+        else -> Color(0xFF3B82F6)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp)
+    ) {
+        UserAvatar(avatarUrl = avatarUrl, name = name, size = 42.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(6.dp).clip(CircleShape).background(roleColor))
+                Spacer(Modifier.width(6.dp))
+                Text(roleLabel, fontSize = 12.sp, color = TextMuted)
+            }
+        }
+        Box(
+            Modifier.size(32.dp).background(roleColor.copy(0.1f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Gavel, null, tint = roleColor, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// TRAINERS SECTION (mock)
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun MockTrainersSection(
+    trainers: List<MockTrainer>,
+    onProfileClick: (String) -> Unit
+) {
+    SectionCard(title = "Тренера") {
+        trainers.forEachIndexed { idx, trainer ->
+            if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onProfileClick("mock-trainer-$idx") }
+                    .padding(vertical = 4.dp)
+            ) {
+                UserAvatar(avatarUrl = trainer.avatarUrl, name = trainer.name, size = 42.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(trainer.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(trainer.teamName, fontSize = 12.sp, color = TextMuted)
+                    }
+                }
+                Box(
+                    Modifier.size(32.dp).background(Color(0xFF059669).copy(0.1f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.School, null, tint = Color(0xFF059669), modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -1420,6 +1682,17 @@ private fun formatDateShort(dateStr: String?): String {
     val monthNames = listOf("", "янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек")
     val month = parts[1].toIntOrNull() ?: return dateStr
     return "$day ${monthNames.getOrElse(month) { "" }}"
+}
+
+private fun formatDateFull(dateStr: String?): String {
+    if (dateStr == null) return "—"
+    val parts = dateStr.take(10).split("-")
+    if (parts.size < 3) return dateStr
+    val day = parts[2].toIntOrNull() ?: return dateStr
+    val monthNames = listOf("", "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря")
+    val month = parts[1].toIntOrNull() ?: return dateStr
+    val year = parts[0]
+    return "$day ${monthNames.getOrElse(month) { "" }} $year"
 }
 
 private fun getStatusLabel(status: String): String = when (status) {

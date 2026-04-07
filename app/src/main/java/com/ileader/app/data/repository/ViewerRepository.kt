@@ -143,6 +143,13 @@ class ViewerRepository {
             .decodeList<TournamentGroupDto>()
     }
 
+    suspend fun getTournamentReferees(tournamentId: String): List<RefereeAssignmentDto> {
+        return client.from("tournament_referees")
+            .select(Columns.raw("tournament_id, referee_id, role, assigned_at, profiles!referee_id(id, name, avatar_url, city)"))
+            { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<RefereeAssignmentDto>()
+    }
+
     suspend fun getTournamentSponsors(tournamentId: String): List<TournamentSponsorshipDto> {
         return client.from("tournament_sponsorships")
             .select(Columns.raw("sponsor_id, tournament_id, tier, amount, profiles!sponsor_id(id, name, avatar_url)"))

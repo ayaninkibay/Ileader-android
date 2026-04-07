@@ -130,7 +130,7 @@ fun LeagueDetailScreen(
                 Box(
                     Modifier.fillMaxWidth().height(280.dp)
                         .background(Brush.verticalGradient(
-                            listOf(Color.Black.copy(0.2f), Color.Black.copy(0.75f))
+                            listOf(Color.Black.copy(if (isDark) 0.2f else 0.4f), Color.Black.copy(0.75f))
                         ))
                 )
             } else {
@@ -176,25 +176,59 @@ fun LeagueDetailScreen(
                     leagueName, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold,
                     color = Color.White, lineHeight = 32.sp, letterSpacing = (-0.5).sp
                 )
-                Spacer(Modifier.height(4.dp))
-                Text("Организатор: Турниры Про", fontSize = 13.sp, color = Color.White.copy(0.7f))
-                Spacer(Modifier.height(6.dp))
+            }
+        }
+
+        // ════════════════════════════════════
+        // INFO BLOCK (below hero)
+        // ════════════════════════════════════
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).offset(y = (-20).dp),
+            shape = RoundedCornerShape(16.dp),
+            color = CardBg,
+            shadowElevation = 0.dp
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                // Organizer
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(36.dp).background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.Business, null, tint = Accent, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text("Организатор", fontSize = 11.sp, color = TextMuted)
+                        Text("Турниры Про", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Description
                 Text(
                     "Серия турниров по картингу по всему Казахстану. 5 этапов, лучшие набирают очки.",
-                    fontSize = 14.sp, color = Color.White.copy(0.8f), lineHeight = 20.sp
+                    fontSize = 14.sp, color = TextSecondary, lineHeight = 20.sp
                 )
 
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.2f))
+                Spacer(Modifier.height(14.dp))
+
                 // Stats row
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    StatLabel(Icons.Outlined.People, "24", "участников")
-                    StatLabel(Icons.Outlined.Layers, "3 / 5", "этапов")
-                    StatLabel(Icons.Outlined.EmojiEvents, "Лучшие 3", "из 5")
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatItem(Icons.Outlined.People, "24", "участников")
+                    StatItem(Icons.Outlined.Layers, "3 / 5", "этапов")
+                    StatItem(Icons.Outlined.EmojiEvents, "Лучшие 3", "из 5")
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(-4.dp))
 
         // ════════════════════════════════════
         // STANDINGS TABLE (like website)
@@ -209,11 +243,11 @@ fun LeagueDetailScreen(
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
-                Text("#", Modifier.width(32.dp), fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-                Text("Спортсмен", Modifier.weight(1f), fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-                Text("Очки", Modifier.width(50.dp), fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text("Этапов", Modifier.width(50.dp), fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text("Лучшее", Modifier.width(55.dp), fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("#", Modifier.width(30.dp), fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                Text("Спортсмен", Modifier.weight(1f), fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                Text("Очки", Modifier.width(44.dp), fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Этапы", Modifier.width(40.dp), fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Лучш.", Modifier.width(42.dp), fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             }
             HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.3f))
 
@@ -240,32 +274,32 @@ fun LeagueDetailScreen(
                     // Rank
                     if (s.rank <= 3) {
                         Box(
-                            Modifier.size(28.dp).clip(CircleShape).background(rankBg),
+                            Modifier.size(26.dp).clip(CircleShape).background(rankBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("${s.rank}", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = rankColor)
                         }
                         Spacer(Modifier.width(4.dp))
                     } else {
-                        Text("${s.rank}", Modifier.width(32.dp), fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                        Text("${s.rank}", Modifier.width(30.dp), fontSize = 13.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                     }
                     // Name
                     Text(
-                        s.name, Modifier.weight(1f), fontSize = 14.sp,
+                        s.name, Modifier.weight(1f), fontSize = 13.sp,
                         fontWeight = if (s.rank <= 3) FontWeight.Bold else FontWeight.Medium,
                         color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     // Points
-                    Text("${s.points}", Modifier.width(50.dp), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center)
+                    Text("${s.points}", Modifier.width(44.dp), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary, textAlign = TextAlign.Center)
                     // Stages
-                    Text("${s.stages}", Modifier.width(50.dp), fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center)
+                    Text("${s.stages}", Modifier.width(40.dp), fontSize = 12.sp, color = TextSecondary, textAlign = TextAlign.Center)
                     // Best
-                    Row(Modifier.width(55.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(42.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         if (s.bestFinish != null && s.bestFinish <= 3) {
-                            Icon(Icons.Outlined.MilitaryTech, null, tint = Color(0xFFEAB308), modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.MilitaryTech, null, tint = Color(0xFFEAB308), modifier = Modifier.size(13.dp))
                         }
                         Text(
-                            s.bestFinish?.toString() ?: "—", fontSize = 13.sp, color = TextSecondary
+                            s.bestFinish?.toString() ?: "—", fontSize = 12.sp, color = TextSecondary
                         )
                     }
                 }
@@ -290,39 +324,50 @@ fun LeagueDetailScreen(
             iconTint = TextMuted,
             modifier = Modifier.graphicsLayer { alpha = sec2Alpha; translationY = sec2Offset }
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                mockScoring.forEach { entry ->
-                    val isTop3 = entry.place <= 3
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isTop3) Color(0xFFFEF9C3) else TextMuted.copy(0.15f),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isTop3) Color(0xFFFDE68A) else Border.copy(0.2f)
-                        ),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Column(
-                            Modifier.padding(vertical = 10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+            mockScoring.chunked(4).forEach { row ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { entry ->
+                        val isTop3 = entry.place <= 3
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isTop3) {
+                                if (isDark) Color(0xFFCA8A04).copy(0.15f) else Color(0xFFFEF9C3)
+                            } else TextMuted.copy(0.1f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isTop3) {
+                                    if (isDark) Color(0xFFCA8A04).copy(0.3f) else Color(0xFFFDE68A)
+                                } else Border.copy(0.2f)
+                            ),
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Text(
-                                "${entry.place}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isTop3) Color(0xFFCA8A04) else TextMuted
-                            )
-                            Text(
-                                "${entry.points}",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
+                            Column(
+                                Modifier.padding(vertical = 10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "${entry.place} место",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isTop3) Color(0xFFCA8A04) else TextMuted
+                                )
+                                Text(
+                                    "${entry.points}",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = TextPrimary
+                                )
+                                Text("очк.", fontSize = 10.sp, color = TextMuted)
+                            }
                         }
                     }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+                if (row != mockScoring.chunked(4).last()) {
+                    Spacer(Modifier.height(8.dp))
                 }
             }
         }
@@ -495,5 +540,15 @@ private fun StatLabel(icon: ImageVector, value: String, label: String) {
         Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(Modifier.width(3.dp))
         Text(label, fontSize = 13.sp, color = Color.White.copy(0.7f))
+    }
+}
+
+@Composable
+private fun StatItem(icon: ImageVector, value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Text(label, fontSize = 11.sp, color = TextMuted)
     }
 }

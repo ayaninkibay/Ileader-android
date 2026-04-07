@@ -291,7 +291,7 @@ fun ProfileScreen(
                                         if (rs.data.isEmpty()) {
                                             EmptyCard("Нет результатов", Icons.Outlined.Scoreboard)
                                         } else {
-                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                                 rs.data.take(5).forEach { r -> ResultCard(r) }
                                             }
                                         }
@@ -613,8 +613,8 @@ private fun ResultCard(r: ResultDto) {
     val posEmoji = when (r.position) { 1 -> "🥇"; 2 -> "🥈"; 3 -> "🥉"; else -> "#${r.position}" }
     val sportName = r.tournaments?.sports?.name ?: ""
 
-    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             // Position
             Box(
                 Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
@@ -764,7 +764,7 @@ private fun CompactActionButton(icon: ImageVector, label: String, onClick: () ->
 @Composable
 private fun EmptyCard(text: String, icon: ImageVector) {
     val isDark = DarkTheme.isDark
-    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = TextMuted, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
