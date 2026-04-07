@@ -57,6 +57,7 @@ fun SportScreen(
     onProfileClick: (String) -> Unit,
     onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
     onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
+    onTrainerProfileClick: (String) -> Unit = {},
     onRankingsClick: () -> Unit = {},
     viewModel: SportViewModel = viewModel()
 ) {
@@ -374,7 +375,7 @@ fun SportScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(list, key = { "tr_${it.id}" }) { p ->
-                        TrainerMiniCard(p, onClick = { onProfileClick(p.id) })
+                        TrainerMiniCard(p, onClick = { onTrainerProfileClick(p.id) })
                     }
                 }
             }
