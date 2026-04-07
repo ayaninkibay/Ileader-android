@@ -352,6 +352,25 @@ class ViewerRepository {
         } catch (_: Exception) { emptyList() }
     }
 
+    suspend fun getRefereeAssignmentsFull(userId: String): List<RefereeAssignmentDto> {
+        return try {
+            client.from("tournament_referees")
+                .select(Columns.raw("tournament_id, referee_id, role, assigned_at, tournaments(id, name, status, start_date, end_date, image_url, sport_id, sports(id, name), locations(id, name, city))"))
+                { filter { eq("referee_id", userId) } }
+                .decodeList<RefereeAssignmentDto>()
+        } catch (_: Exception) { emptyList() }
+    }
+
+    suspend fun getUserLicense(userId: String): LicenseDto? {
+        return try {
+            client.from("licenses")
+                .select(Columns.raw("id, user_id, number, category, class, federation, status, issue_date, expiry_date"))
+                { filter { eq("user_id", userId) } }
+                .decodeList<LicenseDto>()
+                .firstOrNull()
+        } catch (_: Exception) { null }
+    }
+
     // ══════════════════════════════════════════════════════════
     // PUBLIC PROFILES
     // ══════════════════════════════════════════════════════════
