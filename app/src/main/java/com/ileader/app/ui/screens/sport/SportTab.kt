@@ -50,6 +50,7 @@ fun SportTab(user: User) {
                 onProfileClick = { navState = SportNavState.PublicProfile(it) },
                 onLeagueClick = { name, sport, img -> navState = SportNavState.LeagueDetail(name, sport, img) },
                 onTeamClick = { id, _, _ -> navState = SportNavState.TeamDetail(id) },
+                onRefereeProfileClick = { navState = SportNavState.RefereeProfile(it) },
                 onTrainerProfileClick = { navState = SportNavState.TrainerProfile(it) },
                 onRankingsClick = { navState = SportNavState.Rankings }
             )
