@@ -149,20 +149,22 @@ fun TrainerProfilePage(
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(data.name, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     RoleBadge(role = com.ileader.app.data.models.UserRole.TRAINER)
-                    Text("·", fontSize = 14.sp, color = Color.White.copy(0.7f))
-                    Text("${data.city}, ${data.country}", fontSize = 13.sp, color = Color.White.copy(0.7f))
-                }
-                Spacer(Modifier.height(6.dp))
-                Surface(shape = RoundedCornerShape(50), color = trainerColor.copy(0.25f)) {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.School, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("${data.yearsExperience} лет опыта", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Surface(shape = RoundedCornerShape(50), color = trainerColor.copy(0.25f)) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.School, null, tint = Color.White, modifier = Modifier.size(13.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text("${data.yearsExperience} лет опыта", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        }
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text("${data.city}, ${data.country}", fontSize = 13.sp, color = Color.White.copy(0.7f))
             }
         }
 
