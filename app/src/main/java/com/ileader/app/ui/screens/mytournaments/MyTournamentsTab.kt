@@ -5,8 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import android.content.Intent
-import android.net.Uri
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.common.ManualCheckInScreen
 import com.ileader.app.ui.screens.common.QrScannerScreen
@@ -19,11 +17,16 @@ import com.ileader.app.ui.screens.detail.TournamentDetailScreen
 
 private sealed class MyTournamentsNavState {
     data object List : MyTournamentsNavState()
+    data object CreateTournament : MyTournamentsNavState()
+    data object Locations : MyTournamentsNavState()
+    data object TeamManagement : MyTournamentsNavState()
     data class TournamentDetail(val id: String) : MyTournamentsNavState()
     data class QrScanner(val tournamentId: String, val tournamentName: String = "") : MyTournamentsNavState()
     data class ManualCheckIn(val tournamentId: String, val tournamentName: String = "") : MyTournamentsNavState()
     data class TournamentEdit(val id: String) : MyTournamentsNavState()
     data class HelperManagement(val tournamentId: String, val tournamentName: String) : MyTournamentsNavState()
+    data class RefereeManagement(val tournamentId: String, val tournamentName: String) : MyTournamentsNavState()
+    data class InviteCodes(val tournamentId: String, val tournamentName: String) : MyTournamentsNavState()
     data class PublicProfile(val id: String) : MyTournamentsNavState()
     data class AthleteProfile(val id: String) : MyTournamentsNavState()
     data class RefereeProfile(val id: String) : MyTournamentsNavState()
@@ -34,7 +37,6 @@ private sealed class MyTournamentsNavState {
 @Composable
 fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
     var navState by remember { mutableStateOf<MyTournamentsNavState>(MyTournamentsNavState.List) }
-    val context = androidx.compose.ui.platform.LocalContext.current
 
     when (val state = navState) {
         is MyTournamentsNavState.List -> {
@@ -45,10 +47,28 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 onManualCheckIn = { id, name -> navState = MyTournamentsNavState.ManualCheckIn(id, name) },
                 onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
                 onHelperManagement = { id, name -> navState = MyTournamentsNavState.HelperManagement(id, name) },
-                onCreateTournament = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ileader.kz/organizer/tournaments/create"))
-                    context.startActivity(intent)
-                }
+                onCreateTournament = { navState = MyTournamentsNavState.CreateTournament },
+                onLocations = { navState = MyTournamentsNavState.Locations },
+                onTeamManagement = { navState = MyTournamentsNavState.TeamManagement }
+            )
+        }
+        is MyTournamentsNavState.CreateTournament -> {
+            TournamentCreateScreen(
+                userId = user.id,
+                onBack = { navState = MyTournamentsNavState.List },
+                onCreated = { id -> navState = MyTournamentsNavState.TournamentDetail(id) }
+            )
+        }
+        is MyTournamentsNavState.Locations -> {
+            LocationsScreen(
+                userId = user.id,
+                onBack = { navState = MyTournamentsNavState.List }
+            )
+        }
+        is MyTournamentsNavState.TeamManagement -> {
+            TeamManagementScreen(
+                userId = user.id,
+                onBack = { navState = MyTournamentsNavState.List }
             )
         }
         is MyTournamentsNavState.TournamentDetail -> {
@@ -57,6 +77,11 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 user = user,
                 onBack = { navState = MyTournamentsNavState.List },
                 onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
+                onQrScan = { id, name -> navState = MyTournamentsNavState.QrScanner(id, name) },
+                onManualCheckIn = { id, name -> navState = MyTournamentsNavState.ManualCheckIn(id, name) },
+                onHelperManagement = { id, name -> navState = MyTournamentsNavState.HelperManagement(id, name) },
+                onRefereeManagement = { id, name -> navState = MyTournamentsNavState.RefereeManagement(id, name) },
+                onInviteCodes = { id, name -> navState = MyTournamentsNavState.InviteCodes(id, name) },
                 onProfileClick = { navState = MyTournamentsNavState.PublicProfile(it) },
                 onAthleteProfileClick = { navState = MyTournamentsNavState.AthleteProfile(it) },
                 onRefereeProfileClick = { navState = MyTournamentsNavState.RefereeProfile(it) },
@@ -92,6 +117,21 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
         }
         is MyTournamentsNavState.HelperManagement -> {
             HelperManagementScreen(
+                tournamentId = state.tournamentId,
+                tournamentName = state.tournamentName,
+                userId = user.id,
+                onBack = { navState = MyTournamentsNavState.List }
+            )
+        }
+        is MyTournamentsNavState.RefereeManagement -> {
+            RefereeManagementScreen(
+                tournamentId = state.tournamentId,
+                tournamentName = state.tournamentName,
+                onBack = { navState = MyTournamentsNavState.List }
+            )
+        }
+        is MyTournamentsNavState.InviteCodes -> {
+            InviteCodesScreen(
                 tournamentId = state.tournamentId,
                 tournamentName = state.tournamentName,
                 userId = user.id,

@@ -1,7 +1,9 @@
 package com.ileader.app.ui.screens.home
 
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
+import com.ileader.app.data.remote.UiState
 import com.ileader.app.ui.screens.detail.ArticleDetailScreen
 import com.ileader.app.ui.screens.detail.AthleteProfilePage
 import com.ileader.app.ui.screens.detail.PublicProfileScreen
@@ -9,7 +11,17 @@ import com.ileader.app.ui.screens.detail.RefereeProfilePage
 import com.ileader.app.ui.screens.detail.TrainerProfilePage
 import com.ileader.app.ui.screens.detail.TeamDetailScreen
 import com.ileader.app.ui.screens.detail.TournamentDetailScreen
+import com.ileader.app.ui.screens.admin.AdminSettingsScreen
+import com.ileader.app.ui.screens.admin.AdminSportRequestsScreen
+import com.ileader.app.ui.screens.admin.AdminUsersScreen
+import com.ileader.app.ui.screens.admin.AdminVerificationsScreen
+import com.ileader.app.ui.screens.chat.ChatScreen
+import com.ileader.app.ui.screens.leagues.LeagueDetailScreen
+import com.ileader.app.ui.screens.leagues.LeaguesListScreen
+import com.ileader.app.ui.screens.location.LocationDetailScreen
+import com.ileader.app.ui.screens.location.LocationReviewFormScreen
 import com.ileader.app.ui.screens.sport.RankingsScreen
+import com.ileader.app.ui.viewmodels.StartConversationViewModel
 
 sealed class HomeNavState {
     object Home : HomeNavState()
@@ -22,6 +34,16 @@ sealed class HomeNavState {
     data class TeamDetail(val id: String) : HomeNavState()
     object Rankings : HomeNavState()
     object Notifications : HomeNavState()
+    object AdminUsers : HomeNavState()
+    object AdminVerifications : HomeNavState()
+    object AdminSportRequests : HomeNavState()
+    object AdminSettings : HomeNavState()
+    object Leagues : HomeNavState()
+    data class LeagueDetail(val id: String) : HomeNavState()
+    data class LocationDetail(val id: String) : HomeNavState()
+    data class LocationReview(val id: String) : HomeNavState()
+    data class StartChat(val otherUserId: String) : HomeNavState()
+    data class Chat(val conversationId: String, val otherName: String) : HomeNavState()
 }
 
 @Composable
@@ -38,7 +60,12 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             onNotificationsClick = { navState = HomeNavState.Notifications },
             onAllNewsClick = onNavigateToSport,
             onAllTournamentsClick = onNavigateToSport,
-            onAllPeopleClick = onNavigateToSport
+            onAllPeopleClick = onNavigateToSport,
+            onAdminUsersClick = { navState = HomeNavState.AdminUsers },
+            onAdminVerificationsClick = { navState = HomeNavState.AdminVerifications },
+            onAdminSportRequestsClick = { navState = HomeNavState.AdminSportRequests },
+            onAdminSettingsClick = { navState = HomeNavState.AdminSettings },
+            onLeaguesClick = { navState = HomeNavState.Leagues }
         )
         is HomeNavState.ArticleDetail -> ArticleDetailScreen(
             articleId = state.id,
@@ -56,7 +83,8 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
         )
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
-            onBack = { navState = HomeNavState.Home }
+            onBack = { navState = HomeNavState.Home },
+            onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) }
         )
         is HomeNavState.Notifications -> com.ileader.app.ui.screens.common.NotificationsScreen(
             user = user,
@@ -89,6 +117,56 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             userId = user.id,
             onBack = { navState = HomeNavState.Home },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) }
+        )
+        is HomeNavState.AdminUsers -> AdminUsersScreen(onBack = { navState = HomeNavState.Home })
+        is HomeNavState.AdminVerifications -> AdminVerificationsScreen(onBack = { navState = HomeNavState.Home })
+        is HomeNavState.AdminSportRequests -> AdminSportRequestsScreen(onBack = { navState = HomeNavState.Home })
+        is HomeNavState.AdminSettings -> AdminSettingsScreen(onBack = { navState = HomeNavState.Home })
+
+        is HomeNavState.Leagues -> LeaguesListScreen(
+            onBack = { navState = HomeNavState.Home },
+            onOpenLeague = { id -> navState = HomeNavState.LeagueDetail(id) }
+        )
+        is HomeNavState.LeagueDetail -> LeagueDetailScreen(
+            leagueId = state.id,
+            onBack = { navState = HomeNavState.Leagues }
+        )
+        is HomeNavState.LocationDetail -> LocationDetailScreen(
+            locationId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onWriteReview = { navState = HomeNavState.LocationReview(state.id) }
+        )
+        is HomeNavState.LocationReview -> LocationReviewFormScreen(
+            locationId = state.id,
+            userId = user.id,
+            onBack = { navState = HomeNavState.LocationDetail(state.id) },
+            onSubmitted = { navState = HomeNavState.LocationDetail(state.id) }
+        )
+
+        is HomeNavState.StartChat -> {
+            val startVm: StartConversationViewModel = viewModel()
+            val startState by startVm.state.collectAsState()
+            LaunchedEffect(state.otherUserId) {
+                startVm.start(user.id, state.otherUserId)
+            }
+            when (val s = startState) {
+                is UiState.Loading -> com.ileader.app.ui.components.LoadingScreen()
+                is UiState.Error -> com.ileader.app.ui.components.ErrorScreen(s.message) {
+                    startVm.start(user.id, state.otherUserId)
+                }
+                is UiState.Success -> {
+                    LaunchedEffect(s.data) {
+                        navState = HomeNavState.Chat(s.data, "Диалог")
+                    }
+                    com.ileader.app.ui.components.LoadingScreen()
+                }
+            }
+        }
+        is HomeNavState.Chat -> ChatScreen(
+            conversationId = state.conversationId,
+            myUserId = user.id,
+            title = state.otherName,
+            onBack = { navState = HomeNavState.Home }
         )
     }
 }

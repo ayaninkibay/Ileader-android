@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ileader.app.data.models.User
+import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.preferences.SportPreference
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
@@ -39,7 +40,14 @@ import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
+import com.ileader.app.ui.viewmodels.AdminDashboardState
+import com.ileader.app.ui.viewmodels.AthleteDashboardState
 import com.ileader.app.ui.viewmodels.HomeViewModel
+import com.ileader.app.ui.viewmodels.MediaDashboardState
+import com.ileader.app.ui.viewmodels.OrganizerDashboardState
+import com.ileader.app.ui.viewmodels.RefereeDashboardState
+import com.ileader.app.ui.viewmodels.SponsorDashboardState
+import com.ileader.app.ui.viewmodels.TrainerDashboardState
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -60,13 +68,36 @@ fun HomeScreen(
     onAllNewsClick: () -> Unit = {},
     onAllTournamentsClick: () -> Unit = {},
     onAllPeopleClick: () -> Unit = {},
+    onAdminUsersClick: () -> Unit = {},
+    onAdminVerificationsClick: () -> Unit = {},
+    onAdminSportRequestsClick: () -> Unit = {},
+    onAdminSettingsClick: () -> Unit = {},
+    onLeaguesClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
         viewModel.load()
+        viewModel.loadUnreadCount(user.id)
+        when (user.role) {
+            UserRole.ORGANIZER -> viewModel.loadOrganizerDashboard(user.id)
+            UserRole.REFEREE -> viewModel.loadRefereeDashboard(user.id)
+            UserRole.TRAINER -> viewModel.loadTrainerDashboard(user.id)
+            UserRole.ATHLETE -> viewModel.loadAthleteDashboard(user.id)
+            UserRole.SPONSOR -> viewModel.loadSponsorDashboard(user.id)
+            UserRole.MEDIA -> viewModel.loadMediaDashboard(user.id)
+            UserRole.ADMIN -> viewModel.loadAdminDashboard()
+            else -> {}
+        }
     }
 
     val state = viewModel.state
+    val orgDashboard = viewModel.organizerDashboard
+    val refDashboard = viewModel.refereeDashboard
+    val trnDashboard = viewModel.trainerDashboard
+    val athDashboard = viewModel.athleteDashboard
+    val spDashboard = viewModel.sponsorDashboard
+    val mdDashboard = viewModel.mediaDashboard
+    val adDashboard = viewModel.adminDashboard
     val isRefreshing = state.tournaments is UiState.Loading && state.news is UiState.Loading
 
     val colors = LocalAppColors.current
@@ -112,25 +143,45 @@ fun HomeScreen(
                     }
 
                     // Notification bell
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(CardBg)
-                            .border(
-                                1.dp,
-                                Border.copy(alpha = 0.3f),
-                                CircleShape
+                    Box(contentAlignment = Alignment.TopEnd) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(CardBg)
+                                .border(
+                                    1.dp,
+                                    Border.copy(alpha = 0.3f),
+                                    CircleShape
+                                )
+                                .clickable { onNotificationsClick() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = TextPrimary,
+                                modifier = Modifier.size(22.dp)
                             )
-                            .clickable { onNotificationsClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = TextPrimary,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        }
+                        if (viewModel.unreadNotifications > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = (-4).dp, y = 4.dp)
+                                    .size(if (viewModel.unreadNotifications > 9) 18.dp else 16.dp)
+                                    .clip(CircleShape)
+                                    .background(Accent)
+                                    .border(2.dp, Bg, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    if (viewModel.unreadNotifications > 9) "9+" else "${viewModel.unreadNotifications}",
+                                    fontSize = 9.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -142,6 +193,80 @@ fun HomeScreen(
         }
 
 
+        // ── Organizer Dashboard ──
+        if (user.role == UserRole.ORGANIZER && orgDashboard.isLoaded) {
+            item {
+                OrganizerDashboardSection(
+                    dashboard = orgDashboard,
+                    onTournamentClick = onTournamentClick
+                )
+            }
+        }
+
+        // ── Referee Dashboard ──
+        if (user.role == UserRole.REFEREE && refDashboard.isLoaded) {
+            item {
+                RefereeDashboardSection(
+                    dashboard = refDashboard,
+                    onTournamentClick = onTournamentClick
+                )
+            }
+        }
+
+        // ── Trainer Dashboard ──
+        if (user.role == UserRole.TRAINER && trnDashboard.isLoaded) {
+            item {
+                TrainerDashboardSection(
+                    dashboard = trnDashboard,
+                    onTournamentClick = onTournamentClick
+                )
+            }
+        }
+
+        // ── Athlete Dashboard ──
+        if (user.role == UserRole.ATHLETE && athDashboard.isLoaded) {
+            item {
+                AthleteDashboardSection(
+                    dashboard = athDashboard,
+                    onTournamentClick = onTournamentClick,
+                    onRankingsClick = onRankingsClick
+                )
+            }
+        }
+
+        // ── Admin Dashboard ──
+        if (user.role == UserRole.ADMIN && adDashboard.isLoaded) {
+            item {
+                AdminDashboardSection(
+                    dashboard = adDashboard,
+                    onUsersClick = onAdminUsersClick,
+                    onVerificationsClick = onAdminVerificationsClick,
+                    onSportRequestsClick = onAdminSportRequestsClick,
+                    onSettingsClick = onAdminSettingsClick
+                )
+            }
+        }
+
+        // ── Sponsor Dashboard ──
+        if (user.role == UserRole.SPONSOR && spDashboard.isLoaded) {
+            item {
+                SponsorDashboardSection(
+                    dashboard = spDashboard,
+                    onTournamentClick = onTournamentClick
+                )
+            }
+        }
+
+        // ── Media Dashboard ──
+        if (user.role == UserRole.MEDIA && mdDashboard.isLoaded) {
+            item {
+                MediaDashboardSection(
+                    dashboard = mdDashboard,
+                    onArticleClick = onArticleClick
+                )
+            }
+        }
+
         // ── Новости (overlay card style) ──
         item {
             Spacer(Modifier.height(20.dp))
@@ -149,7 +274,7 @@ fun HomeScreen(
                 SectionHeader(title = "Новости", action = "Все", onAction = onAllNewsClick)
                 Spacer(Modifier.height(12.dp))
             }
-            
+
         }
         item {
             NewsContent(state = state.news, onArticleClick = onArticleClick)
@@ -160,7 +285,40 @@ fun HomeScreen(
         item {
             Spacer(Modifier.height(20.dp))
             RatingPromoCard(onClick = onRankingsClick)
-            
+
+        }
+
+        // ── Leagues entry ──
+        item {
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onLeaguesClick() },
+                shape = RoundedCornerShape(14.dp),
+                color = CardBg
+            ) {
+                Row(
+                    Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier.size(40.dp).clip(CircleShape)
+                            .background(Accent.copy(0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.MilitaryTech, null, tint = Accent, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Лиги", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Text("Серии турниров и общие зачёты", fontSize = 12.sp, color = TextMuted)
+                    }
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                }
+            }
         }
 
         // ── Турниры ──
@@ -961,4 +1119,858 @@ private fun getCategoryLabel(category: String): String = when (category) {
     "announcement" -> "Анонс"
     "highlight" -> "Главное"
     else -> category.replaceFirstChar { it.uppercase() }
+}
+
+// ══════════════════════════════════════════════════════════
+// Organizer Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun OrganizerDashboardSection(
+    dashboard: OrganizerDashboardState,
+    onTournamentClick: (String) -> Unit
+) {
+    val stats = dashboard.stats ?: return
+
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+
+        // ── Stats Row ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = stats.totalTournaments,
+                label = "Турниров",
+                icon = Icons.Filled.EmojiEvents,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.activeTournaments,
+                label = "Активных",
+                icon = Icons.Filled.PlayCircle,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.totalParticipants,
+                label = "Участников",
+                icon = Icons.Filled.People,
+                color = Color(0xFF3B82F6),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // ── Upcoming tournaments ──
+        if (dashboard.upcomingTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Ближайшие мои турниры",
+                fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+            )
+            Spacer(Modifier.height(8.dp))
+
+            dashboard.upcomingTournaments.take(3).forEach { t ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTournamentClick(t.id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.EmojiEvents, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                formatDateShort(t.startDate) + " • " + getStatusLabel(t.status ?: ""),
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+
+        // ── Recent registrations ──
+        if (dashboard.recentRegistrations.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Последние регистрации",
+                fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp), color = CardBg
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    dashboard.recentRegistrations.take(5).forEachIndexed { idx, reg ->
+                        if (idx > 0) {
+                            Spacer(Modifier.height(1.dp))
+                            Box(Modifier.fillMaxWidth().height(0.5.dp).background(Border.copy(0.15f)))
+                            Spacer(Modifier.height(1.dp))
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                Modifier.size(28.dp).clip(CircleShape)
+                                    .background(Color(0xFF22C55E).copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    (reg.profiles?.name ?: "?").take(1).uppercase(),
+                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF22C55E)
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    reg.profiles?.name ?: "—",
+                                    fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary
+                                )
+                                reg.tournaments?.name?.let { tName ->
+                                    Text(tName, fontSize = 11.sp, color = TextMuted, maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            val statusColor = when (reg.status) {
+                                "pending" -> Color(0xFFF59E0B)
+                                "confirmed" -> Color(0xFF22C55E)
+                                else -> TextMuted
+                            }
+                            val statusLabel = when (reg.status) {
+                                "pending" -> "Ожидает"
+                                "confirmed" -> "Подтв."
+                                else -> reg.status ?: ""
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = statusColor.copy(alpha = 0.1f)
+                            ) {
+                                Text(statusLabel,
+                                    Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 10.sp, color = statusColor, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OrgStatCard(
+    value: Int,
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(14.dp), color = CardBg) {
+        Column(
+            Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(6.dp))
+            Text("$value", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(label, fontSize = 11.sp, color = TextMuted)
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Referee Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun RefereeDashboardSection(
+    dashboard: RefereeDashboardState,
+    onTournamentClick: (String) -> Unit
+) {
+    val stats = dashboard.stats ?: return
+
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+
+        // ── Stats Row ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = stats.totalTournaments,
+                label = "Турниров",
+                icon = Icons.Filled.SportsKabaddi,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.thisMonth,
+                label = "В месяце",
+                icon = Icons.Filled.CalendarMonth,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.pendingResults,
+                label = "Активных",
+                icon = Icons.Filled.PlayCircle,
+                color = Color(0xFFF59E0B),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // ── Active tournaments ──
+        if (dashboard.activeTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Активные турниры",
+                fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+            )
+            Spacer(Modifier.height(8.dp))
+
+            dashboard.activeTournaments.forEach { t ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTournamentClick(t.id) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Color(0xFFF59E0B).copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.SportsKabaddi, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                "${t.sport} • ${formatDateShort(t.date)}",
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Trainer Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun TrainerDashboardSection(
+    dashboard: TrainerDashboardState,
+    onTournamentClick: (String) -> Unit
+) {
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+
+        // ── Stats Row ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = dashboard.teams.size,
+                label = "Команд",
+                icon = Icons.Filled.Groups,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = dashboard.totalAthletes,
+                label = "Атлетов",
+                icon = Icons.Filled.People,
+                color = Color(0xFF3B82F6),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = dashboard.upcomingTournaments.size,
+                label = "Турниров",
+                icon = Icons.Filled.EmojiEvents,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // ── Teams summary ──
+        if (dashboard.teams.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Мои команды", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.teams.take(3).forEach { team ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Groups, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(team.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                "${team.sportName} • ${team.members.size} атлетов",
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Upcoming tournaments for trainer's teams ──
+        if (dashboard.upcomingTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Ближайшие турниры команды", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.upcomingTournaments.forEach { t ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTournamentClick(t.id) },
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Color(0xFF22C55E).copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.EmojiEvents, null, tint = Color(0xFF22C55E), modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                formatDateShort(t.startDate ?: "") + " • " + getStatusLabel(t.status ?: ""),
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Athlete Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun AthleteDashboardSection(
+    dashboard: AthleteDashboardState,
+    onTournamentClick: (String) -> Unit,
+    onRankingsClick: () -> Unit
+) {
+    val stats = dashboard.stats ?: return
+
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+
+        // ── Rating hero card ──
+        Surface(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                .clickable { onRankingsClick() },
+            shape = RoundedCornerShape(16.dp),
+            color = CardBg
+        ) {
+            Row(
+                Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier.size(56.dp).clip(CircleShape)
+                        .background(Accent.copy(0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Filled.Star, null, tint = Accent, modifier = Modifier.size(28.dp))
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Ваш рейтинг", fontSize = 12.sp, color = TextMuted)
+                    Text("${stats.rating}", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = TextPrimary)
+                }
+                Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // ── Stats Row ──
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = stats.totalTournaments,
+                label = "Турниров",
+                icon = Icons.Filled.EmojiEvents,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.wins,
+                label = "Побед",
+                icon = Icons.Filled.MilitaryTech,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.podiums,
+                label = "Подиумов",
+                icon = Icons.Filled.WorkspacePremium,
+                color = Color(0xFFF59E0B),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // ── Active goals ──
+        if (dashboard.goals.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Активные цели", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.goals.forEach { goal ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Column(Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                when (goal.type) {
+                                    com.ileader.app.data.models.GoalType.RATING -> Icons.Filled.Star
+                                    com.ileader.app.data.models.GoalType.TOURNAMENT -> Icons.Filled.EmojiEvents
+                                    com.ileader.app.data.models.GoalType.POINTS -> Icons.Filled.TrendingUp
+                                },
+                                null, tint = Accent, modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(goal.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, modifier = Modifier.weight(1f))
+                            Text("${goal.currentValue}/${goal.targetValue}",
+                                fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                        }
+                        if (goal.targetValue > 0) {
+                            Spacer(Modifier.height(8.dp))
+                            val progress = (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f)
+                            androidx.compose.material3.LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                color = Accent,
+                                trackColor = Border.copy(0.15f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Upcoming tournaments ──
+        if (dashboard.upcomingTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Мои ближайшие турниры", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.upcomingTournaments.forEach { t ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTournamentClick(t.id) },
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.EmojiEvents, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                formatDateShort(t.startDate) + " • " + getStatusLabel(t.status.name.lowercase()),
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Sponsor Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun SponsorDashboardSection(
+    dashboard: SponsorDashboardState,
+    onTournamentClick: (String) -> Unit
+) {
+    val stats = dashboard.stats ?: return
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = stats.totalSponsored,
+                label = "Спонсорств",
+                icon = Icons.Filled.WorkspacePremium,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = stats.activeSponsorships,
+                label = "Активных",
+                icon = Icons.Filled.PlayCircle,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = (stats.totalAmount / 1000.0).toInt(),
+                label = "Тыс. ₸",
+                icon = Icons.Filled.Payments,
+                color = Color(0xFFF59E0B),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (dashboard.sponsorships.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Мои спонсорства", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.sponsorships.forEach { sp ->
+                val t = sp.tournaments
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onTournamentClick(sp.tournamentId) },
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.WorkspacePremium, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(t?.name ?: "Турнир", fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                "${sp.tier ?: "—"} • ${(sp.amount ?: 0.0).toLong()} ₸",
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Media Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun MediaDashboardSection(
+    dashboard: MediaDashboardState,
+    onArticleClick: (String) -> Unit
+) {
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrgStatCard(
+                value = dashboard.articleStats?.published ?: 0,
+                label = "Статей",
+                icon = Icons.Filled.Article,
+                color = Accent,
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = dashboard.accreditationsAccepted,
+                label = "Аккредитаций",
+                icon = Icons.Filled.Badge,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f)
+            )
+            OrgStatCard(
+                value = dashboard.interviewsTotal,
+                label = "Интервью",
+                icon = Icons.Filled.Mic,
+                color = Color(0xFF3B82F6),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (dashboard.recentArticles.isNotEmpty()) {
+            Spacer(Modifier.height(16.dp))
+            Text("Последние публикации", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(8.dp))
+            dashboard.recentArticles.forEach { a ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onArticleClick(a.id) },
+                    shape = RoundedCornerShape(12.dp), color = CardBg
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(40.dp)
+                                .background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Article, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(a.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                "${a.status ?: "draft"} • ${a.views} просмотров",
+                                fontSize = 12.sp, color = TextMuted
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                            tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════
+// Admin Dashboard Section
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun AdminDashboardSection(
+    dashboard: AdminDashboardState,
+    onUsersClick: () -> Unit,
+    onVerificationsClick: () -> Unit,
+    onSportRequestsClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    val stats = dashboard.stats ?: return
+
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(20.dp))
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AdminStatCard(
+                value = stats.totalUsers,
+                label = "Пользователей",
+                icon = Icons.Filled.People,
+                color = Color(0xFF3B82F6),
+                modifier = Modifier.weight(1f),
+                onClick = onUsersClick
+            )
+            AdminStatCard(
+                value = stats.totalTournaments,
+                label = "Турниров",
+                icon = Icons.Filled.EmojiEvents,
+                color = Accent,
+                modifier = Modifier.weight(1f),
+                onClick = {}
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AdminStatCard(
+                value = stats.activeTournaments,
+                label = "Активных",
+                icon = Icons.Filled.PlayCircle,
+                color = Color(0xFF22C55E),
+                modifier = Modifier.weight(1f),
+                onClick = {}
+            )
+            AdminStatCard(
+                value = stats.pendingVerifications,
+                label = "На верификации",
+                icon = Icons.Filled.VerifiedUser,
+                color = Color(0xFFF59E0B),
+                modifier = Modifier.weight(1f),
+                onClick = onVerificationsClick
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            "Управление",
+            fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+
+        AdminActionRow(
+            icon = Icons.Filled.People,
+            title = "Пользователи",
+            subtitle = "Список, роли, блокировки",
+            onClick = onUsersClick
+        )
+        Spacer(Modifier.height(6.dp))
+        AdminActionRow(
+            icon = Icons.Filled.VerifiedUser,
+            title = "Верификации",
+            subtitle = "${stats.pendingVerifications} на рассмотрении",
+            onClick = onVerificationsClick
+        )
+        Spacer(Modifier.height(6.dp))
+        AdminActionRow(
+            icon = Icons.Filled.SportsScore,
+            title = "Заявки на виды спорта",
+            subtitle = "Одобрить или отклонить",
+            onClick = onSportRequestsClick
+        )
+        Spacer(Modifier.height(6.dp))
+        AdminActionRow(
+            icon = Icons.Filled.Settings,
+            title = "Настройки платформы",
+            subtitle = "Параметры системы",
+            onClick = onSettingsClick
+        )
+    }
+}
+
+@Composable
+private fun AdminStatCard(
+    value: Int,
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier.clip(RoundedCornerShape(14.dp)).clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        color = CardBg
+    ) {
+        Column(
+            Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color.copy(alpha = 0.7f), modifier = Modifier.size(22.dp))
+            Spacer(Modifier.height(6.dp))
+            Text("$value", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(label, fontSize = 11.sp, color = TextMuted)
+        }
+    }
+}
+
+@Composable
+private fun AdminActionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        color = CardBg
+    ) {
+        Row(
+            Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(40.dp).background(Accent.copy(0.1f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Text(subtitle, fontSize = 12.sp, color = TextMuted)
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos, null,
+                tint = TextMuted, modifier = Modifier.size(14.dp)
+            )
+        }
+    }
 }

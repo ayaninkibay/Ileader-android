@@ -25,6 +25,7 @@ import com.ileader.app.ui.screens.home.HomeTab
 import com.ileader.app.ui.screens.sport.SportTab
 import com.ileader.app.ui.screens.mytournaments.MyTournamentsTab
 import com.ileader.app.ui.screens.media.MediaTab
+import com.ileader.app.ui.screens.sponsor.SponsorTab
 import com.ileader.app.ui.screens.profile.ProfileTab
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -82,6 +83,8 @@ fun MainScreen(
                     "my_tournaments" -> {
                         if (user.role == UserRole.MEDIA) {
                             MediaTab(user = user)
+                        } else if (user.role == UserRole.SPONSOR) {
+                            SponsorTab(user = user)
                         } else {
                             MyTournamentsTab(user = user, onSignOut = onSignOut)
                         }

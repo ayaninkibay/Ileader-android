@@ -76,7 +76,14 @@ fun ProfileScreen(
     onArticles: () -> Unit = {},
     onTeamClick: (String) -> Unit = {},
     onAcademy: () -> Unit = {},
-    onFamily: () -> Unit = {}
+    onFamily: () -> Unit = {},
+    onRatingHistory: () -> Unit = {},
+    onResultsHistory: () -> Unit = {},
+    onAchievements: () -> Unit = {},
+    onRacingLicense: () -> Unit = {},
+    onLapTimes: () -> Unit = {},
+    onVerification: () -> Unit = {},
+    onConversations: () -> Unit = {}
 ) {
     val vm: ProfileViewModel = viewModel()
     val profileState by vm.profile.collectAsState()
@@ -438,12 +445,42 @@ fun ProfileScreen(
                                 // Academy
                                 MenuRow(icon = Icons.Outlined.School, label = "Академия", onClick = onAcademy)
                                 MenuDivider()
-                                // Family (for athletes)
+                                // Athlete-only sections
                                 if (user.role == UserRole.ATHLETE) {
+                                    MenuRow(icon = Icons.Outlined.Timeline, label = "История рейтинга", onClick = onRatingHistory)
+                                    MenuDivider()
+                                    MenuRow(icon = Icons.Outlined.EmojiEvents, label = "История результатов", onClick = onResultsHistory)
+                                    MenuDivider()
+                                    MenuRow(icon = Icons.Outlined.MilitaryTech, label = "Достижения", onClick = onAchievements)
+                                    MenuDivider()
+                                    MenuRow(icon = Icons.Outlined.CardMembership, label = "Racing License", onClick = onRacingLicense)
+                                    MenuDivider()
+                                    MenuRow(icon = Icons.Outlined.Speed, label = "Лучшие круги", onClick = onLapTimes)
+                                    MenuDivider()
                                     MenuRow(icon = Icons.Outlined.FamilyRestroom, label = "Семья", onClick = onFamily)
                                     MenuDivider()
                                 }
+                                // Verification (для ролей, требующих верификации)
+                                if (user.role.requiresVerification || user.role == com.ileader.app.data.models.UserRole.CONTENT_MANAGER) {
+                                    val vLabel = when (user.verification) {
+                                        com.ileader.app.data.models.VerificationStatus.VERIFIED -> "Верифицирован ✓"
+                                        com.ileader.app.data.models.VerificationStatus.PENDING -> "На рассмотрении"
+                                        else -> "Подать заявку на верификацию"
+                                    }
+                                    MenuRow(
+                                        icon = Icons.Outlined.VerifiedUser,
+                                        label = vLabel,
+                                        onClick = {
+                                            if (user.verification != com.ileader.app.data.models.VerificationStatus.VERIFIED &&
+                                                user.verification != com.ileader.app.data.models.VerificationStatus.PENDING) {
+                                                onVerification()
+                                            }
+                                        }
+                                    )
+                                    MenuDivider()
+                                }
                                 // Notifications
+                                MenuRow(icon = Icons.Outlined.ChatBubbleOutline, label = "Сообщения", onClick = onConversations)
                                 MenuRow(icon = Icons.Outlined.Notifications, label = "Уведомления", onClick = onNotifications)
                                 MenuDivider()
                                 // Settings

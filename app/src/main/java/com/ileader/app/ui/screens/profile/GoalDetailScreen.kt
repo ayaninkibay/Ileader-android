@@ -1,6 +1,7 @@
 package com.ileader.app.ui.screens.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -47,14 +48,42 @@ fun GoalDetailScreen(
     val repo = remember { AthleteRepository() }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
+    // Local mutable state for progress and status edits
+    var currentProgress by remember { mutableStateOf(goal.currentValue) }
+    var currentStatus by remember { mutableStateOf(goal.status) }
+    var saving by remember { mutableStateOf(false) }
 
-    val progress = if (goal.targetValue > 0) (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f) else 0f
-    val statusColor = when (goal.status) {
+    fun saveProgress(newValue: Int, newStatus: GoalStatus = currentStatus) {
+        scope.launch {
+            saving = true
+            try {
+                repo.updateGoal(
+                    goal.id,
+                    com.ileader.app.data.remote.dto.GoalUpdateDto(
+                        progress = newValue,
+                        status = when (newStatus) {
+                            GoalStatus.ACTIVE -> "active"
+                            GoalStatus.COMPLETED -> "completed"
+                            GoalStatus.FAILED -> "failed"
+                        }
+                    )
+                )
+                currentProgress = newValue
+                currentStatus = newStatus
+            } catch (_: Exception) {
+            } finally {
+                saving = false
+            }
+        }
+    }
+
+    val progress = if (goal.targetValue > 0) (currentProgress.toFloat() / goal.targetValue).coerceIn(0f, 1f) else 0f
+    val statusColor = when (currentStatus) {
         GoalStatus.COMPLETED -> Color(0xFF22C55E)
         GoalStatus.FAILED -> Color(0xFFEF4444)
         GoalStatus.ACTIVE -> Accent
     }
-    val progressColor = when (goal.status) {
+    val progressColor = when (currentStatus) {
         GoalStatus.COMPLETED -> Color(0xFF22C55E)
         GoalStatus.FAILED -> Color(0xFFEF4444)
         GoalStatus.ACTIVE -> Color(0xFF3B82F6)
@@ -117,7 +146,7 @@ fun GoalDetailScreen(
                     }
                     Surface(shape = RoundedCornerShape(50), color = statusColor.copy(alpha = 0.12f)) {
                         Text(
-                            goal.status.displayName,
+                            currentStatus.displayName,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -140,7 +169,7 @@ fun GoalDetailScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${goal.currentValue}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = progressColor)
+                    Text("$currentProgress", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = progressColor)
                     Text("из ${goal.targetValue}", fontSize = 16.sp, color = TextMuted)
                 }
 
@@ -150,6 +179,75 @@ fun GoalDetailScreen(
                     fontSize = 13.sp,
                     color = TextSecondary
                 )
+
+                // ── Progress controls (only for active goals) ──
+                if (currentStatus == GoalStatus.ACTIVE) {
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                .background(CardBg.copy(alpha = 0.5f))
+                                .clickable(enabled = !saving && currentProgress > 0) {
+                                    saveProgress((currentProgress - 1).coerceAtLeast(0))
+                                }
+                                .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Remove, null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                .background(progressColor.copy(0.15f))
+                                .clickable(enabled = !saving && currentProgress < goal.targetValue) {
+                                    val next = (currentProgress + 1).coerceAtMost(goal.targetValue)
+                                    val newStatus = if (next >= goal.targetValue && goal.targetValue > 0)
+                                        GoalStatus.COMPLETED else GoalStatus.ACTIVE
+                                    saveProgress(next, newStatus)
+                                }
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Add, null, tint = progressColor, modifier = Modifier.size(20.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF22C55E).copy(0.1f))
+                            .clickable(enabled = !saving) {
+                                saveProgress(goal.targetValue, GoalStatus.COMPLETED)
+                            }
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (saving) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF22C55E))
+                        } else {
+                            Text("Отметить выполненной", fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                        }
+                    }
+                } else if (currentStatus == GoalStatus.COMPLETED) {
+                    Spacer(Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                            .background(CardBg.copy(0.5f))
+                            .clickable(enabled = !saving) {
+                                saveProgress(currentProgress, GoalStatus.ACTIVE)
+                            }
+                            .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Вернуть в активные", fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium, color = TextPrimary)
+                    }
+                }
             }
         }
 

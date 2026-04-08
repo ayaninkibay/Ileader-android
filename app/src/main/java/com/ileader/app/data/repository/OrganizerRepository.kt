@@ -94,6 +94,9 @@ class OrganizerRepository {
                 set("requirements", data.requirements)
                 set("categories", data.categories)
                 set("age_category", data.ageCategory)
+                set("skill_level", data.skillLevel)
+                set("gender_category", data.genderCategory)
+                set("entry_fee", data.entryFee)
                 set("group_count", data.groupCount)
                 set("has_third_place_match", data.hasThirdPlaceMatch)
                 set("has_check_in", data.hasCheckIn)
@@ -372,9 +375,41 @@ class OrganizerRepository {
 
     suspend fun getReferees(tournamentId: String): List<RefereeAssignmentDto> {
         return client.from("tournament_referees")
-            .select(Columns.raw("*, profiles(name)"))
+            .select(Columns.raw("*, profiles(id, name, avatar_url, city)"))
             { filter { eq("tournament_id", tournamentId) } }
             .decodeList<RefereeAssignmentDto>()
+    }
+
+    suspend fun searchReferees(query: String): List<ProfileDto> {
+        // Find role id for "referee"
+        val refereeRole = client.from("roles")
+            .select(Columns.raw("id")) { filter { eq("name", "referee") } }
+            .decodeSingleOrNull<IdOnlyDto>() ?: return emptyList()
+
+        return client.from("profiles")
+            .select(Columns.raw("id, name, email, avatar_url, city, primary_role_id, roles!primary_role_id(id, name)")) {
+                filter {
+                    eq("primary_role_id", refereeRole.id)
+                    if (query.isNotBlank()) ilike("name", "%$query%")
+                }
+                limit(20)
+            }
+            .decodeList<ProfileDto>()
+    }
+
+    suspend fun assignReferee(tournamentId: String, refereeId: String, role: String = "main") {
+        client.from("tournament_referees")
+            .insert(RefereeAssignmentInsertDto(tournamentId, refereeId, role))
+    }
+
+    suspend fun removeReferee(tournamentId: String, refereeId: String) {
+        client.from("tournament_referees")
+            .delete {
+                filter {
+                    eq("tournament_id", tournamentId)
+                    eq("referee_id", refereeId)
+                }
+            }
     }
 
     // ── STORAGE ──

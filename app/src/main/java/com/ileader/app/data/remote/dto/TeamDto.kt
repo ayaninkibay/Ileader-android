@@ -21,6 +21,24 @@ data class TeamDto(
 )
 
 @Serializable
+data class TeamInsertDto(
+    val name: String,
+    @SerialName("sport_id") val sportId: String,
+    @SerialName("owner_id") val ownerId: String,
+    val description: String? = null,
+    val city: String? = null,
+    @SerialName("founded_year") val foundedYear: Int? = null,
+    @SerialName("is_active") val isActive: Boolean = true
+)
+
+@Serializable
+data class TeamMemberInsertDto(
+    @SerialName("team_id") val teamId: String,
+    @SerialName("user_id") val userId: String,
+    val role: String = "member"
+)
+
+@Serializable
 data class TeamMemberDto(
     @SerialName("team_id") val teamId: String? = null,
     @SerialName("user_id") val userId: String? = null,

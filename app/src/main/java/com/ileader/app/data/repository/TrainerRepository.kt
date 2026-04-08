@@ -190,6 +190,78 @@ class TrainerRepository {
         return tournaments.map { it.toDomain() }
     }
 
+    suspend fun createTeam(data: TeamInsertDto): String {
+        val result = client.from("teams")
+            .insert(data) { select() }
+            .decodeSingle<TeamDto>()
+        return result.id
+    }
+
+    suspend fun deleteTeam(teamId: String) {
+        client.from("teams").delete { filter { eq("id", teamId) } }
+    }
+
+    suspend fun searchAthletes(query: String): List<ProfileMinimalDto> {
+        if (query.isBlank()) return emptyList()
+        // Find athlete role id
+        val athleteRole = client.from("roles")
+            .select(Columns.raw("id")) { filter { eq("name", "athlete") } }
+            .decodeSingleOrNull<IdOnlyDto>() ?: return emptyList()
+
+        return client.from("profiles")
+            .select(Columns.raw("id, name, avatar_url, city, email")) {
+                filter {
+                    eq("primary_role_id", athleteRole.id)
+                    ilike("name", "%$query%")
+                }
+                limit(20)
+            }
+            .decodeList<ProfileMinimalDto>()
+    }
+
+    suspend fun addTeamMember(teamId: String, userId: String, role: String = "member") {
+        client.from("team_members").insert(TeamMemberInsertDto(teamId, userId, role))
+    }
+
+    suspend fun removeTeamMember(teamId: String, userId: String) {
+        client.from("team_members").delete {
+            filter {
+                eq("team_id", teamId)
+                eq("user_id", userId)
+            }
+        }
+    }
+
+    /**
+     * Returns all tournaments that any of the trainer's teams' members participate in
+     */
+    suspend fun getMyTeamsTournaments(userId: String): List<TournamentWithCountsDto> {
+        // Get all team ids owned by trainer
+        val teamIds = client.from("teams")
+            .select(Columns.raw("id")) { filter { eq("owner_id", userId) } }
+            .decodeList<IdOnlyDto>()
+            .map { it.id }
+        if (teamIds.isEmpty()) return emptyList()
+
+        // Get tournament ids where any team member participates
+        val tournamentIds = client.from("tournament_participants")
+            .select(Columns.raw("tournament_id")) {
+                filter {
+                    isIn("team_id", teamIds)
+                    neq("status", "cancelled")
+                }
+            }
+            .decodeList<ParticipantDto>()
+            .map { it.tournamentId }
+            .distinct()
+
+        if (tournamentIds.isEmpty()) return emptyList()
+
+        return client.from("v_tournament_with_counts")
+            .select { filter { isIn("id", tournamentIds) } }
+            .decodeList<TournamentWithCountsDto>()
+    }
+
     suspend fun getTeamRegisteredTournamentIds(teamId: String): List<String> {
         val participants = client.from("tournament_participants")
             .select(Columns.raw("tournament_id, athlete_id")) {

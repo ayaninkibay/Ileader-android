@@ -65,7 +65,7 @@ class MyTournamentsViewModel : ViewModel() {
                             AthleteRepository().getMyTournaments(userId)
                         }
                         UserRole.TRAINER -> {
-                            TrainerRepository().getMyTeams(userId)
+                            TrainerRepository().getMyTeamsTournaments(userId)
                         }
                         UserRole.ORGANIZER -> {
                             OrganizerRepository().getMyTournaments(userId)

@@ -26,6 +26,89 @@ class AthleteRepository {
         return licenses.firstOrNull()?.toDomain()
     }
 
+    suspend fun upsertLicense(data: LicenseUpsertDto) = safeApiCall("AthleteRepo.upsertLicense") {
+        if (data.id != null) {
+            client.from("licenses").update(data) { filter { eq("id", data.id) } }
+        } else {
+            client.from("licenses").insert(data)
+        }
+    }
+
+    // ── RATING HISTORY ──
+
+    suspend fun getRatingHistory(userId: String, sportId: String? = null): List<RatingHistoryEntry> = safeApiCall("AthleteRepo.getRatingHistory") {
+        val rows = client.from("rating_history")
+            .select(Columns.raw("*, sports(id, name), tournaments(id, name)")) {
+                filter {
+                    eq("user_id", userId)
+                    if (sportId != null) eq("sport_id", sportId)
+                }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<RatingHistoryDto>()
+        rows.map { r ->
+            RatingHistoryEntry(
+                id = r.id ?: "",
+                rating = r.effectiveRating,
+                delta = r.effectiveDelta,
+                date = r.effectiveDate,
+                reason = r.reason ?: (if (r.tournamentId != null) "tournament_result" else ""),
+                sportName = r.sports?.name,
+                tournamentName = r.tournaments?.name
+            )
+        }
+    }
+
+    // ── ACHIEVEMENTS ──
+
+    suspend fun getAchievements(userId: String): List<AchievementItem> = safeApiCall("AthleteRepo.getAchievements") {
+        val rows = try {
+            client.from("achievements")
+                .select {
+                    filter { eq("athlete_id", userId) }
+                    order("date", Order.DESCENDING)
+                }
+                .decodeList<AchievementDto>()
+        } catch (_: Exception) { emptyList() }
+        rows.map {
+            AchievementItem(
+                id = it.id ?: "",
+                title = it.title ?: "",
+                description = it.description ?: "",
+                rarity = AchievementRarity.fromString(it.rarity),
+                date = (it.date ?: it.createdAt ?: "").take(10)
+            )
+        }
+    }
+
+    // ── LAP TIMES ──
+
+    suspend fun getLapTimes(userId: String): List<LapTimeItem> = safeApiCall("AthleteRepo.getLapTimes") {
+        val rows = try {
+            client.from("lap_times")
+                .select {
+                    filter { eq("athlete_id", userId) }
+                    order("time_seconds", Order.ASCENDING)
+                }
+                .decodeList<LapTimeDto>()
+        } catch (_: Exception) { emptyList() }
+        rows.map {
+            LapTimeItem(
+                id = it.id ?: "",
+                date = (it.date ?: it.createdAt ?: "").take(10),
+                timeSeconds = it.timeSeconds ?: 0.0,
+                lapNumber = it.lapNumber,
+                isBest = it.isBest ?: false,
+                conditions = it.conditions,
+                equipment = it.equipment
+            )
+        }
+    }
+
+    suspend fun addLapTime(data: LapTimeInsertDto) = safeApiCall("AthleteRepo.addLapTime") {
+        client.from("lap_times").insert(data)
+    }
+
     // ── PROFILE ──
 
     suspend fun getProfile(userId: String): User = safeApiCall("AthleteRepo.getProfile") {

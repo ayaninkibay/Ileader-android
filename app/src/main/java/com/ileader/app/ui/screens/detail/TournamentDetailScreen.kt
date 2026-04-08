@@ -88,6 +88,8 @@ fun TournamentDetailScreen(
     onQrScan: ((String, String) -> Unit)? = null,
     onManualCheckIn: ((String, String) -> Unit)? = null,
     onHelperManagement: ((String, String) -> Unit)? = null,
+    onRefereeManagement: ((String, String) -> Unit)? = null,
+    onInviteCodes: ((String, String) -> Unit)? = null,
     onProfileClick: (String) -> Unit = {},
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
@@ -99,6 +101,16 @@ fun TournamentDetailScreen(
         viewModel.load(tournamentId)
         val roleName = user.role.name.lowercase()
         viewModel.checkRegistration(tournamentId, user.id, roleName)
+        viewModel.checkHelperStatus(tournamentId, user.id)
+    }
+
+    // Load trainer teams once we know the sport
+    LaunchedEffect(viewModel.state) {
+        if (user.role == UserRole.TRAINER) {
+            (viewModel.state as? UiState.Success)?.data?.tournament?.let { t ->
+                viewModel.loadTrainerTeams(user.id, tournamentId, t.sportId)
+            }
+        }
     }
 
     Column(
@@ -125,6 +137,8 @@ fun TournamentDetailScreen(
                     onQrScan = onQrScan,
                     onManualCheckIn = onManualCheckIn,
                     onHelperManagement = onHelperManagement,
+                    onRefereeManagement = onRefereeManagement,
+                    onInviteCodes = onInviteCodes,
                     onProfileClick = onProfileClick,
                     onAthleteProfileClick = onAthleteProfileClick,
                     onRefereeProfileClick = onRefereeProfileClick,
@@ -150,6 +164,8 @@ private fun TournamentContent(
     onQrScan: ((String, String) -> Unit)? = null,
     onManualCheckIn: ((String, String) -> Unit)? = null,
     onHelperManagement: ((String, String) -> Unit)? = null,
+    onRefereeManagement: ((String, String) -> Unit)? = null,
+    onInviteCodes: ((String, String) -> Unit)? = null,
     onProfileClick: (String) -> Unit = {},
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
@@ -197,6 +213,49 @@ private fun TournamentContent(
             }
 
             // ══════════════════════════════════════
+            // TRAINER TEAM REGISTRATION PANEL
+            // ══════════════════════════════════════
+            if (user.role == UserRole.TRAINER && viewModel.trainerTeams.isNotEmpty()
+                && tournament.status == "registration_open") {
+                TrainerTeamRegistrationPanel(
+                    teams = viewModel.trainerTeams,
+                    registeredTeamIds = viewModel.registeredTeamIds,
+                    isLoading = viewModel.teamRegLoading,
+                    onRegister = { teamId, athleteIds ->
+                        viewModel.registerTeamForTournament(tournament.id, teamId, athleteIds)
+                    },
+                    onUnregister = { teamId ->
+                        viewModel.unregisterTeamFromTournament(tournament.id, teamId)
+                    }
+                )
+            }
+
+            // ══════════════════════════════════════
+            // HELPER BADGE
+            // ══════════════════════════════════════
+            if (viewModel.isHelper && tournament.organizerId != user.id) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF3B82F6).copy(alpha = 0.1f)
+                ) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.SupportAgent, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Вы помощник этого турнира",
+                                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Text("Используйте кнопки внизу для check-in",
+                                fontSize = 11.sp, color = TextSecondary)
+                        }
+                    }
+                }
+            }
+
+            // ══════════════════════════════════════
             // STICKY TAB BAR
             // ══════════════════════════════════════
             TabBar(tabs, selectedTab) { selectedTab = it }
@@ -227,6 +286,8 @@ private fun TournamentContent(
             onQrScan = onQrScan,
             onManualCheckIn = onManualCheckIn,
             onHelperManagement = onHelperManagement,
+            onRefereeManagement = onRefereeManagement,
+            onInviteCodes = onInviteCodes,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
@@ -1899,6 +1960,8 @@ private fun ActionButton(
     onQrScan: ((String, String) -> Unit)? = null,
     onManualCheckIn: ((String, String) -> Unit)? = null,
     onHelperManagement: ((String, String) -> Unit)? = null,
+    onRefereeManagement: ((String, String) -> Unit)? = null,
+    onInviteCodes: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val tournament = data.tournament
@@ -1906,6 +1969,33 @@ private fun ActionButton(
     val regState = viewModel.registrationState
     val loading = viewModel.actionLoading
     val isOrganizer = user.role == UserRole.ORGANIZER && tournament.organizerId == user.id
+    val isHelper = viewModel.isHelper && !isOrganizer
+
+    // ── Helper: check-in bar ──
+    if (isHelper && status in listOf("check_in", "in_progress", "registration_closed") && tournament.hasCheckIn == true) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            color = Bg.copy(alpha = 0.97f),
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                OrganizerQuickAction(
+                    icon = Icons.Filled.QrCodeScanner,
+                    label = "QR",
+                    onClick = { onQrScan?.invoke(tournament.id, tournament.name) }
+                )
+                OrganizerQuickAction(
+                    icon = Icons.Filled.PersonSearch,
+                    label = "Check-in",
+                    onClick = { onManualCheckIn?.invoke(tournament.id, tournament.name) }
+                )
+            }
+        }
+        return
+    }
 
     // ── Organizer: multi-action bar ──
     if (isOrganizer) {
@@ -1943,6 +2033,18 @@ private fun ActionButton(
                     icon = Icons.Filled.Group,
                     label = "Помощники",
                     onClick = { onHelperManagement?.invoke(tournament.id, tournament.name) }
+                )
+                // Referees
+                OrganizerQuickAction(
+                    icon = Icons.Filled.SportsKabaddi,
+                    label = "Судьи",
+                    onClick = { onRefereeManagement?.invoke(tournament.id, tournament.name) }
+                )
+                // Invite codes
+                OrganizerQuickAction(
+                    icon = Icons.Filled.QrCode2,
+                    label = "Коды",
+                    onClick = { onInviteCodes?.invoke(tournament.id, tournament.name) }
                 )
             }
         }
@@ -2292,4 +2394,144 @@ private fun regionLabel(region: String): String = when (region.lowercase()) {
 private fun locationTypeLabel(type: String): String = when (type) {
     "track" -> "Трасса"; "stadium" -> "Стадион"; "arena" -> "Арена"; "court" -> "Корт"
     "pool" -> "Бассейн"; "gym" -> "Зал"; "field" -> "Поле"; "range" -> "Стрельбище"; "water" -> "Водоём"; else -> type
+}
+
+// ══════════════════════════════════════════════════════════
+// TRAINER TEAM REGISTRATION PANEL
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun TrainerTeamRegistrationPanel(
+    teams: List<com.ileader.app.data.repository.TrainerTeamData>,
+    registeredTeamIds: Set<String>,
+    isLoading: Boolean,
+    onRegister: (teamId: String, athleteIds: List<String>) -> Unit,
+    onUnregister: (teamId: String) -> Unit
+) {
+    var expandedTeamId by remember { mutableStateOf<String?>(null) }
+    var selectedAthletes by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = CardBg
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Groups, null, tint = Accent, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Регистрация команды", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+            }
+            Spacer(Modifier.height(10.dp))
+
+            teams.forEach { team ->
+                val isRegistered = team.id in registeredTeamIds
+                val isExpanded = expandedTeamId == team.id
+
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Bg)
+                            .clickable {
+                                if (isRegistered) {
+                                    onUnregister(team.id)
+                                } else {
+                                    if (isExpanded) {
+                                        expandedTeamId = null
+                                        selectedAthletes = emptySet()
+                                    } else {
+                                        expandedTeamId = team.id
+                                        selectedAthletes = team.members.map { it.id }.toSet()
+                                    }
+                                }
+                            }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(team.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Text("${team.members.size} атлетов", fontSize = 11.sp, color = TextMuted)
+                        }
+                        if (isLoading) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Accent)
+                        } else if (isRegistered) {
+                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF22C55E).copy(0.1f)) {
+                                Text("Зарегистрирована ✓", Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    fontSize = 11.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.SemiBold)
+                            }
+                        } else {
+                            Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(0.1f)) {
+                                Text(if (isExpanded) "Свернуть" else "Выбрать",
+                                    Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    fontSize = 11.sp, color = Accent, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    // Expanded: athlete selector
+                    if (isExpanded && !isRegistered) {
+                        Spacer(Modifier.height(6.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                                .background(Bg, RoundedCornerShape(10.dp))
+                                .padding(10.dp)
+                        ) {
+                            Text("Выберите атлетов для регистрации:",
+                                fontSize = 11.sp, color = TextMuted)
+                            Spacer(Modifier.height(6.dp))
+                            team.members.forEach { athlete ->
+                                val isSelected = athlete.id in selectedAthletes
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            selectedAthletes = if (isSelected) {
+                                                selectedAthletes - athlete.id
+                                            } else {
+                                                selectedAthletes + athlete.id
+                                            }
+                                        }
+                                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        Modifier.size(18.dp).clip(RoundedCornerShape(4.dp))
+                                            .background(if (isSelected) Accent else Color.Transparent)
+                                            .border(1.dp, if (isSelected) Accent else Border, RoundedCornerShape(4.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isSelected) {
+                                            Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(athlete.name, fontSize = 13.sp, color = TextPrimary,
+                                        modifier = Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier.fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (selectedAthletes.isNotEmpty() && !isLoading) Accent else TextMuted.copy(0.3f))
+                                    .clickable(enabled = selectedAthletes.isNotEmpty() && !isLoading) {
+                                        onRegister(team.id, selectedAthletes.toList())
+                                        expandedTeamId = null
+                                        selectedAthletes = emptySet()
+                                    }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Зарегистрировать (${selectedAthletes.size})",
+                                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

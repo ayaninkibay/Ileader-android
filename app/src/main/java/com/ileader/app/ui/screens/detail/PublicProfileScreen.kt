@@ -50,6 +50,7 @@ private val Border: Color @Composable get() = LocalAppColors.current.border
 fun PublicProfileScreen(
     userId: String,
     onBack: () -> Unit,
+    onStartChat: ((otherUserId: String) -> Unit)? = null,
     viewModel: PublicProfileViewModel = viewModel()
 ) {
     LaunchedEffect(userId) { viewModel.load(userId) }
@@ -61,12 +62,16 @@ fun PublicProfileScreen(
         is UiState.Error -> {
             Column(Modifier.fillMaxSize().background(Bg)) { BackHeader("Профиль", onBack); ErrorScreen(state.message, onRetry = { viewModel.load(userId) }) }
         }
-        is UiState.Success -> ProfileContent(data = state.data, onBack = onBack)
+        is UiState.Success -> ProfileContent(
+            data = state.data,
+            onBack = onBack,
+            onStartChat = onStartChat?.let { cb -> { cb(userId) } }
+        )
     }
 }
 
 @Composable
-private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
+private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartChat: (() -> Unit)? = null) {
     val profile = data.profile
     val user = profile.toDomain()
     val sports = data.sports
@@ -486,18 +491,33 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit) {
         // MESSAGE BUTTON
         // ══════════════════════════════════════
         Spacer(Modifier.height(20.dp))
+        val canMessage = onStartChat != null
         Surface(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(14.dp), color = CardBg
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .then(if (canMessage) Modifier.clickable { onStartChat?.invoke() } else Modifier),
+            shape = RoundedCornerShape(14.dp),
+            color = if (canMessage) Accent.copy(alpha = 0.12f) else CardBg
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 14.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Outlined.ChatBubbleOutline, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Outlined.ChatBubbleOutline, null,
+                    tint = if (canMessage) Accent else TextMuted,
+                    modifier = Modifier.size(18.dp)
+                )
                 Spacer(Modifier.width(8.dp))
-                Text("Написать", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextMuted)
+                Text(
+                    "Написать",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (canMessage) Accent else TextMuted
+                )
             }
         }
 

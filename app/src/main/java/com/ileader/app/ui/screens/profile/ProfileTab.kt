@@ -15,6 +15,20 @@ import com.ileader.app.ui.screens.common.CoursesListScreen
 import com.ileader.app.ui.screens.common.CourseDetailScreen
 import com.ileader.app.ui.screens.media.MediaArticlesScreen
 import com.ileader.app.ui.screens.media.MediaArticleEditorScreen
+import com.ileader.app.ui.screens.athlete.AchievementsScreen
+import com.ileader.app.ui.screens.athlete.LapTimesScreen
+import com.ileader.app.ui.screens.athlete.RacingLicenseScreen
+import com.ileader.app.ui.screens.athlete.RatingHistoryScreen
+import com.ileader.app.ui.screens.athlete.ResultsHistoryScreen
+import com.ileader.app.ui.screens.chat.ChatScreen
+import com.ileader.app.ui.screens.chat.ConversationsListScreen
+import com.ileader.app.ui.screens.detail.PublicProfileScreen
+import com.ileader.app.ui.screens.verification.VerificationRequestScreen
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ileader.app.data.remote.UiState
+import com.ileader.app.ui.viewmodels.StartConversationViewModel
 
 private sealed class ProfileNavState {
     data object Main : ProfileNavState()
@@ -29,6 +43,16 @@ private sealed class ProfileNavState {
     data object Academy : ProfileNavState()
     data class CourseDetail(val courseId: String) : ProfileNavState()
     data object Family : ProfileNavState()
+    data object RatingHistory : ProfileNavState()
+    data object ResultsHistory : ProfileNavState()
+    data object Achievements : ProfileNavState()
+    data object RacingLicense : ProfileNavState()
+    data object LapTimes : ProfileNavState()
+    data object Verification : ProfileNavState()
+    data object Conversations : ProfileNavState()
+    data class Chat(val conversationId: String, val otherName: String) : ProfileNavState()
+    data class StartChat(val otherUserId: String) : ProfileNavState()
+    data class PublicProfile(val userId: String) : ProfileNavState()
 }
 
 @Composable
@@ -48,7 +72,14 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 onArticles = { navState = ProfileNavState.Articles },
                 onTeamClick = { navState = ProfileNavState.TeamDetail(it) },
                 onAcademy = { navState = ProfileNavState.Academy },
-                onFamily = { navState = ProfileNavState.Family }
+                onFamily = { navState = ProfileNavState.Family },
+                onRatingHistory = { navState = ProfileNavState.RatingHistory },
+                onResultsHistory = { navState = ProfileNavState.ResultsHistory },
+                onAchievements = { navState = ProfileNavState.Achievements },
+                onRacingLicense = { navState = ProfileNavState.RacingLicense },
+                onLapTimes = { navState = ProfileNavState.LapTimes },
+                onVerification = { navState = ProfileNavState.Verification },
+                onConversations = { navState = ProfileNavState.Conversations }
             )
         }
         is ProfileNavState.Edit -> {
@@ -107,5 +138,51 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 onBack = { navState = ProfileNavState.Main }
             )
         }
+        is ProfileNavState.RatingHistory -> RatingHistoryScreen(user.id) { navState = ProfileNavState.Main }
+        is ProfileNavState.ResultsHistory -> ResultsHistoryScreen(user.id) { navState = ProfileNavState.Main }
+        is ProfileNavState.Achievements -> AchievementsScreen(user.id) { navState = ProfileNavState.Main }
+        is ProfileNavState.RacingLicense -> RacingLicenseScreen(user.id) { navState = ProfileNavState.Main }
+        is ProfileNavState.LapTimes -> LapTimesScreen(user.id) { navState = ProfileNavState.Main }
+        is ProfileNavState.Verification -> VerificationRequestScreen(
+            user = user,
+            onBack = { navState = ProfileNavState.Main },
+            onSubmitted = { navState = ProfileNavState.Main }
+        )
+        is ProfileNavState.Conversations -> ConversationsListScreen(
+            myUserId = user.id,
+            onBack = { navState = ProfileNavState.Main },
+            onOpenConversation = { id, name -> navState = ProfileNavState.Chat(id, name) }
+        )
+        is ProfileNavState.Chat -> ChatScreen(
+            conversationId = state.conversationId,
+            myUserId = user.id,
+            title = state.otherName,
+            onBack = { navState = ProfileNavState.Conversations }
+        )
+        is ProfileNavState.StartChat -> {
+            // Use StartConversationViewModel to create or fetch conversation, then navigate to Chat
+            val startVm: StartConversationViewModel = viewModel()
+            val startState by startVm.state.collectAsState()
+            LaunchedEffect(state.otherUserId) {
+                startVm.start(user.id, state.otherUserId)
+            }
+            when (val s = startState) {
+                is UiState.Loading -> com.ileader.app.ui.components.LoadingScreen()
+                is UiState.Error -> com.ileader.app.ui.components.ErrorScreen(s.message) {
+                    startVm.start(user.id, state.otherUserId)
+                }
+                is UiState.Success -> {
+                    LaunchedEffect(s.data) {
+                        navState = ProfileNavState.Chat(s.data, "Диалог")
+                    }
+                    com.ileader.app.ui.components.LoadingScreen()
+                }
+            }
+        }
+        is ProfileNavState.PublicProfile -> PublicProfileScreen(
+            userId = state.userId,
+            onBack = { navState = ProfileNavState.Main },
+            onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) }
+        )
     }
 }

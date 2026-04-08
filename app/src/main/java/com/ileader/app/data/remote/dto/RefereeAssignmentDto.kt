@@ -13,3 +13,10 @@ data class RefereeAssignmentDto(
     val profiles: ProfileMinimalDto? = null,
     val tournaments: TournamentDto? = null
 )
+
+@Serializable
+data class RefereeAssignmentInsertDto(
+    @SerialName("tournament_id") val tournamentId: String,
+    @SerialName("referee_id") val refereeId: String,
+    val role: String = "main"
+)

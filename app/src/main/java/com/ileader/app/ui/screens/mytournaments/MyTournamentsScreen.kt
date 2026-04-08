@@ -35,11 +35,13 @@ import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
+import com.ileader.app.data.repository.HelperRepository
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.MyTournamentsViewModel
 import com.ileader.app.ui.viewmodels.SportViewModel
+import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
 private val CardBg: Color @Composable get() = DarkTheme.CardBg
@@ -65,7 +67,9 @@ fun MyTournamentsScreen(
     onManualCheckIn: (String, String) -> Unit = { _, _ -> },
     onEditTournament: (String) -> Unit = {},
     onHelperManagement: (String, String) -> Unit = { _, _ -> },
-    onCreateTournament: () -> Unit = {}
+    onCreateTournament: () -> Unit = {},
+    onLocations: () -> Unit = {},
+    onTeamManagement: () -> Unit = {}
 ) {
     val vm: MyTournamentsViewModel = viewModel()
     val roleTournaments by vm.roleTournaments.collectAsState()
@@ -79,6 +83,13 @@ fun MyTournamentsScreen(
     var selectedFilter by remember { mutableStateOf(Filter.ALL) }
 
     val isDark = DarkTheme.isDark
+    val scope = rememberCoroutineScope()
+    val helperRepo = remember { HelperRepository() }
+    var showJoinDialog by remember { mutableStateOf(false) }
+    var joinCode by remember { mutableStateOf("") }
+    var joinLoading by remember { mutableStateOf(false) }
+    var joinResult by remember { mutableStateOf<String?>(null) }
+    var joinError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(user.id) {
         vm.load(user.id, user.role)
@@ -373,8 +384,179 @@ fun MyTournamentsScreen(
                 }
             }
         }
+        // ══════════════════════════════════════
+        // TEAM MANAGEMENT (trainer only)
+        // ══════════════════════════════════════
+        if (user.role == UserRole.TRAINER) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = CardBg,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        .clickable { onTeamManagement() }
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(36.dp).clip(CircleShape)
+                                .background(Accent.copy(0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Groups, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Мои команды", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Text("Создание и управление составом", fontSize = 12.sp, color = TextMuted)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // LOCATIONS (organizer only)
+        // ══════════════════════════════════════
+        if (user.role == UserRole.ORGANIZER) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = CardBg,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        .clickable { onLocations() }
+                ) {
+                    Row(
+                        Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(36.dp).clip(CircleShape)
+                                .background(Accent.copy(0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.LocationOn, null, tint = Accent, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Мои локации", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            Text("Управление спортивными объектами", fontSize = 12.sp, color = TextMuted)
+                        }
+                        Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+        }
+
+        // ══════════════════════════════════════
+        // JOIN AS HELPER (any role)
+        // ══════════════════════════════════════
+        item {
+            Spacer(Modifier.height(12.dp))
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = CardBg,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    .clickable { showJoinDialog = true }
+            ) {
+                Row(
+                    Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier.size(36.dp).clip(CircleShape)
+                            .background(Color(0xFF3B82F6).copy(0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.QrCode, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Ввести код помощника", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        Text("Присоединиться как helper", fontSize = 12.sp, color = TextMuted)
+                    }
+                    Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, tint = TextMuted, modifier = Modifier.size(14.dp))
+                }
+            }
+        }
     }
     } // PullToRefreshBox
+
+    // ── Join Helper Dialog ──
+    if (showJoinDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showJoinDialog = false
+                joinCode = ""; joinError = null; joinResult = null
+            },
+            containerColor = DarkTheme.CardBg,
+            title = { Text("Ввести код помощника", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
+            text = {
+                Column {
+                    Text("Введите код, полученный от организатора", fontSize = 13.sp, color = TextMuted)
+                    Spacer(Modifier.height(12.dp))
+                    DarkFormField(
+                        label = "",
+                        value = joinCode,
+                        onValueChange = { joinCode = it.uppercase(); joinError = null },
+                        placeholder = "HLP-XXXXXX"
+                    )
+                    joinError?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text(it, fontSize = 12.sp, color = Color(0xFFEF4444))
+                    }
+                    joinResult?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text("Вы стали помощником: $it", fontSize = 12.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            },
+            confirmButton = {
+                if (joinResult != null) {
+                    TextButton(onClick = {
+                        showJoinDialog = false
+                        joinCode = ""; joinResult = null
+                        vm.load(user.id, user.role) // refresh
+                    }) { Text("Готово", color = Accent) }
+                } else {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                joinLoading = true
+                                joinError = null
+                                try {
+                                    val name = helperRepo.redeemHelperCode(joinCode.trim(), user.id)
+                                    joinResult = name
+                                } catch (e: Exception) {
+                                    joinError = e.message ?: "Ошибка"
+                                } finally {
+                                    joinLoading = false
+                                }
+                            }
+                        },
+                        enabled = joinCode.isNotBlank() && !joinLoading
+                    ) {
+                        if (joinLoading) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Accent)
+                        } else {
+                            Text("Присоединиться", color = Accent)
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                if (joinResult == null) {
+                    TextButton(onClick = { showJoinDialog = false; joinCode = ""; joinError = null }) {
+                        Text("Отмена", color = TextMuted)
+                    }
+                }
+            }
+        )
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -772,7 +954,7 @@ private fun extractTournaments(role: UserRole, data: List<Any>): List<Tournament
                 TournamentCardData(t.id, t.name, t.sportName, t.startDate, t.location, t.status.name.lowercase(), t.imageUrl, t.currentParticipants, t.maxParticipants)
             } ?: emptyList()
         }
-        UserRole.ORGANIZER -> {
+        UserRole.ORGANIZER, UserRole.TRAINER -> {
             @Suppress("UNCHECKED_CAST")
             (data as? List<TournamentWithCountsDto>)?.map { t ->
                 TournamentCardData(t.id, t.name, t.sportName, t.startDate ?: "", t.locationName ?: "",
