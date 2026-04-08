@@ -282,6 +282,7 @@ class AuthViewModel : ViewModel() {
             "password" in msg && "weak" in msg -> "Пароль слишком слабый"
             "rate limit" in msg -> "Слишком много попыток. Подождите"
             "network" in msg || "unable to resolve host" in msg -> "Нет подключения к интернету"
+            "timeout" in msg -> "Сервер не отвечает. Проверьте интернет-соединение"
             else -> e.message ?: "Произошла ошибка"
         }
     }

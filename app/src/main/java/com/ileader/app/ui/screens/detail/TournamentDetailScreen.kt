@@ -3,6 +3,7 @@ package com.ileader.app.ui.screens.detail
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.layout.ContentScale
@@ -47,6 +49,7 @@ import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.ParticipantDto
 import com.ileader.app.data.remote.dto.RefereeAssignmentDto
 import com.ileader.app.data.remote.dto.ResultDto
+import com.ileader.app.data.remote.dto.ResultInsertDto
 import com.ileader.app.data.remote.dto.ScheduleItemDto
 import com.ileader.app.data.remote.dto.TournamentDto
 import com.ileader.app.data.remote.dto.TournamentSponsorshipDto
@@ -82,6 +85,9 @@ fun TournamentDetailScreen(
     user: User,
     onBack: () -> Unit,
     onEditTournament: (String) -> Unit = {},
+    onQrScan: ((String, String) -> Unit)? = null,
+    onManualCheckIn: ((String, String) -> Unit)? = null,
+    onHelperManagement: ((String, String) -> Unit)? = null,
     onProfileClick: (String) -> Unit = {},
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
@@ -116,6 +122,9 @@ fun TournamentDetailScreen(
                     viewModel = viewModel,
                     onBack = onBack,
                     onEditTournament = onEditTournament,
+                    onQrScan = onQrScan,
+                    onManualCheckIn = onManualCheckIn,
+                    onHelperManagement = onHelperManagement,
                     onProfileClick = onProfileClick,
                     onAthleteProfileClick = onAthleteProfileClick,
                     onRefereeProfileClick = onRefereeProfileClick,
@@ -138,6 +147,9 @@ private fun TournamentContent(
     viewModel: TournamentDetailViewModel,
     onBack: () -> Unit,
     onEditTournament: (String) -> Unit = {},
+    onQrScan: ((String, String) -> Unit)? = null,
+    onManualCheckIn: ((String, String) -> Unit)? = null,
+    onHelperManagement: ((String, String) -> Unit)? = null,
     onProfileClick: (String) -> Unit = {},
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
@@ -147,12 +159,26 @@ private fun TournamentContent(
     val tournament = data.tournament
     val accentColor = Accent
     val accentDarkColor = AccentDark
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Snackbar from viewModel
+    LaunchedEffect(viewModel.snackbarMessage) {
+        viewModel.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSnackbar()
+        }
+    }
 
     // Tab state
     val tabs = remember(data) { buildTabList(data) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent
+    ) { scaffoldPadding ->
+    Box(modifier = Modifier.fillMaxSize().padding(scaffoldPadding)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -162,6 +188,13 @@ private fun TournamentContent(
             // HERO HEADER
             // ══════════════════════════════════════
             HeroHeader(tournament, data, onBack, accentColor)
+
+            // ══════════════════════════════════════
+            // ORGANIZER STATUS PANEL
+            // ══════════════════════════════════════
+            if (user.role == UserRole.ORGANIZER && tournament.organizerId == user.id) {
+                OrganizerStatusPanel(tournament, viewModel)
+            }
 
             // ══════════════════════════════════════
             // STICKY TAB BAR
@@ -175,9 +208,9 @@ private fun TournamentContent(
             // ══════════════════════════════════════
             when (tabs.getOrNull(selectedTab)?.type) {
                 TabType.OVERVIEW -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick, onTeamClick)
-                TabType.PARTICIPANTS -> ParticipantsTab(data.participants, tournament, onProfileClick)
-                TabType.BRACKET -> BracketTab(data)
-                TabType.RESULTS -> ResultsTab(data, onProfileClick)
+                TabType.PARTICIPANTS -> ParticipantsTab(data.participants, tournament, user, viewModel, onProfileClick)
+                TabType.BRACKET -> BracketTab(data, user, viewModel)
+                TabType.RESULTS -> ResultsTab(data, user, viewModel, onProfileClick)
                 TabType.NEWS -> NewsTab(data.articles)
                 else -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick, onTeamClick)
             }
@@ -191,9 +224,13 @@ private fun TournamentContent(
             data = data,
             viewModel = viewModel,
             onEditTournament = onEditTournament,
+            onQrScan = onQrScan,
+            onManualCheckIn = onManualCheckIn,
+            onHelperManagement = onHelperManagement,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
+    } // Scaffold
 }
 
 // ══════════════════════════════════════════════════════════
@@ -790,8 +827,14 @@ private fun GlanceCell(icon: ImageVector, label: String, value: String, modifier
 private fun ParticipantsTab(
     participants: List<ParticipantDto>,
     tournament: TournamentDto,
+    user: User,
+    viewModel: TournamentDetailViewModel,
     onProfileClick: (String) -> Unit
 ) {
+    val isOrganizer = user.role == UserRole.ORGANIZER && tournament.organizerId == user.id
+    val pendingCount = participants.count { it.status == "pending" }
+    val confirmedCount = participants.count { it.status == "confirmed" || it.status == "registered" }
+
     Column {
         // Progress header
         val maxP = tournament.maxParticipants
@@ -825,77 +868,191 @@ private fun ParticipantsTab(
             Spacer(Modifier.height(8.dp))
         }
 
+        // ── Organizer: Pending participants alert ──
+        if (isOrganizer && pendingCount > 0) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFF59E0B).copy(alpha = 0.1f)
+            ) {
+                Row(
+                    Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.HourglassTop, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Ожидают подтверждения: $pendingCount",
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary
+                        )
+                        Text(
+                            "Подтвердите или отклоните заявки",
+                            fontSize = 12.sp, color = TextSecondary
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // ── Organizer stats ──
+        if (isOrganizer) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val statsItems = listOf(
+                    "Подтв." to confirmedCount to Color(0xFF22C55E),
+                    "Ожидание" to pendingCount to Color(0xFFF59E0B),
+                    "Всего" to curP to Accent
+                )
+                statsItems.forEach { (labelCount, color) ->
+                    val (label, count) = labelCount
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp), color = CardBg
+                    ) {
+                        Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$count", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = color)
+                            Text(label, fontSize = 11.sp, color = TextMuted)
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
         // Participants list
         SectionCard(title = "Все участники") {
             participants.forEachIndexed { idx, p ->
                 val avatarUrl = p.profiles?.avatarUrl
                 val name = p.profiles?.name ?: "—"
+                val isPending = p.status == "pending"
+                val isProcessing = viewModel.participantActionId == p.athleteId
 
                 if (idx > 0) HorizontalDivider(
                     thickness = 0.5.dp, color = Border.copy(0.15f),
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                        .clickable { p.athleteId?.let { onProfileClick(it) } }
-                        .padding(vertical = 6.dp)
-                ) {
-                    // Number
-                    Text(
-                        "${idx + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                        color = TextMuted, modifier = Modifier.width(28.dp),
-                        textAlign = TextAlign.Center
-                    )
-
-                    // Avatar
-                    if (avatarUrl != null) {
-                        AsyncImage(
-                            model = avatarUrl, contentDescription = null,
-                            modifier = Modifier.size(36.dp).clip(CircleShape),
-                            contentScale = ContentScale.Crop
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                            .clickable { p.athleteId?.let { onProfileClick(it) } }
+                            .padding(vertical = 6.dp)
+                    ) {
+                        // Number
+                        Text(
+                            "${idx + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                            color = TextMuted, modifier = Modifier.width(28.dp),
+                            textAlign = TextAlign.Center
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier.size(36.dp).clip(CircleShape).background(AccentSoft),
-                            contentAlignment = Alignment.Center
+
+                        // Avatar
+                        if (avatarUrl != null) {
+                            AsyncImage(
+                                model = avatarUrl, contentDescription = null,
+                                modifier = Modifier.size(36.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.size(36.dp).clip(CircleShape).background(AccentSoft),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(name.take(1).uppercase(), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent)
+                            }
+                        }
+                        Spacer(Modifier.width(10.dp))
+
+                        // Seed badge
+                        p.seed?.let { seed ->
+                            Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(0.1f)) {
+                                Text("#$seed", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                        }
+
+                        // Name + city
+                        Column(Modifier.weight(1f)) {
+                            Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                            p.profiles?.city?.let { city ->
+                                Text(city, fontSize = 12.sp, color = TextMuted)
+                            }
+                        }
+
+                        // Status
+                        val status = p.status
+                        if (status != null && status != "registered" && status != "confirmed") {
+                            val (statusLabel, statusColor) = when (status) {
+                                "pending" -> "Ожидание" to Color(0xFFF59E0B)
+                                "checked_in" -> "Check-in ✓" to Color(0xFF22C55E)
+                                "declined" -> "Отклонён" to Color(0xFFEF4444)
+                                "withdrawn" -> "Снялся" to Color(0xFF6B7280)
+                                "cancelled" -> "Отклонён" to Color(0xFFEF4444)
+                                else -> status to TextMuted
+                            }
+                            Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.12f)) {
+                                Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    fontSize = 11.sp, color = statusColor, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    // ── Organizer: Approve / Decline buttons for pending ──
+                    if (isOrganizer && isPending) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 28.dp, end = 4.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(name.take(1).uppercase(), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Accent)
-                        }
-                    }
-                    Spacer(Modifier.width(10.dp))
-
-                    // Seed badge
-                    p.seed?.let { seed ->
-                        Surface(shape = RoundedCornerShape(6.dp), color = Accent.copy(0.1f)) {
-                            Text("#$seed", Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Accent)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                    }
-
-                    // Name + city
-                    Column(Modifier.weight(1f)) {
-                        Text(name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                        p.profiles?.city?.let { city ->
-                            Text(city, fontSize = 12.sp, color = TextMuted)
-                        }
-                    }
-
-                    // Status
-                    val status = p.status
-                    if (status != null && status != "registered" && status != "confirmed") {
-                        val (statusLabel, statusColor) = when (status) {
-                            "pending" -> "Ожидание" to Color(0xFFF59E0B)
-                            "checked_in" -> "Check-in ✓" to Color(0xFF22C55E)
-                            "declined" -> "Отклонён" to Color(0xFFEF4444)
-                            "withdrawn" -> "Снялся" to Color(0xFF6B7280)
-                            else -> status to TextMuted
-                        }
-                        Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.12f)) {
-                            Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                fontSize = 11.sp, color = statusColor, fontWeight = FontWeight.SemiBold)
+                            if (isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp, color = Accent
+                                )
+                            } else {
+                                // Decline
+                                Surface(
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            p.athleteId?.let {
+                                                viewModel.declineParticipant(tournament.id, it)
+                                            }
+                                        },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFEF4444).copy(alpha = 0.1f)
+                                ) {
+                                    Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Отклонить", fontSize = 12.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                // Approve
+                                Surface(
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            p.athleteId?.let {
+                                                viewModel.approveParticipant(tournament.id, it)
+                                            }
+                                        },
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF22C55E).copy(alpha = 0.1f)
+                                ) {
+                                    Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Filled.Check, null, tint = Color(0xFF22C55E), modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Подтвердить", fontSize = 12.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -909,23 +1066,109 @@ private fun ParticipantsTab(
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun BracketTab(data: HomeTournamentDetailData) {
+private fun BracketTab(
+    data: HomeTournamentDetailData,
+    user: User,
+    viewModel: TournamentDetailViewModel
+) {
     val matches = BracketUtils.mapDtosToMatches(data.bracket, data.participants)
     val groups = BracketUtils.mapGroupDtos(data.groups)
     val format = data.tournament.format ?: "single_elimination"
     var selectedMatch by remember { mutableStateOf<BracketMatch?>(null) }
 
-    SectionCard(title = "Турнирная сетка", modifier = Modifier.padding(horizontal = 4.dp)) {
-        BracketView(
-            format = format,
-            matches = matches,
-            groups = groups,
-            onMatchClick = { selectedMatch = it }
+    val isOrganizer = user.role == UserRole.ORGANIZER && data.tournament.organizerId == user.id
+    val canEdit = isOrganizer || user.role == UserRole.REFEREE
+    var showGenerateConfirm by remember { mutableStateOf(false) }
+
+    // ── Generate bracket button (organizer only, when no bracket exists) ──
+    if (isOrganizer) {
+        val confirmedCount = data.participants.count { it.status == "confirmed" || it.status == "registered" }
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(12.dp), color = CardBg
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.AccountTree, null, tint = Accent, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (matches.isEmpty()) "Сетка не создана" else "Сетка: ${matches.size} матчей",
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text("$confirmedCount участников", fontSize = 12.sp, color = TextMuted)
+                }
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (confirmedCount >= 2) Accent else TextMuted.copy(0.3f))
+                        .clickable(enabled = confirmedCount >= 2 && !viewModel.bracketGenerating) {
+                            if (matches.isNotEmpty()) {
+                                showGenerateConfirm = true
+                            } else {
+                                viewModel.generateBracket(data.tournament.id)
+                            }
+                        }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (viewModel.bracketGenerating) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                    } else {
+                        Text(
+                            if (matches.isEmpty()) "Сгенерировать сетку" else "Пересоздать сетку",
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+    }
+
+    // Confirmation dialog for regeneration
+    if (showGenerateConfirm) {
+        AlertDialog(
+            onDismissRequest = { showGenerateConfirm = false },
+            title = { Text("Пересоздать сетку?", fontWeight = FontWeight.SemiBold) },
+            text = { Text("Текущая сетка и все результаты матчей будут удалены.", fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.generateBracket(data.tournament.id)
+                    showGenerateConfirm = false
+                }) { Text("Пересоздать", color = Color(0xFFEF4444)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGenerateConfirm = false }) { Text("Отмена") }
+            }
         )
     }
 
+    if (matches.isNotEmpty()) {
+        SectionCard(title = "Турнирная сетка", modifier = Modifier.padding(horizontal = 4.dp)) {
+            BracketView(
+                format = format,
+                matches = matches,
+                groups = groups,
+                onMatchClick = { selectedMatch = it }
+            )
+        }
+    }
+
     selectedMatch?.let { match ->
-        MatchDetailDialog(match = match, canEdit = false, onDismiss = { selectedMatch = null })
+        MatchDetailDialog(
+            match = match,
+            canEdit = canEdit,
+            onDismiss = { selectedMatch = null },
+            onSaveResult = { matchId, games, winnerId ->
+                viewModel.saveMatchResult(data.tournament.id, matchId, games, winnerId)
+            },
+            onRevert = { matchId ->
+                viewModel.revertMatch(data.tournament.id, matchId)
+            }
+        )
     }
 }
 
@@ -934,15 +1177,166 @@ private fun BracketTab(data: HomeTournamentDetailData) {
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun ResultsTab(data: HomeTournamentDetailData, onProfileClick: (String) -> Unit) {
+private fun ResultsTab(
+    data: HomeTournamentDetailData,
+    user: User,
+    viewModel: TournamentDetailViewModel,
+    onProfileClick: (String) -> Unit
+) {
+    val isOrganizer = user.role == UserRole.ORGANIZER && data.tournament.organizerId == user.id
+    val tournament = data.tournament
+    var editMode by remember { mutableStateOf(false) }
+    var resultPositions by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var resultPoints by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
     Column {
-        // Podium
-        if (data.results.size >= 3) {
-            PodiumSection(data.results.take(3), onProfileClick)
-            Spacer(Modifier.height(8.dp))
+        // ── Organizer: Enter results button ──
+        if (isOrganizer && (tournament.status == "in_progress" || tournament.status == "completed")) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp), color = CardBg
+            ) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Leaderboard, null, tint = Accent, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (data.results.isEmpty()) "Результаты не внесены" else "${data.results.size} результатов",
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                            .background(Accent.copy(0.1f))
+                            .clickable {
+                                if (editMode) {
+                                    // Save results
+                                    val confirmedParticipants = data.participants.filter {
+                                        it.status == "confirmed" || it.status == "registered"
+                                    }
+                                    val results = confirmedParticipants.mapNotNull { p ->
+                                        val pos = resultPositions[p.athleteId]?.toIntOrNull() ?: return@mapNotNull null
+                                        ResultInsertDto(
+                                            tournamentId = tournament.id,
+                                            athleteId = p.athleteId,
+                                            position = pos,
+                                            points = resultPoints[p.athleteId]?.toIntOrNull()
+                                        )
+                                    }
+                                    if (results.isNotEmpty()) {
+                                        viewModel.saveFinalResults(tournament.id, results)
+                                    }
+                                    editMode = false
+                                } else {
+                                    // Enter edit mode — pre-fill from existing results
+                                    val posMap = mutableMapOf<String, String>()
+                                    val ptsMap = mutableMapOf<String, String>()
+                                    data.results.forEach { r ->
+                                        posMap[r.athleteId] = r.position.toString()
+                                        r.points?.let { ptsMap[r.athleteId] = it.toString() }
+                                    }
+                                    resultPositions = posMap
+                                    resultPoints = ptsMap
+                                    editMode = true
+                                }
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            if (editMode) "Сохранить" else "Внести результаты",
+                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
         }
-        // Full results
-        ResultsSection(data.results, onProfileClick)
+
+        // ── Edit mode: editable positions ──
+        if (editMode && isOrganizer) {
+            val confirmedParticipants = data.participants.filter {
+                it.status == "confirmed" || it.status == "registered"
+            }
+            SectionCard(title = "Внесите позиции") {
+                confirmedParticipants.forEachIndexed { idx, p ->
+                    if (idx > 0) {
+                        Spacer(Modifier.height(1.dp))
+                        Box(Modifier.fillMaxWidth().height(0.5.dp).background(Border.copy(0.15f)))
+                        Spacer(Modifier.height(1.dp))
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            p.profiles?.name ?: "—",
+                            fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Position input
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = resultPositions[p.athleteId] ?: "",
+                            onValueChange = { v ->
+                                resultPositions = resultPositions + (p.athleteId to v.filter { it.isDigit() }.take(3))
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                                color = TextPrimary, textAlign = TextAlign.Center
+                            ),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            ),
+                            modifier = Modifier.width(44.dp)
+                                .background(CardBg, RoundedCornerShape(6.dp))
+                                .border(0.5.dp, Border, RoundedCornerShape(6.dp))
+                                .padding(vertical = 6.dp),
+                            singleLine = true,
+                            decorationBox = { inner ->
+                                Box(contentAlignment = Alignment.Center) {
+                                    if ((resultPositions[p.athleteId] ?: "").isEmpty()) {
+                                        Text("#", fontSize = 12.sp, color = TextMuted)
+                                    }
+                                    inner()
+                                }
+                            }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        // Points input
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = resultPoints[p.athleteId] ?: "",
+                            onValueChange = { v ->
+                                resultPoints = resultPoints + (p.athleteId to v.filter { it.isDigit() }.take(5))
+                            },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                fontSize = 13.sp, color = TextPrimary, textAlign = TextAlign.Center
+                            ),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            ),
+                            modifier = Modifier.width(56.dp)
+                                .background(CardBg, RoundedCornerShape(6.dp))
+                                .border(0.5.dp, Border, RoundedCornerShape(6.dp))
+                                .padding(vertical = 6.dp),
+                            singleLine = true,
+                            decorationBox = { inner ->
+                                Box(contentAlignment = Alignment.Center) {
+                                    if ((resultPoints[p.athleteId] ?: "").isEmpty()) {
+                                        Text("очки", fontSize = 11.sp, color = TextMuted)
+                                    }
+                                    inner()
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        } else {
+            // ── Display mode ──
+            if (data.results.size >= 3) {
+                PodiumSection(data.results.take(3), onProfileClick)
+                Spacer(Modifier.height(8.dp))
+            }
+            ResultsSection(data.results, onProfileClick)
+        }
     }
 }
 
@@ -1502,60 +1896,123 @@ private fun ActionButton(
     data: HomeTournamentDetailData,
     viewModel: TournamentDetailViewModel,
     onEditTournament: (String) -> Unit = {},
+    onQrScan: ((String, String) -> Unit)? = null,
+    onManualCheckIn: ((String, String) -> Unit)? = null,
+    onHelperManagement: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val tournament = data.tournament
     val status = tournament.status ?: return
     val regState = viewModel.registrationState
     val loading = viewModel.actionLoading
+    val isOrganizer = user.role == UserRole.ORGANIZER && tournament.organizerId == user.id
 
-    val buttonConfig = remember(user.role, status, regState) {
-        getButtonConfig(user, status, regState, tournament.organizerId)
+    // ── Organizer: multi-action bar ──
+    if (isOrganizer) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            color = Bg.copy(alpha = 0.97f),
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Edit
+                OrganizerQuickAction(
+                    icon = Icons.Filled.Edit,
+                    label = "Изменить",
+                    onClick = { onEditTournament(tournament.id) }
+                )
+                // QR Check-in (show when check_in or in_progress)
+                if (status in listOf("check_in", "in_progress", "registration_closed") && tournament.hasCheckIn == true) {
+                    OrganizerQuickAction(
+                        icon = Icons.Filled.QrCodeScanner,
+                        label = "QR",
+                        onClick = { onQrScan?.invoke(tournament.id, tournament.name) }
+                    )
+                    OrganizerQuickAction(
+                        icon = Icons.Filled.PersonSearch,
+                        label = "Check-in",
+                        onClick = { onManualCheckIn?.invoke(tournament.id, tournament.name) }
+                    )
+                }
+                // Helpers
+                OrganizerQuickAction(
+                    icon = Icons.Filled.Group,
+                    label = "Помощники",
+                    onClick = { onHelperManagement?.invoke(tournament.id, tournament.name) }
+                )
+            }
+        }
+        return
     }
 
-    if (buttonConfig != null) {
-        Box(
-            modifier = modifier.fillMaxWidth()
-                .background(Bg.copy(alpha = 0.95f))
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Button(
-                onClick = {
-                    when (buttonConfig.action) {
-                        ButtonAction.REGISTER_PARTICIPANT -> viewModel.registerAsParticipant(tournament.id, user.id)
-                        ButtonAction.UNREGISTER -> viewModel.unregister(tournament.id, user.id)
-                        ButtonAction.REGISTER_SPECTATOR -> viewModel.registerAsSpectator(tournament.id, user.id)
-                        ButtonAction.EDIT -> onEditTournament(tournament.id)
-                        else -> {}
-                    }
-                },
-                enabled = !loading,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (buttonConfig.isDestructive) Color.Transparent else Accent,
-                    contentColor = if (buttonConfig.isDestructive) com.ileader.app.ui.theme.ILeaderColors.Error else Color.White
-                ),
-                border = if (buttonConfig.isDestructive) BorderStroke(1.dp, com.ileader.app.ui.theme.ILeaderColors.Error) else null
-            ) {
-                if (loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp), strokeWidth = 2.dp,
-                        color = if (buttonConfig.isDestructive) Color(0xFFEF4444) else Color.White
-                    )
-                } else {
-                    Text(text = buttonConfig.label, fontWeight = FontWeight.SemiBold)
+    // ── Other roles: single action button ──
+    val buttonConfig = remember(user.role, status, regState) {
+        getButtonConfig(user, status, regState)
+    } ?: return
+
+    Box(
+        modifier = modifier.fillMaxWidth()
+            .background(Bg.copy(alpha = 0.95f))
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Button(
+            onClick = {
+                when (buttonConfig.action) {
+                    ButtonAction.REGISTER_PARTICIPANT -> viewModel.registerAsParticipant(tournament.id, user.id)
+                    ButtonAction.UNREGISTER -> viewModel.unregister(tournament.id, user.id)
+                    ButtonAction.REGISTER_SPECTATOR -> viewModel.registerAsSpectator(tournament.id, user.id)
+                    else -> {}
                 }
+            },
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (buttonConfig.isDestructive) Color.Transparent else Accent,
+                contentColor = if (buttonConfig.isDestructive) com.ileader.app.ui.theme.ILeaderColors.Error else Color.White
+            ),
+            border = if (buttonConfig.isDestructive) BorderStroke(1.dp, com.ileader.app.ui.theme.ILeaderColors.Error) else null
+        ) {
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp), strokeWidth = 2.dp,
+                    color = if (buttonConfig.isDestructive) Color(0xFFEF4444) else Color.White
+                )
+            } else {
+                Text(text = buttonConfig.label, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
-private enum class ButtonAction { REGISTER_PARTICIPANT, UNREGISTER, REGISTER_SPECTATOR, EDIT, REFEREE }
+@Composable
+private fun OrganizerQuickAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, null, tint = Accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.height(2.dp))
+        Text(label, fontSize = 10.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+    }
+}
+
+private enum class ButtonAction { REGISTER_PARTICIPANT, UNREGISTER, REGISTER_SPECTATOR }
 
 private data class ButtonConfig(val label: String, val action: ButtonAction, val isDestructive: Boolean = false)
 
-private fun getButtonConfig(user: User, status: String, regState: RegistrationState, organizerId: String?): ButtonConfig? {
+private fun getButtonConfig(user: User, status: String, regState: RegistrationState): ButtonConfig? {
     return when (user.role) {
         UserRole.ATHLETE -> when {
             status == "registration_open" && regState is RegistrationState.RegisteredAsParticipant ->
@@ -1569,17 +2026,161 @@ private fun getButtonConfig(user: User, status: String, regState: RegistrationSt
                 ButtonConfig("Зарегистрироваться как зритель", ButtonAction.REGISTER_SPECTATOR)
             else -> null
         }
-        UserRole.ORGANIZER -> when {
-            organizerId == user.id -> ButtonConfig("Редактировать", ButtonAction.EDIT)
-            else -> null
-        }
-        UserRole.REFEREE -> when {
-            status == "in_progress" -> ButtonConfig("Судейство", ButtonAction.REFEREE)
-            else -> null
-        }
         else -> null
     }
 }
+
+// ══════════════════════════════════════════════════════════
+// ORGANIZER STATUS PANEL
+// ══════════════════════════════════════════════════════════
+
+@Composable
+private fun OrganizerStatusPanel(
+    tournament: TournamentDto,
+    viewModel: TournamentDetailViewModel
+) {
+    val currentStatus = tournament.status ?: return
+    val isLoading = viewModel.statusActionLoading
+    var showConfirmDialog by remember { mutableStateOf<String?>(null) }
+
+    // Define available next statuses based on current status
+    val nextActions = remember(currentStatus) {
+        when (currentStatus) {
+            "draft" -> listOf(
+                StatusAction("registration_open", "Открыть регистрацию", Icons.Filled.HowToReg, Color(0xFF22C55E)),
+                StatusAction("cancelled", "Отменить турнир", Icons.Filled.Cancel, Color(0xFFEF4444))
+            )
+            "registration_open" -> listOf(
+                StatusAction("registration_closed", "Закрыть регистрацию", Icons.Filled.PersonOff, Color(0xFFF59E0B)),
+                StatusAction("cancelled", "Отменить турнир", Icons.Filled.Cancel, Color(0xFFEF4444))
+            )
+            "registration_closed" -> listOf(
+                StatusAction("check_in", "Начать check-in", Icons.Filled.QrCodeScanner, Color(0xFF3B82F6)),
+                StatusAction("in_progress", "Начать турнир", Icons.Filled.PlayArrow, Color(0xFF22C55E)),
+                StatusAction("registration_open", "Открыть регистрацию", Icons.Filled.HowToReg, Color(0xFFF59E0B))
+            )
+            "check_in" -> listOf(
+                StatusAction("in_progress", "Начать турнир", Icons.Filled.PlayArrow, Color(0xFF22C55E)),
+                StatusAction("registration_closed", "Вернуть к рег.", Icons.Filled.Undo, Color(0xFFF59E0B))
+            )
+            "in_progress" -> listOf(
+                StatusAction("completed", "Завершить турнир", Icons.Filled.EmojiEvents, Color(0xFF8B5CF6)),
+                StatusAction("cancelled", "Отменить турнир", Icons.Filled.Cancel, Color(0xFFEF4444))
+            )
+            else -> emptyList()
+        }
+    }
+
+    if (nextActions.isEmpty()) return
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = CardBg
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Settings, null, tint = Accent, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Управление", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                Spacer(Modifier.weight(1f))
+                // Current status badge
+                val statusColor = when (currentStatus) {
+                    "draft" -> Color(0xFF6B7280)
+                    "registration_open" -> Color(0xFF22C55E)
+                    "registration_closed" -> Color(0xFFF59E0B)
+                    "check_in" -> Color(0xFF3B82F6)
+                    "in_progress" -> Accent
+                    "completed" -> Color(0xFF8B5CF6)
+                    "cancelled" -> Color(0xFFEF4444)
+                    else -> TextMuted
+                }
+                Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.12f)) {
+                    Text(
+                        getStatusLabel(currentStatus),
+                        Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        fontSize = 11.sp, color = statusColor, fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // Action buttons
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                nextActions.forEach { action ->
+                    Surface(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                            .clickable(enabled = !isLoading) {
+                                if (action.status == "cancelled" || action.status == "completed") {
+                                    showConfirmDialog = action.status
+                                } else {
+                                    viewModel.updateTournamentStatus(tournament.id, action.status)
+                                }
+                            },
+                        shape = RoundedCornerShape(10.dp),
+                        color = action.color.copy(alpha = 0.1f)
+                    ) {
+                        Column(
+                            Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = action.color)
+                            } else {
+                                Icon(action.icon, null, tint = action.color, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(action.label, fontSize = 11.sp, color = action.color,
+                                fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, maxLines = 2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Confirmation dialog for destructive actions
+    showConfirmDialog?.let { targetStatus ->
+        val title = when (targetStatus) {
+            "cancelled" -> "Отменить турнир?"
+            "completed" -> "Завершить турнир?"
+            else -> "Подтвердите действие"
+        }
+        val text = when (targetStatus) {
+            "cancelled" -> "Турнир будет отменён. Участники получат уведомление."
+            "completed" -> "Турнир будет завершён. Убедитесь, что все результаты внесены."
+            else -> "Вы уверены?"
+        }
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = null },
+            title = { Text(title, fontWeight = FontWeight.SemiBold) },
+            text = { Text(text, fontSize = 14.sp) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateTournamentStatus(tournament.id, targetStatus)
+                    showConfirmDialog = null
+                }) {
+                    Text("Да", color = if (targetStatus == "cancelled") Color(0xFFEF4444) else Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = null }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
+}
+
+private data class StatusAction(
+    val status: String,
+    val label: String,
+    val icon: ImageVector,
+    val color: Color
+)
 
 // ══════════════════════════════════════════════════════════
 // Tier Helpers
