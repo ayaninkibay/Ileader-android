@@ -55,7 +55,7 @@ fun SportScreen(
     onTournamentClick: (String) -> Unit,
     onArticleClick: (String) -> Unit,
     onProfileClick: (String) -> Unit,
-    onLeagueClick: (String, String, String?) -> Unit = { _, _, _ -> },
+    onLeagueClick: (String) -> Unit = {},
     onTeamClick: (String, String, String) -> Unit = { _, _, _ -> },
     onAthleteProfileClick: (String) -> Unit = {},
     onRefereeProfileClick: (String) -> Unit = {},
@@ -83,13 +83,17 @@ fun SportScreen(
         s.sports.getOrNull(idx)?.id?.let { it !in topIds } == true
     }
 
-    // Mock leagues
-    // Leagues from ViewModel
+    val isRefreshing = s.tournaments is UiState.Loading && s.sports.isNotEmpty()
 
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.retry() },
+        modifier = Modifier.fillMaxSize().background(Bg)
+    ) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Bg)
             .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {
@@ -298,37 +302,17 @@ fun SportScreen(
             Spacer(Modifier.height(20.dp))
         }
 
-        // ── СМИ (video cards) ──
+        // ── СМИ ──
         item {
             SectionTitle(title = "СМИ", action = "Все", onAction = {})
-            val hasRealNews = s.news is UiState.Success && (s.news as UiState.Success).data.isNotEmpty()
-            if (hasRealNews) {
-                SportSection(state = s.news) { list ->
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(list, key = { it.id }) { a ->
-                            ArticleMiniCard(a, onClick = { onArticleClick(a.id) })
-                        }
-                    }
-                }
-            } else {
-                val selectedName = s.selectedSports.firstOrNull()?.name ?: "Спорт"
-                val mockVideos: List<MockVideo> = remember(selectedName) {
-                    listOf(
-                        MockVideo("Лучшие моменты — $selectedName 2026", "3:42", sportImageUrl(selectedName, 0), isVideo = true),
-                        MockVideo("Фотоотчёт: $selectedName", "12 фото", sportImageUrl(selectedName, 1), isVideo = false),
-                        MockVideo("Обзор сезона $selectedName", "5:18", sportImageUrl(selectedName, 2), isVideo = true),
-                        MockVideo("Интервью с чемпионом", "2:55", sportImageUrl(selectedName, 3), isVideo = true),
-                        MockVideo("Топ-5 голов/финишей", "4:10", sportImageUrl(selectedName, 4), isVideo = true)
-                    )
-                }
+            SportSection(state = s.news) { list ->
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(mockVideos.size) { i -> VideoMiniCard(mockVideos[i], onClick = { onArticleClick("mock_$i") }) }
+                    items(list, key = { it.id }) { a ->
+                        ArticleMiniCard(a, onClick = { onArticleClick(a.id) })
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))
@@ -344,7 +328,7 @@ fun SportScreen(
                 ) {
                     items(list.size) { i ->
                         val league = list[i]
-                        LeagueMiniCard(league) { onLeagueClick(league.name, league.sportName, league.imageUrl) }
+                        LeagueMiniCard(league) { onLeagueClick(league.id) }
                     }
                 }
             }
@@ -401,6 +385,7 @@ fun SportScreen(
 
         } // end if (selectedIndices.isNotEmpty())
     }
+    } // PullToRefreshBox
 }
 
 // ═══════════════════════════════════════════════════
@@ -655,12 +640,21 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
 // League Mini Card
 // ═══════════════════════════════════════════════════
 
-private typealias MockLeague = SportViewModel.MockLeague
-private typealias MockLeader = SportViewModel.MockLeader
-
 @Composable
-private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
-    val isDark = DarkTheme.isDark
+private fun LeagueMiniCard(league: com.ileader.app.data.remote.dto.LeagueDto, onClick: () -> Unit = {}) {
+    val sportName = league.sports?.name ?: ""
+    val statusLabel = when (league.status) {
+        "in_progress" -> "Идёт"
+        "registration_open" -> "Регистрация"
+        "completed" -> "Завершена"
+        else -> league.status ?: ""
+    }
+    val statusColor = when (league.status) {
+        "in_progress" -> ILeaderColors.Success
+        "registration_open" -> ILeaderColors.Info
+        else -> TextMuted
+    }
+
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
         shadowElevation = 0.dp,
@@ -676,17 +670,14 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
                 }
                 Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(0.2f), Color.Black.copy(0.7f)))))
                 Row(Modifier.padding(10.dp).align(Alignment.TopStart), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(0.4f)) {
-                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(sportIcon(league.sportName), null, tint = Color.White, modifier = Modifier.size(12.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(league.sportName, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                    if (sportName.isNotBlank()) {
+                        Surface(shape = RoundedCornerShape(50), color = Color.Black.copy(0.4f)) {
+                            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(sportIcon(sportName), null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(sportName, fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                            }
                         }
-                    }
-                    val (statusLabel, statusColor) = when (league.status) {
-                        "in_progress" -> "Идёт" to ILeaderColors.Success
-                        "registration_open" -> "Регистрация" to ILeaderColors.Info
-                        else -> league.status to TextMuted
                     }
                     Surface(shape = RoundedCornerShape(50), color = statusColor.copy(0.9f)) {
                         Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Medium)
@@ -696,54 +687,23 @@ private fun LeagueMiniCard(league: MockLeague, onClick: () -> Unit = {}) {
             }
 
             Column(Modifier.padding(14.dp)) {
-                // Stage timeline
+                // Stage info
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Этапы", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
-                    Text("${league.completedStages}/${league.totalStages}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
+                    Text("${league.totalStages}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Accent)
                 }
                 Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                    for (i in 1..league.totalStages) {
-                        val done = i <= league.completedStages; val current = i == league.completedStages + 1
-                        Box(
-                            Modifier.size(if (current) 20.dp else 14.dp).clip(CircleShape)
-                                .background(when { done -> Accent; current -> Accent.copy(0.3f); else -> TextMuted.copy(0.12f) })
-                                .then(if (current) Modifier.border(2.dp, Accent, CircleShape) else Modifier),
-                            contentAlignment = Alignment.Center
-                        ) { if (done) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp)) }
-                        if (i < league.totalStages) Box(Modifier.weight(1f).height(2.dp).padding(horizontal = 2.dp)
-                            .background(if (i < league.completedStages + 1) Accent.copy(0.5f) else TextMuted.copy(0.12f), RoundedCornerShape(1.dp)))
-                    }
-                }
-                Spacer(Modifier.height(14.dp))
 
-                // Leaders
-                if (league.leaders.isNotEmpty()) {
-                    Text("Лидеры", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary)
-                    Spacer(Modifier.height(8.dp))
-                    league.leaders.forEachIndexed { idx, leader ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(when (idx) { 0 -> "🥇"; 1 -> "🥈"; else -> "🥉" }, fontSize = 14.sp, modifier = Modifier.width(24.dp))
-                            Box(Modifier.size(24.dp).clip(CircleShape).background(TextMuted.copy(0.12f)), contentAlignment = Alignment.Center) {
-                                Text(leader.name.take(1), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Text(leader.name, fontSize = 13.sp, color = TextPrimary, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${leader.points} очк.", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Accent)
-                        }
-                    }
+                // Season
+                if (!league.season.isNullOrBlank()) {
+                    Text(league.season, fontSize = 12.sp, color = TextMuted)
+                    Spacer(Modifier.height(4.dp))
                 }
 
-                // Next stage
-                league.nextStageDate?.let { date ->
-                    Spacer(Modifier.height(12.dp))
-                    Surface(shape = RoundedCornerShape(10.dp), color = Accent.copy(0.08f), modifier = Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.CalendarMonth, null, tint = Accent, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Следующий этап: $date", fontSize = 12.sp, color = Accent, fontWeight = FontWeight.Medium)
-                        }
-                    }
+                // Description preview
+                if (!league.description.isNullOrBlank()) {
+                    Text(league.description, fontSize = 12.sp, color = TextSecondary,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 16.sp)
                 }
             }
         }
@@ -951,81 +911,3 @@ private fun SportPickerSheet(
     }
 }
 
-// ═══════════════════════════════════════════════════
-// Video Mini Card
-// ═══════════════════════════════════════════════════
-
-private data class MockVideo(
-    val title: String, val duration: String, val imageUrl: String?,
-    val isVideo: Boolean = true
-)
-
-@Composable
-private fun VideoMiniCard(video: MockVideo, onClick: () -> Unit = {}) {
-    Box(
-        modifier = Modifier
-            .width(200.dp)
-            .height(140.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-    ) {
-        if (video.imageUrl != null) {
-            AsyncImage(video.imageUrl, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        } else {
-            Box(Modifier.fillMaxSize().background(TextMuted.copy(0.15f)))
-        }
-        Box(Modifier.fillMaxSize().background(Color.Black.copy(0.5f)))
-
-        // Content type badge
-        val (badgeIcon, badgeLabel, badgeColor) = if (video.isVideo)
-            Triple(Icons.Filled.PlayCircle, "Видео", Color(0xFF3B82F6))
-        else
-            Triple(Icons.Filled.PhotoLibrary, "Фото", Color(0xFF22C55E))
-        Surface(
-            shape = RoundedCornerShape(6.dp), color = badgeColor.copy(0.9f),
-            modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
-        ) {
-            Row(
-                Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Icon(badgeIcon, null, tint = Color.White, modifier = Modifier.size(11.dp))
-                Text(badgeLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        }
-
-        // Center play/photo icon
-        if (video.isVideo) {
-            Box(
-                Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.25f)).align(Alignment.Center),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.PlayArrow, null, tint = Color.White, modifier = Modifier.size(28.dp))
-            }
-        } else {
-            Box(
-                Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(0.15f)).align(Alignment.Center),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.PhotoLibrary, null, tint = Color.White, modifier = Modifier.size(24.dp))
-            }
-        }
-
-        // Duration / photo count
-        Surface(
-            shape = RoundedCornerShape(6.dp), color = Color.Black.copy(0.6f),
-            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-        ) {
-            Text(video.duration, Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
-        }
-
-        // Title
-        Text(
-            video.title, modifier = Modifier.align(Alignment.BottomStart).padding(10.dp),
-            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White,
-            maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 17.sp
-        )
-    }
-}

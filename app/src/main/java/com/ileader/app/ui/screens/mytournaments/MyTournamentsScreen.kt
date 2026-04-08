@@ -130,8 +130,14 @@ fun MyTournamentsScreen(
     val isLoading = (selectedTab == Tab.MY && roleTournaments is UiState.Loading) ||
         (selectedTab == Tab.FAVORITES && favoriteTournaments is UiState.Loading && favoriteIds.isNotEmpty())
 
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { vm.load(user.id, user.role) },
+        modifier = Modifier.fillMaxSize().background(Bg)
+    ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(Bg),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 40.dp)
     ) {
         // ══════════════════════════════════════
@@ -368,6 +374,7 @@ fun MyTournamentsScreen(
             }
         }
     }
+    } // PullToRefreshBox
 }
 
 // ══════════════════════════════════════════════════════════

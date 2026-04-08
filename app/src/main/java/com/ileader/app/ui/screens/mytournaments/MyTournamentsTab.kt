@@ -5,6 +5,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.content.Intent
+import android.net.Uri
 import com.ileader.app.data.models.User
 import com.ileader.app.ui.screens.common.ManualCheckInScreen
 import com.ileader.app.ui.screens.common.QrScannerScreen
@@ -32,6 +34,7 @@ private sealed class MyTournamentsNavState {
 @Composable
 fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
     var navState by remember { mutableStateOf<MyTournamentsNavState>(MyTournamentsNavState.List) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     when (val state = navState) {
         is MyTournamentsNavState.List -> {
@@ -42,7 +45,10 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
                 onManualCheckIn = { id, name -> navState = MyTournamentsNavState.ManualCheckIn(id, name) },
                 onEditTournament = { id -> navState = MyTournamentsNavState.TournamentEdit(id) },
                 onHelperManagement = { id, name -> navState = MyTournamentsNavState.HelperManagement(id, name) },
-                onCreateTournament = { /* TODO: navigate to create tournament */ }
+                onCreateTournament = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ileader.kz/organizer/tournaments/create"))
+                    context.startActivity(intent)
+                }
             )
         }
         is MyTournamentsNavState.TournamentDetail -> {

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.CommunityProfileDto
+import com.ileader.app.data.remote.dto.LeagueDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TeamWithStatsDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
@@ -22,14 +23,6 @@ class SportViewModel : ViewModel() {
     var state by mutableStateOf(SportState())
         private set
 
-    // Mock league data classes
-    data class MockLeague(
-        val name: String, val sportName: String, val totalStages: Int,
-        val completedStages: Int, val status: String, val participants: Int,
-        val imageUrl: String?, val nextStageDate: String?, val leaders: List<MockLeader>
-    )
-    data class MockLeader(val name: String, val points: Int)
-
     // Full loaded lists (before client-side filtering)
     private var allTournaments: List<TournamentWithCountsDto> = emptyList()
     private var allAthletes: List<CommunityProfileDto> = emptyList()
@@ -37,16 +30,7 @@ class SportViewModel : ViewModel() {
     private var allReferees: List<CommunityProfileDto> = emptyList()
     private var allNews: List<ArticleDto> = emptyList()
     private var allTeams: List<TeamWithStatsDto> = emptyList()
-    private var allLeagues: List<MockLeague> = listOf(
-        MockLeague("Лига Картинга Казахстан 2026", "Картинг", 5, 3, "in_progress", 24,
-            "https://ileader.kz/img/karting/karting-04-1280x853.jpeg", "15 апреля",
-            listOf(MockLeader("Алихан Т.", 58), MockLeader("Марат К.", 45), MockLeader("Данияр С.", 40))),
-        MockLeague("Чемпионат по Стрельбе", "Стрельба", 4, 0, "registration_open", 12,
-            "https://ileader.kz/img/shooting/shooting-01-1280x853.jpeg", "20 апреля", emptyList()),
-        MockLeague("Теннисная Лига Алматы", "Теннис", 8, 1, "in_progress", 32,
-            "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=800&q=80", "12 апреля",
-            listOf(MockLeader("Аян Б.", 30), MockLeader("Тимур Н.", 20), MockLeader("Ерлан Ж.", 15)))
-    )
+    private var allLeagues: List<LeagueDto> = emptyList()
 
     // Pagination offsets
     private var tournamentOffset = 0
@@ -66,6 +50,7 @@ class SportViewModel : ViewModel() {
                 val refereesDeferred = async { repo.getReferees() }
                 val articlesDeferred = async { repo.getPublishedArticles(PAGE_SIZE) }
                 val teamsDeferred = async { repo.getTeams() }
+                val leaguesDeferred = async { repo.getLeagues() }
 
                 val sports = sportsDeferred.await()
                 val tournaments = tournamentsDeferred.await()
@@ -74,6 +59,7 @@ class SportViewModel : ViewModel() {
                 val referees = refereesDeferred.await()
                 val articles = articlesDeferred.await()
                 val teams = teamsDeferred.await()
+                val leagues = leaguesDeferred.await()
 
                 allTournaments = tournaments
                 allAthletes = athletes
@@ -81,6 +67,7 @@ class SportViewModel : ViewModel() {
                 allReferees = referees
                 allNews = articles
                 allTeams = teams
+                allLeagues = leagues
 
                 tournamentOffset = tournaments.size
                 newsOffset = articles.size
@@ -242,10 +229,10 @@ class SportViewModel : ViewModel() {
             matchesQuery && matchesSport
         }
 
-        // Filter leagues (by sportName)
+        // Filter leagues
         val filteredLeagues = allLeagues.filter { l ->
             val matchesQuery = query.isEmpty() || l.name.contains(query, ignoreCase = true)
-            val matchesSport = selectedSportNames.isEmpty() || l.sportName in selectedSportNames
+            val matchesSport = selectedSportIds.isEmpty() || l.sportId in selectedSportIds
             matchesQuery && matchesSport
         }
 
@@ -304,7 +291,7 @@ class SportViewModel : ViewModel() {
         val referees: UiState<List<CommunityProfileDto>> = UiState.Loading,
         val news: UiState<List<ArticleDto>> = UiState.Loading,
         val teams: UiState<List<TeamWithStatsDto>> = UiState.Loading,
-        val leagues: UiState<List<MockLeague>> = UiState.Loading,
+        val leagues: UiState<List<LeagueDto>> = UiState.Loading,
         val sports: List<SportDto> = emptyList(),
         val selectedIndices: Set<Int> = emptySet(),
         val sportImages: Map<String, List<String>> = emptyMap(),

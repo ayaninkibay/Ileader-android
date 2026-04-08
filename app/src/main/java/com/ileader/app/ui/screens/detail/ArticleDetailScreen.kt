@@ -51,7 +51,7 @@ private val Border: Color @Composable get() = LocalAppColors.current.border
 enum class MediaContentType { VIDEO, PHOTO, ARTICLE }
 
 // ══════════════════════════════════════════════════════════
-// Mock data model for display
+// Display model
 // ══════════════════════════════════════════════════════════
 
 private data class MediaDetail(
@@ -77,7 +77,37 @@ private data class MediaDetail(
     val tags: List<String>
 )
 
-private val mockMediaItems = listOf(
+private fun articleToMediaDetail(article: com.ileader.app.data.remote.dto.ArticleDto): MediaDetail {
+    val contentType = when (article.category) {
+        "video" -> MediaContentType.VIDEO
+        "photo", "gallery" -> MediaContentType.PHOTO
+        else -> MediaContentType.ARTICLE
+    }
+    return MediaDetail(
+        title = article.title,
+        description = article.excerpt ?: "",
+        content = article.content ?: "",
+        type = contentType,
+        category = article.category ?: "news",
+        coverImageUrl = article.coverImageUrl,
+        publishedAt = article.publishedAt ?: article.createdAt ?: "",
+        views = article.views,
+        duration = null,
+        authorName = article.profiles?.name ?: "",
+        authorAvatarUrl = article.profiles?.avatarUrl,
+        authorCity = article.profiles?.city ?: "",
+        authorEmail = article.profiles?.email ?: "",
+        authorArticlesCount = 0,
+        authorTotalViews = "${article.views}",
+        authorRating = "—",
+        sportName = article.sports?.name ?: "",
+        tournamentName = null,
+        galleryImages = emptyList(),
+        tags = article.tags ?: emptyList()
+    )
+}
+
+/* mockMediaItems removed — was listOf(
     // 0 — Video
     MediaDetail(
         title = "Лучшие моменты — Картинг 2026",
@@ -279,14 +309,9 @@ private val mockMediaItems = listOf(
         sportName = "Картинг",
         tournamentName = null,
         galleryImages = emptyList(),
-        tags = listOf("топ-5", "финиши", "картинг", "лучшие моменты")
+        ...mock data removed...
     )
-)
-
-private fun getMockMedia(articleId: String): MediaDetail {
-    val index = articleId.removePrefix("mock_").toIntOrNull()?.coerceIn(0, mockMediaItems.lastIndex) ?: 0
-    return mockMediaItems[index]
-}
+) */
 
 // ══════════════════════════════════════════════════════════
 // Screen entry point
@@ -298,15 +323,29 @@ fun ArticleDetailScreen(
     onBack: () -> Unit,
     viewModel: ArticleDetailViewModel = viewModel()
 ) {
-    // Always use mock data for now
-    val media = remember(articleId) { getMockMedia(articleId) }
+    LaunchedEffect(articleId) { viewModel.load(articleId) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Bg)
-    ) {
-        MediaDetailContent(media = media, onBack = onBack)
+    when (val state = viewModel.state) {
+        is UiState.Loading -> {
+            Column(Modifier.fillMaxSize().background(Bg)) {
+                BackHeader("Статья", onBack)
+                LoadingScreen()
+            }
+        }
+        is UiState.Error -> {
+            Column(Modifier.fillMaxSize().background(Bg)) {
+                BackHeader("Статья", onBack)
+                ErrorScreen(state.message) { viewModel.load(articleId) }
+            }
+        }
+        is UiState.Success -> {
+            val media = remember(state.data) { articleToMediaDetail(state.data) }
+            Column(
+                modifier = Modifier.fillMaxSize().background(Bg)
+            ) {
+                MediaDetailContent(media = media, onBack = onBack)
+            }
+        }
     }
 }
 

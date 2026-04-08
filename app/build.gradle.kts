@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
     // TODO: Раскомментировать после добавления google-services.json в app/
     // alias(libs.plugins.google.services)
 }
@@ -86,6 +87,11 @@ dependencies {
 
     // DataStore (for caching & tokens)
     implementation(libs.datastore.preferences)
+
+    // Room (offline cache)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
     // Material Icons Extended (2000+ icons)
     implementation(libs.material.icons.extended)

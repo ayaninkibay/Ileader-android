@@ -2,6 +2,7 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
+import com.ileader.app.data.util.AppLogger
 import com.ileader.app.data.remote.dto.*
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -83,7 +84,7 @@ class TrainerRepository {
                     }
                     .decodeList<UserSportStatsDto>()
                     .firstOrNull()
-            } catch (_: Exception) { null }
+            } catch (e: Exception) { AppLogger.w("TrainerRepo: ${e.message}"); null }
 
             TrainerAthleteData(
                 id = memberId,
@@ -249,7 +250,7 @@ class TrainerRepository {
                 }
                 .decodeList<UserSportStatsDto>()
             query.firstOrNull()
-        } catch (_: Exception) { null }
+        } catch (e: Exception) { AppLogger.w("TrainerRepo: ${e.message}"); null }
     }
 
     // ── INVITE ATHLETE ──

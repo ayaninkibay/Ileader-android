@@ -24,7 +24,7 @@ sealed class SportNavState {
     data class TournamentDetail(val id: String) : SportNavState()
     data class ArticleDetail(val id: String) : SportNavState()
     data class PublicProfile(val id: String) : SportNavState()
-    data class LeagueDetail(val name: String, val sportName: String, val imageUrl: String?) : SportNavState()
+    data class LeagueDetail(val id: String) : SportNavState()
     data class TeamDetail(val id: String) : SportNavState()
     data class AthleteProfile(val id: String) : SportNavState()
     data class RefereeProfile(val id: String) : SportNavState()
@@ -48,7 +48,7 @@ fun SportTab(user: User) {
                 onTournamentClick = { navState = SportNavState.TournamentDetail(it) },
                 onArticleClick = { navState = SportNavState.ArticleDetail(it) },
                 onProfileClick = { navState = SportNavState.PublicProfile(it) },
-                onLeagueClick = { name, sport, img -> navState = SportNavState.LeagueDetail(name, sport, img) },
+                onLeagueClick = { id -> navState = SportNavState.LeagueDetail(id) },
                 onTeamClick = { id, _, _ -> navState = SportNavState.TeamDetail(id) },
                 onAthleteProfileClick = { navState = SportNavState.AthleteProfile(it) },
                 onRefereeProfileClick = { navState = SportNavState.RefereeProfile(it) },
@@ -79,9 +79,7 @@ fun SportTab(user: User) {
                 onBack = { navState = SportNavState.Search }
             )
             is SportNavState.LeagueDetail -> LeagueDetailScreen(
-                leagueName = currentState.name,
-                sportName = currentState.sportName,
-                imageUrl = currentState.imageUrl,
+                leagueId = currentState.id,
                 onBack = { navState = SportNavState.Search },
                 onProfileClick = { navState = SportNavState.PublicProfile(it) }
             )

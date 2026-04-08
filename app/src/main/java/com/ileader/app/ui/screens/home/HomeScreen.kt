@@ -67,13 +67,18 @@ fun HomeScreen(
     }
 
     val state = viewModel.state
+    val isRefreshing = state.tournaments is UiState.Loading && state.news is UiState.Loading
 
     val colors = LocalAppColors.current
 
+    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.load() },
+        modifier = Modifier.fillMaxSize().background(Bg)
+    ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Bg),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
         // ── Header ──
@@ -175,18 +180,9 @@ fun HomeScreen(
             
         }
 
-        // ── Сообщество (лента активности) ──
-        item {
-            Spacer(Modifier.height(24.dp))
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SectionHeader(title = "Сообщество", action = "Все", onAction = onAllPeopleClick)
-                Spacer(Modifier.height(12.dp))
-            }
-        }
-        item {
-            CommunityFeed(onProfileClick = onProfileClick)
-        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
+    } // PullToRefreshBox
 }
 
 // ══════════════════════════════════════════════════════════
@@ -920,132 +916,6 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
     }
 }
 
-// ══════════════════════════════════════════════════════════
-// Community Feed (activity feed)
-// ══════════════════════════════════════════════════════════
-
-private enum class FeedEventType { RESULT, NEW_USER, REGISTRATION, NEW_TEAM, ACHIEVEMENT }
-
-private data class MockFeedEvent(
-    val type: FeedEventType,
-    val name: String,
-    val description: String,
-    val avatarLetter: String,
-    val timeAgo: String,
-    val sportName: String? = null
-)
-
-private val mockFeedEvents = listOf(
-    MockFeedEvent(FeedEventType.RESULT, "Алихан Тлеубаев", "Занял 🥇 на Кубке Алматы 2026", "А", "2ч назад", "Картинг"),
-    MockFeedEvent(FeedEventType.REGISTRATION, "Red Racers", "Зарегистрировались на Чемпионат РК", "R", "4ч назад", "Картинг"),
-    MockFeedEvent(FeedEventType.ACHIEVEMENT, "Марат Касымов", "Достиг рейтинга 1500", "М", "5ч назад", "Картинг"),
-    MockFeedEvent(FeedEventType.NEW_USER, "Данияр Серикбаев", "Присоединился к платформе", "Д", "вчера"),
-    MockFeedEvent(FeedEventType.RESULT, "Серик Абдуллаев", "Занял 🥈 на Весеннем Гран-При", "С", "вчера", "Картинг"),
-    MockFeedEvent(FeedEventType.NEW_TEAM, "Storm Eagles", "Новая команда на платформе", "S", "2 дня назад", "Стрельба"),
-    MockFeedEvent(FeedEventType.REGISTRATION, "Тимур Нурланов", "Зарегистрировался на Summer Cup", "Т", "2 дня назад", "Картинг")
-)
-
-@Composable
-private fun CommunityFeed(onProfileClick: (String) -> Unit) {
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        mockFeedEvents.forEach { event ->
-            FeedEventCard(event, onClick = { onProfileClick("mock-${event.name}") })
-        }
-    }
-}
-
-@Composable
-private fun FeedEventCard(event: MockFeedEvent, onClick: () -> Unit) {
-    val eventColor = when (event.type) {
-        FeedEventType.RESULT -> Color(0xFFCA8A04)
-        FeedEventType.NEW_USER -> Color(0xFF3B82F6)
-        FeedEventType.REGISTRATION -> Color(0xFF22C55E)
-        FeedEventType.NEW_TEAM -> Color(0xFF7C3AED)
-        FeedEventType.ACHIEVEMENT -> Color(0xFFEF4444)
-    }
-    val eventIcon = when (event.type) {
-        FeedEventType.RESULT -> Icons.Default.EmojiEvents
-        FeedEventType.NEW_USER -> Icons.Default.PersonAdd
-        FeedEventType.REGISTRATION -> Icons.Default.HowToReg
-        FeedEventType.NEW_TEAM -> Icons.Default.Groups
-        FeedEventType.ACHIEVEMENT -> Icons.Default.Star
-    }
-
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = CardBg,
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(
-            Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar with event color ring
-            Box(contentAlignment = Alignment.Center) {
-                Box(
-                    Modifier.size(46.dp).background(eventColor.copy(0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        event.avatarLetter,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = eventColor
-                    )
-                }
-                // Event type icon badge
-                Box(
-                    Modifier
-                        .size(20.dp)
-                        .align(Alignment.BottomEnd)
-                        .background(eventColor, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(eventIcon, null, tint = Color.White, modifier = Modifier.size(12.dp))
-                }
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(Modifier.weight(1f)) {
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                    Text(
-                        event.name,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(event.timeAgo, fontSize = 11.sp, color = TextMuted)
-                }
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        event.description,
-                        fontSize = 13.sp,
-                        color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (event.sportName != null) {
-                        Spacer(Modifier.width(6.dp))
-                        Surface(shape = RoundedCornerShape(50), color = eventColor.copy(0.1f)) {
-                            Row(Modifier.padding(horizontal = 6.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(sportIcon(event.sportName), null, tint = eventColor, modifier = Modifier.size(10.dp))
-                                Spacer(Modifier.width(3.dp))
-                                Text(event.sportName, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = eventColor)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 // ══════════════════════════════════════════════════════════
 // Utils

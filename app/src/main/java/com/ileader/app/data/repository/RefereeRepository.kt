@@ -2,6 +2,7 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
+import com.ileader.app.data.util.AppLogger
 import com.ileader.app.data.remote.dto.*
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -80,7 +81,7 @@ class RefereeRepository {
                         }
                         .data
                     Json.parseToJsonElement(data).jsonArray.size
-                } catch (_: Exception) { 0 }
+                } catch (e: Exception) { AppLogger.w("RefereeRepo: ${e.message}"); 0 }
             }
         }
 
@@ -135,7 +136,7 @@ class RefereeRepository {
                 }
                 .data
             Json.parseToJsonElement(data).jsonArray.size
-        } catch (_: Exception) { 0 }
+        } catch (e: Exception) { AppLogger.w("RefereeRepo: ${e.message}"); 0 }
 
         val matchesAll = client.from("bracket_matches")
             .select {
@@ -154,7 +155,7 @@ class RefereeRepository {
                 }
                 .decodeList<RefereeAssignmentDto>()
                 .firstOrNull()
-        } catch (_: Exception) { null }
+        } catch (e: Exception) { AppLogger.w("RefereeRepo: ${e.message}"); null }
 
         val locationStr = dto.locations?.let {
             buildString {

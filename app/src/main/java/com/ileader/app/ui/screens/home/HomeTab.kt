@@ -25,7 +25,7 @@ sealed class HomeNavState {
 }
 
 @Composable
-fun HomeTab(user: User) {
+fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
     var navState by remember { mutableStateOf<HomeNavState>(HomeNavState.Home) }
 
     when (val state = navState) {
@@ -36,9 +36,9 @@ fun HomeTab(user: User) {
             onProfileClick = { navState = HomeNavState.PublicProfile(it) },
             onRankingsClick = { navState = HomeNavState.Rankings },
             onNotificationsClick = { navState = HomeNavState.Notifications },
-            onAllNewsClick = { /* TODO: full news list */ },
-            onAllTournamentsClick = { /* TODO: full tournaments list */ },
-            onAllPeopleClick = { /* TODO: full people list */ }
+            onAllNewsClick = onNavigateToSport,
+            onAllTournamentsClick = onNavigateToSport,
+            onAllPeopleClick = onNavigateToSport
         )
         is HomeNavState.ArticleDetail -> ArticleDetailScreen(
             articleId = state.id,

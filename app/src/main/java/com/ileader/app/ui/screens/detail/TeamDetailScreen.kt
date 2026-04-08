@@ -52,41 +52,6 @@ private fun roleColor(role: String?): Color = when (role) {
 }
 
 // ══════════════════════════════════════════════════════════
-// Mock achievements
-// ══════════════════════════════════════════════════════════
-
-private data class MockClubAchievement(val title: String, val description: String, val rarity: String)
-
-private val mockAchievements = listOf(
-    MockClubAchievement("Команда года 2025", "Лучшая команда сезона 2025", "legendary"),
-    MockClubAchievement("Серия побед", "5 побед подряд командой", "epic"),
-    MockClubAchievement("Полный подиум", "Все 3 призовых места — наши спортсмены", "rare")
-)
-
-private data class MockTeamTournament(val name: String, val sport: String, val status: String, val date: String, val location: String)
-
-private val mockActiveTournaments = listOf(
-    MockTeamTournament("Кубок Алматы 2026", "Картинг", "in_progress", "2026-04-05", "Almaty Karting Center"),
-    MockTeamTournament("Весенний Гран-При", "Картинг", "check_in", "2026-04-12", "Speed Arena")
-)
-
-private val mockUpcomingTournaments = listOf(
-    MockTeamTournament("Чемпионат РК", "Картинг", "registration_open", "2026-05-10", "Astana Motorsport"),
-    MockTeamTournament("Summer Cup", "Картинг", "registration_open", "2026-06-15", "Almaty Karting Center"),
-    MockTeamTournament("Кубок Независимости", "Картинг", "registration_open", "2026-07-06", "Speed Arena")
-)
-
-private data class MockBestResult(val athleteName: String, val tournamentName: String, val position: Int, val points: Int, val date: String)
-
-private val mockBestResults = listOf(
-    MockBestResult("Алихан Тлеубаев", "Кубок Алматы 2026", 1, 500, "2026-04-05"),
-    MockBestResult("Марат Касымов", "Весенний Гран-При", 2, 350, "2026-03-15"),
-    MockBestResult("Алихан Тлеубаев", "Зимний Кубок 2025", 1, 500, "2025-12-20"),
-    MockBestResult("Данияр Серикбаев", "Осенний Чемпионат", 3, 250, "2025-10-15"),
-    MockBestResult("Марат Касымов", "Летний Гран-При", 2, 350, "2025-07-10")
-)
-
-// ══════════════════════════════════════════════════════════
 // Main Screen
 // ══════════════════════════════════════════════════════════
 
@@ -243,66 +208,46 @@ private fun TeamContent(
         }
 
         // ── ACTIVE TOURNAMENTS ──
-        Spacer(Modifier.height(12.dp))
-        SectionCard("Активные турниры") {
-            mockActiveTournaments.forEachIndexed { idx, t ->
-                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                MockTournamentRow(t)
+        if (data.activeTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Активные турниры") {
+                data.activeTournaments.forEachIndexed { idx, t ->
+                    if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                    TeamTournamentRow(t)
+                }
             }
         }
 
         // ── UPCOMING TOURNAMENTS ──
-        Spacer(Modifier.height(12.dp))
-        SectionCard("Предстоящие турниры") {
-            mockUpcomingTournaments.forEachIndexed { idx, t ->
-                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                MockTournamentRow(t)
+        if (data.upcomingTournaments.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Предстоящие турниры") {
+                data.upcomingTournaments.forEachIndexed { idx, t ->
+                    if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                    TeamTournamentRow(t)
+                }
             }
         }
 
         // ── TOURNAMENT HISTORY ──
-        if (data.tournaments.isNotEmpty()) {
+        if (data.completedTournaments.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
-            TournamentHistorySection(data.tournaments)
+            TournamentHistorySection(data.completedTournaments)
         }
 
         // ── BEST RESULTS ──
-        Spacer(Modifier.height(12.dp))
-        SectionCard("Лучшие результаты") {
-            mockBestResults.forEachIndexed { idx, r ->
-                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
-                ResultRow(
-                    name = r.tournamentName,
-                    sport = r.athleteName,
-                    position = r.position,
-                    points = r.points,
-                    date = r.date
-                )
-            }
-        }
-
-        // ── ACHIEVEMENTS ──
-        Spacer(Modifier.height(12.dp))
-        SectionCard("Достижения") {
-            mockAchievements.forEachIndexed { idx, a ->
-                if (idx > 0) Spacer(Modifier.height(8.dp))
-                val rarityColor = when (a.rarity) { "legendary" -> Color(0xFFCA8A04); "epic" -> Color(0xFF7C3AED); "rare" -> Color(0xFF3B82F6); else -> TextMuted }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier.size(40.dp).background(rarityColor.copy(0.12f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.EmojiEvents, null, tint = rarityColor, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(a.title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                        Text(a.description, fontSize = 12.sp, color = TextMuted)
-                    }
-                    Surface(shape = RoundedCornerShape(50), color = rarityColor.copy(0.12f)) {
-                        Text(when (a.rarity) { "legendary" -> "Легендарное"; "epic" -> "Эпическое"; "rare" -> "Редкое"; else -> "Обычное" },
-                            Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = rarityColor)
-                    }
+        if (data.results.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            SectionCard("Лучшие результаты") {
+                data.results.forEachIndexed { idx, r ->
+                    if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 8.dp))
+                    ResultRow(
+                        name = r.tournaments?.name ?: "Турнир",
+                        sport = r.profiles?.name ?: "",
+                        position = r.position,
+                        points = r.points ?: 0,
+                        date = r.tournaments?.startDate ?: ""
+                    )
                 }
             }
         }
@@ -358,51 +303,7 @@ private fun MemberRow(member: TeamMemberDto) {
 }
 
 // ══════════════════════════════════════════════════════════
-// Mock Tournament Row (for active/upcoming)
-// ══════════════════════════════════════════════════════════
-
-@Composable
-private fun MockTournamentRow(t: MockTeamTournament) {
-    val statusColor = when (t.status) {
-        "in_progress" -> Color(0xFF22C55E); "check_in" -> Color(0xFFF59E0B)
-        "registration_open" -> Color(0xFF3B82F6); else -> TextMuted
-    }
-    val statusLabel = when (t.status) {
-        "in_progress" -> "Идёт"; "check_in" -> "Check-in"
-        "registration_open" -> "Регистрация"; else -> t.status
-    }
-
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            Modifier.size(44.dp).background(statusColor.copy(0.1f), RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.EmojiEvents, null, tint = statusColor, modifier = Modifier.size(20.dp))
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(t.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(t.sport, fontSize = 12.sp, color = TextMuted)
-                Text("·", fontSize = 12.sp, color = TextMuted)
-                Text(t.location, fontSize = 12.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Surface(shape = RoundedCornerShape(50), color = statusColor.copy(0.12f)) {
-                Text(statusLabel, Modifier.padding(horizontal = 8.dp, vertical = 3.dp), fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
-            }
-            Spacer(Modifier.height(2.dp))
-            Text(formatDateShort(t.date), fontSize = 11.sp, color = TextMuted)
-        }
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// Real Tournament Row (for history with real data)
+// Tournament Row
 // ══════════════════════════════════════════════════════════
 
 @Composable

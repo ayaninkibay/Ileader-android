@@ -2,6 +2,10 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.local.AppDatabase
+import com.ileader.app.data.local.toCached
+import com.ileader.app.data.local.toDto
+import com.ileader.app.data.util.AppLogger
 import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -12,10 +16,18 @@ import kotlinx.coroutines.sync.withLock
 
 class ViewerRepository {
     private val client = SupabaseModule.client
+    private val db: AppDatabase? get() = dbInstance
 
     companion object {
         private val roleIdCache = mutableMapOf<String, String>()
         private val roleIdMutex = Mutex()
+
+        @Volatile
+        var dbInstance: AppDatabase? = null
+
+        fun init(db: AppDatabase) {
+            dbInstance = db
+        }
     }
 
     private suspend fun getRoleId(roleName: String): String {
@@ -50,9 +62,21 @@ class ViewerRepository {
     }
 
     suspend fun getSports(): List<SportDto> {
-        return client.from("sports")
-            .select { filter { eq("is_active", true) } }
-            .decodeList<SportDto>()
+        return try {
+            val result = client.from("sports")
+                .select { filter { eq("is_active", true) } }
+                .decodeList<SportDto>()
+            // Cache for offline
+            db?.sportDao()?.let { dao ->
+                dao.deleteAll()
+                dao.insertAll(result.map { it.toCached() })
+            }
+            result
+        } catch (e: Exception) {
+            AppLogger.w("ViewerRepo.getSports: ${e.message}")
+            // Fallback to cache
+            db?.sportDao()?.getAll()?.map { it.toDto() } ?: emptyList()
+        }
     }
 
     suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getUpcomingTournaments") {
@@ -87,14 +111,25 @@ class ViewerRepository {
     // TOURNAMENTS
     // ══════════════════════════════════════════════════════════
 
-    suspend fun getPublicTournaments(): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getPublicTournaments") {
-        client.from("v_tournament_with_counts")
-            .select {
-                filter { eq("visibility", "public") }
-                order("start_date", Order.DESCENDING)
-                limit(100)
+    suspend fun getPublicTournaments(): List<TournamentWithCountsDto> {
+        return try {
+            val result = client.from("v_tournament_with_counts")
+                .select {
+                    filter { eq("visibility", "public") }
+                    order("start_date", Order.DESCENDING)
+                    limit(100)
+                }
+                .decodeList<TournamentWithCountsDto>()
+            // Cache for offline
+            db?.tournamentDao()?.let { dao ->
+                dao.deleteAll()
+                dao.insertAll(result.map { it.toCached() })
             }
-            .decodeList<TournamentWithCountsDto>()
+            result
+        } catch (e: Exception) {
+            AppLogger.w("ViewerRepo.getPublicTournaments: ${e.message}")
+            db?.tournamentDao()?.getAll()?.map { it.toDto() } ?: throw e
+        }
     }
 
     suspend fun getTournamentDetail(tournamentId: String): TournamentDto = safeApiCall("ViewerRepo.getTournamentDetail") {
@@ -297,7 +332,7 @@ class ViewerRepository {
             files.filter { f ->
                 f.name.endsWith(".jpeg") || f.name.endsWith(".jpg") || f.name.endsWith(".png") || f.name.endsWith(".webp")
             }.map { f -> bucket.publicUrl("$sportSlug/${f.name}") }
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     // ══════════════════════════════════════════════════════════
@@ -349,7 +384,7 @@ class ViewerRepository {
                 .select(Columns.raw("tournament_id, referee_id, role, tournaments(id, name, status, start_date, sports(id, name))"))
                 { filter { eq("referee_id", userId) } }
                 .decodeList<RefereeAssignmentDto>()
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     suspend fun getRefereeAssignmentsFull(userId: String): List<RefereeAssignmentDto> {
@@ -358,7 +393,7 @@ class ViewerRepository {
                 .select(Columns.raw("tournament_id, referee_id, role, assigned_at, tournaments(id, name, status, start_date, end_date, image_url, sport_id, sports(id, name), locations(id, name, city))"))
                 { filter { eq("referee_id", userId) } }
                 .decodeList<RefereeAssignmentDto>()
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     suspend fun getUserLicense(userId: String): LicenseDto? {
@@ -368,7 +403,7 @@ class ViewerRepository {
                 { filter { eq("user_id", userId) } }
                 .decodeList<LicenseDto>()
                 .firstOrNull()
-        } catch (_: Exception) { null }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); null }
     }
 
     suspend fun getUserGoals(userId: String): List<GoalDto> {
@@ -379,7 +414,7 @@ class ViewerRepository {
                     order("created_at", Order.DESCENDING)
                 }
                 .decodeList<GoalDto>()
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     // ══════════════════════════════════════════════════════════
@@ -432,7 +467,7 @@ class ViewerRepository {
             if (ownedTeam != null) {
                 TeamMembershipDto(teamId = ownedTeam.id, userId = athleteId, role = "captain", teams = ownedTeam)
             } else null
-        } catch (_: Exception) { null }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); null }
     }
 
     suspend fun getTeamTournamentIds(teamId: String): List<String> {
@@ -443,7 +478,7 @@ class ViewerRepository {
                 .decodeList<ParticipantTournamentIdDto>()
                 .mapNotNull { it.tournamentId }
                 .distinct()
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     suspend fun getTeamDetail(teamId: String): TeamDto {
@@ -458,6 +493,19 @@ class ViewerRepository {
             .select(Columns.raw("*, profiles(name, avatar_url, city)"))
             { filter { eq("team_id", teamId) } }
             .decodeList<TeamMemberDto>()
+    }
+
+    suspend fun getTeamMemberResults(memberIds: List<String>, limit: Int = 10): List<ResultDto> {
+        return try {
+            client.from("tournament_results")
+                .select(Columns.raw("*, profiles(id, name), tournaments(id, name, start_date, sport_id, sports(id, name))"))
+                {
+                    filter { isIn("athlete_id", memberIds) }
+                    order("position", Order.ASCENDING)
+                    limit(limit.toLong())
+                }
+                .decodeList<ResultDto>()
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     // ══════════════════════════════════════════════════════════
@@ -484,7 +532,7 @@ class ViewerRepository {
         return try {
             kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                 .decodeFromString<List<LegalPageDto>>(row.value ?: "[]")
-        } catch (_: Exception) { emptyList() }
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
     }
 
     suspend fun getUserTournaments(userId: String, limit: Int = 10): List<TournamentWithCountsDto> {
@@ -505,6 +553,75 @@ class ViewerRepository {
                 limit(limit.toLong())
             }
             .decodeList<TournamentWithCountsDto>()
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // LEAGUES
+    // ══════════════════════════════════════════════════════════
+
+    suspend fun getLeagues(): List<LeagueDto> {
+        return try {
+            client.from("leagues")
+                .select(Columns.raw("*, sports(id, name), profiles(id, name)"))
+                { order("created_at", Order.DESCENDING) }
+                .decodeList<LeagueDto>()
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
+    }
+
+    suspend fun getLeagueById(leagueId: String): LeagueDto {
+        return client.from("leagues")
+            .select(Columns.raw("*, sports(id, name), profiles(id, name)"))
+            { filter { eq("id", leagueId) } }
+            .decodeSingle<LeagueDto>()
+    }
+
+    suspend fun getLeagueStages(leagueId: String): List<LeagueStageDto> {
+        return try {
+            client.from("league_stages")
+                .select(Columns.raw("*, tournaments(id, name, start_date)"))
+                {
+                    filter { eq("league_id", leagueId) }
+                    order("stage_number", Order.ASCENDING)
+                }
+                .decodeList<LeagueStageDto>()
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
+    }
+
+    suspend fun getLeagueStandings(leagueId: String): List<LeagueStandingDto> {
+        return try {
+            client.from("league_standings")
+                .select(Columns.raw("*, profiles(id, name, avatar_url)"))
+                {
+                    filter { eq("league_id", leagueId) }
+                    order("total_points", Order.DESCENDING)
+                }
+                .decodeList<LeagueStandingDto>()
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); emptyList() }
+    }
+
+    suspend fun getLeagueParticipantCount(leagueId: String): Int {
+        return try {
+            client.from("league_standings")
+                .select(Columns.raw("id"))
+                { filter { eq("league_id", leagueId) } }
+                .decodeList<IdOnlyDto>()
+                .size
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); 0 }
+    }
+
+    suspend fun getLeagueCompletedStages(leagueId: String): Int {
+        return try {
+            client.from("league_stages")
+                .select(Columns.raw("id"))
+                {
+                    filter {
+                        eq("league_id", leagueId)
+                        eq("status", "completed")
+                    }
+                }
+                .decodeList<IdOnlyDto>()
+                .size
+        } catch (e: Exception) { AppLogger.w("ViewerRepo: ${e.message}"); 0 }
     }
 }
 

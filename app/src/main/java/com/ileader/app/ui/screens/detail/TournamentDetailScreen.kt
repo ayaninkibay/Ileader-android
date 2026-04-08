@@ -207,6 +207,7 @@ private fun HeroHeader(
     onBack: () -> Unit,
     accentColor: Color
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val sportName = tournament.sports?.name ?: ""
     val heroColor = if (sportName.isNotEmpty()) sportColor(sportName) else accentColor
     val heroImage = tournament.imageUrl
@@ -282,7 +283,15 @@ private fun HeroHeader(
                 }
                 Spacer(Modifier.width(8.dp))
                 Box(
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.3f)),
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.3f))
+                        .clickable {
+                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(android.content.Intent.EXTRA_TEXT, "https://ileader.kz/tournaments/${tournament.id}")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, tournament.name)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Поделиться"))
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(20.dp))
@@ -680,46 +689,23 @@ private fun OverviewTab(
 
         // ── Teams ──
         val teams = remember(data.participants) {
-            val real = data.participants.filter { it.teams?.name != null }
+            data.participants.filter { it.teams?.name != null }
                 .groupBy { it.teamId }
                 .mapNotNull { (teamId, members) ->
                     val teamName = members.firstOrNull()?.teams?.name ?: return@mapNotNull null
                     Triple(teamId ?: "", teamName, members.map { (it.profiles?.name ?: "?") to it.profiles?.avatarUrl })
                 }
-            real.ifEmpty {
-                // Mock teams
-                listOf(
-                    Triple("1", "Red Racers", listOf("Алихан Т." to null, "Марат К." to null, "Данияр С." to null, "Тимур Н." to null)),
-                    Triple("2", "Storm Eagles", listOf("Аян Б." to null, "Ерлан Ж." to null, "Нурлан А." to null))
-                )
-            }
         }
-        Spacer(Modifier.height(8.dp))
-        MockTeamsSection(teams, onAthleteProfileClick, onTeamClick)
+        if (teams.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            TeamsSection(teams, onAthleteProfileClick, onTeamClick)
+        }
 
         // ── Referees ──
-        val referees = remember(data.referees) {
-            data.referees.ifEmpty {
-                // Mock referees
-                listOf(
-                    MockReferee("Серик Абдуллаев", "head", null),
-                    MockReferee("Кайрат Жумабеков", "assistant", null),
-                    MockReferee("Бауыржан Тулеев", "line", null)
-                )
-            }
+        if (data.referees.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            RealRefereesSection(data.referees, onRefereeProfileClick)
         }
-        Spacer(Modifier.height(8.dp))
-        MockRefereesSection(referees, data.referees.isEmpty(), onRefereeProfileClick)
-
-        // ── Trainers ──
-        val mockTrainers = remember {
-            listOf(
-                MockTrainer("Ержан Каримов", "Red Racers", null),
-                MockTrainer("Алмас Сулейменов", "Storm Eagles", null)
-            )
-        }
-        Spacer(Modifier.height(8.dp))
-        MockTrainersSection(mockTrainers, onTrainerProfileClick)
 
         // ── Sponsors ──
         if (data.sponsors.isNotEmpty()) {
@@ -1115,15 +1101,13 @@ private fun ResultsSection(results: List<ResultDto>, onProfileClick: (String) ->
 // Mock data classes
 // ══════════════════════════════════════════════════════════
 
-private data class MockReferee(val name: String, val role: String, val avatarUrl: String?)
-private data class MockTrainer(val name: String, val teamName: String, val avatarUrl: String?)
 
 // ══════════════════════════════════════════════════════════
 // TEAMS SECTION (mock-compatible)
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun MockTeamsSection(
+private fun TeamsSection(
     teams: List<Triple<String, String, List<Pair<String, String?>>>>,
     onProfileClick: (String) -> Unit,
     onTeamClick: (String) -> Unit = {}
@@ -1185,34 +1169,23 @@ private fun MockTeamsSection(
 }
 
 // ══════════════════════════════════════════════════════════
-// REFEREES SECTION (mock-compatible)
+// REFEREES SECTION
 // ══════════════════════════════════════════════════════════
 
 @Composable
-private fun MockRefereesSection(
-    referees: Any, // List<RefereeAssignmentDto> or List<MockReferee>
-    isMock: Boolean,
+private fun RealRefereesSection(
+    referees: List<RefereeAssignmentDto>,
     onProfileClick: (String) -> Unit
 ) {
     SectionCard(title = "Судьи") {
-        @Suppress("UNCHECKED_CAST")
-        if (isMock) {
-            val mocks = referees as List<MockReferee>
-            mocks.forEachIndexed { idx, ref ->
-                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
-                RefereeRow(name = ref.name, role = ref.role, avatarUrl = ref.avatarUrl, onClick = { onProfileClick("mock-referee-$idx") })
-            }
-        } else {
-            val real = referees as List<RefereeAssignmentDto>
-            real.forEachIndexed { idx, ref ->
-                if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
-                RefereeRow(
-                    name = ref.profiles?.name ?: "Судья",
-                    role = ref.role ?: "referee",
-                    avatarUrl = ref.profiles?.avatarUrl,
-                    onClick = { ref.refereeId?.let { onProfileClick(it) } }
-                )
-            }
+        referees.forEachIndexed { idx, ref ->
+            if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
+            RefereeRow(
+                name = ref.profiles?.name ?: "Судья",
+                role = ref.role ?: "referee",
+                avatarUrl = ref.profiles?.avatarUrl,
+                onClick = { ref.refereeId?.let { onProfileClick(it) } }
+            )
         }
     }
 }
@@ -1257,46 +1230,6 @@ private fun RefereeRow(name: String, role: String, avatarUrl: String?, onClick: 
     }
 }
 
-// ══════════════════════════════════════════════════════════
-// TRAINERS SECTION (mock)
-// ══════════════════════════════════════════════════════════
-
-@Composable
-private fun MockTrainersSection(
-    trainers: List<MockTrainer>,
-    onProfileClick: (String) -> Unit
-) {
-    SectionCard(title = "Тренера") {
-        trainers.forEachIndexed { idx, trainer ->
-            if (idx > 0) HorizontalDivider(thickness = 0.5.dp, color = Border.copy(0.15f), modifier = Modifier.padding(vertical = 6.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onProfileClick("mock-trainer-$idx") }
-                    .padding(vertical = 4.dp)
-            ) {
-                UserAvatar(avatarUrl = trainer.avatarUrl, name = trainer.name, size = 42.dp)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(trainer.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Spacer(Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.People, null, tint = TextMuted, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(trainer.teamName, fontSize = 12.sp, color = TextMuted)
-                    }
-                }
-                Box(
-                    Modifier.size(32.dp).background(Color(0xFF059669).copy(0.1f), RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.School, null, tint = Color(0xFF059669), modifier = Modifier.size(16.dp))
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun SponsorsSection(sponsors: List<TournamentSponsorshipDto>, onProfileClick: (String) -> Unit = {}) {
@@ -1645,19 +1578,6 @@ private fun getButtonConfig(user: User, status: String, regState: RegistrationSt
             else -> null
         }
         else -> null
-    }
-}
-
-// ══════════════════════════════════════════════════════════
-// Shared Components
-// ══════════════════════════════════════════════════════════
-
-@Composable
-private fun SectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    DarkCardPadded(modifier = modifier.padding(horizontal = 16.dp)) {
-        Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary, letterSpacing = (-0.3).sp)
-        Spacer(Modifier.height(12.dp))
-        content()
     }
 }
 

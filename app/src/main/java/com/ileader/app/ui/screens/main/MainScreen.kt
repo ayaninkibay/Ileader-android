@@ -74,7 +74,10 @@ fun MainScreen(
                     .padding(bottom = 74.dp)
             ) {
                 when (selectedRoute) {
-                    "home" -> HomeTab(user = user)
+                    "home" -> HomeTab(
+                        user = user,
+                        onNavigateToSport = { selectedRoute = "sport" }
+                    )
                     "sport" -> SportTab(user = user)
                     "my_tournaments" -> {
                         if (user.role == UserRole.MEDIA) {

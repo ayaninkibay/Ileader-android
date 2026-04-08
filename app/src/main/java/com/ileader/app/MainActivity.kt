@@ -13,7 +13,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ileader.app.data.DeepLinkHandler
 import com.ileader.app.data.DeepLinkTarget
+import com.ileader.app.data.local.AppDatabase
 import com.ileader.app.data.notifications.NotificationHelper
+import com.ileader.app.data.repository.ViewerRepository
 import com.ileader.app.data.preferences.AppLanguage
 import com.ileader.app.data.preferences.LanguagePreference
 import com.ileader.app.data.preferences.ThemePreference
@@ -35,6 +37,9 @@ class MainActivity : ComponentActivity() {
 
         // Создаём каналы уведомлений (Android 8+)
         NotificationHelper.createNotificationChannels(this)
+
+        // Инициализация Room кэша
+        ViewerRepository.init(AppDatabase.getInstance(this))
 
         // Обработка deep link при запуске
         _deepLinkTarget.value = DeepLinkHandler.parse(intent)
