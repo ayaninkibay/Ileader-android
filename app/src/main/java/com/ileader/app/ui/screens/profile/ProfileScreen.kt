@@ -74,7 +74,9 @@ fun ProfileScreen(
     onSettings: () -> Unit = {},
     onTournamentClick: (String) -> Unit = {},
     onArticles: () -> Unit = {},
-    onTeamClick: (String) -> Unit = {}
+    onTeamClick: (String) -> Unit = {},
+    onAcademy: () -> Unit = {},
+    onFamily: () -> Unit = {}
 ) {
     val vm: ProfileViewModel = viewModel()
     val profileState by vm.profile.collectAsState()
@@ -431,6 +433,14 @@ fun ProfileScreen(
                                 // My Team (trainer)
                                 if (user.role == UserRole.TRAINER) {
                                     MenuRow(icon = Icons.Outlined.Groups, label = "Команда", onClick = { myTeam?.teams?.id?.let { onTeamClick(it) } })
+                                    MenuDivider()
+                                }
+                                // Academy
+                                MenuRow(icon = Icons.Outlined.School, label = "Академия", onClick = onAcademy)
+                                MenuDivider()
+                                // Family (for athletes)
+                                if (user.role == UserRole.ATHLETE) {
+                                    MenuRow(icon = Icons.Outlined.FamilyRestroom, label = "Семья", onClick = onFamily)
                                     MenuDivider()
                                 }
                                 // Notifications

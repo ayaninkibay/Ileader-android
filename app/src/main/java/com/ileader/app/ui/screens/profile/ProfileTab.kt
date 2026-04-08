@@ -11,6 +11,8 @@ import com.ileader.app.data.models.UserRole
 import com.ileader.app.ui.screens.common.MyTicketsScreen
 import com.ileader.app.ui.screens.common.NotificationsScreen
 import com.ileader.app.ui.screens.detail.TeamDetailScreen
+import com.ileader.app.ui.screens.common.CoursesListScreen
+import com.ileader.app.ui.screens.common.CourseDetailScreen
 import com.ileader.app.ui.screens.media.MediaArticlesScreen
 import com.ileader.app.ui.screens.media.MediaArticleEditorScreen
 
@@ -24,6 +26,9 @@ private sealed class ProfileNavState {
     data object Articles : ProfileNavState()
     data class ArticleEditor(val articleId: String? = null) : ProfileNavState()
     data class TeamDetail(val teamId: String) : ProfileNavState()
+    data object Academy : ProfileNavState()
+    data class CourseDetail(val courseId: String) : ProfileNavState()
+    data object Family : ProfileNavState()
 }
 
 @Composable
@@ -41,7 +46,9 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 onGoalClick = { goal -> navState = ProfileNavState.GoalDetail(goal) },
                 onGoalCreate = { navState = ProfileNavState.GoalCreate },
                 onArticles = { navState = ProfileNavState.Articles },
-                onTeamClick = { navState = ProfileNavState.TeamDetail(it) }
+                onTeamClick = { navState = ProfileNavState.TeamDetail(it) },
+                onAcademy = { navState = ProfileNavState.Academy },
+                onFamily = { navState = ProfileNavState.Family }
             )
         }
         is ProfileNavState.Edit -> {
@@ -77,6 +84,26 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
         is ProfileNavState.TeamDetail -> {
             TeamDetailScreen(
                 teamId = state.teamId,
+                onBack = { navState = ProfileNavState.Main }
+            )
+        }
+        is ProfileNavState.Academy -> {
+            CoursesListScreen(
+                user = user,
+                onNavigateToDetail = { navState = ProfileNavState.CourseDetail(it) },
+                onBack = { navState = ProfileNavState.Main }
+            )
+        }
+        is ProfileNavState.CourseDetail -> {
+            CourseDetailScreen(
+                courseId = state.courseId,
+                user = user,
+                onBack = { navState = ProfileNavState.Academy }
+            )
+        }
+        is ProfileNavState.Family -> {
+            FamilyScreen(
+                user = user,
                 onBack = { navState = ProfileNavState.Main }
             )
         }
