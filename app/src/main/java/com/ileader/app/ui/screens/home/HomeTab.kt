@@ -68,9 +68,11 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) }
         )
-        is HomeNavState.RefereeProfile -> PublicProfileScreen(
-            userId = state.id,
-            onBack = { navState = HomeNavState.Home }
+        is HomeNavState.RefereeProfile -> RefereeProfilePage(
+            refereeId = state.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) },
+            onProfileClick = { navState = HomeNavState.PublicProfile(it) }
         )
         is HomeNavState.TrainerProfile -> TrainerProfilePage(
             trainerId = state.id,

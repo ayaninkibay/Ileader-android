@@ -28,7 +28,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
-import com.ileader.app.data.repository.TrainerTeamData
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.TrainerProfileData
