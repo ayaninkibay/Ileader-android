@@ -18,6 +18,7 @@ import com.ileader.app.ui.screens.admin.AdminVerificationsScreen
 import com.ileader.app.ui.screens.chat.ChatScreen
 import com.ileader.app.ui.screens.common.ManualCheckInScreen
 import com.ileader.app.ui.screens.common.QrScannerScreen
+import com.ileader.app.ui.screens.common.RefereeMatchesScreen
 import com.ileader.app.ui.screens.leagues.LeagueDetailScreen
 import com.ileader.app.ui.screens.leagues.LeaguesListScreen
 import com.ileader.app.ui.screens.location.LocationDetailScreen
@@ -57,6 +58,7 @@ sealed class HomeNavState {
     data class HelperManagement(val tournamentId: String, val tournamentName: String) : HomeNavState()
     data class RefereeManagement(val tournamentId: String, val tournamentName: String) : HomeNavState()
     data class InviteCodes(val tournamentId: String, val tournamentName: String) : HomeNavState()
+    object RefereeMatches : HomeNavState()
 }
 
 @Composable
@@ -78,7 +80,8 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             onAdminVerificationsClick = { navState = HomeNavState.AdminVerifications },
             onAdminSportRequestsClick = { navState = HomeNavState.AdminSportRequests },
             onAdminSettingsClick = { navState = HomeNavState.AdminSettings },
-            onLeaguesClick = { navState = HomeNavState.Leagues }
+            onLeaguesClick = { navState = HomeNavState.Leagues },
+            onRefereeMatchesClick = { navState = HomeNavState.RefereeMatches }
         )
         is HomeNavState.ArticleDetail -> ArticleDetailScreen(
             articleId = state.id,
@@ -195,11 +198,13 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
         is HomeNavState.QrScanner -> QrScannerScreen(
             tournamentId = state.tournamentId,
             tournamentName = state.tournamentName,
+            userId = user.id,
             onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
         )
         is HomeNavState.ManualCheckIn -> ManualCheckInScreen(
             tournamentId = state.tournamentId,
             tournamentName = state.tournamentName,
+            userId = user.id,
             onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
         )
         is HomeNavState.HelperManagement -> HelperManagementScreen(
@@ -218,6 +223,11 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             tournamentName = state.tournamentName,
             userId = user.id,
             onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
+        )
+        is HomeNavState.RefereeMatches -> RefereeMatchesScreen(
+            userId = user.id,
+            onBack = { navState = HomeNavState.Home },
+            onTournamentClick = { navState = HomeNavState.TournamentDetail(it) }
         )
     }
 }

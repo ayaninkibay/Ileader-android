@@ -6,10 +6,16 @@ import com.ileader.app.data.remote.dto.ParticipantDto
 import com.ileader.app.data.remote.dto.QrPayload
 import com.ileader.app.data.remote.dto.RefereeCheckInDto
 import com.ileader.app.data.remote.dto.SpectatorDto
+import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.repository.CheckInRepository
+import com.ileader.app.data.repository.HelperRepository
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 sealed class CheckInScanState {
@@ -42,9 +48,61 @@ sealed class CheckInScanState {
     object CheckedIn : CheckInScanState()
 }
 
+sealed class CheckInAccessState {
+    object Checking : CheckInAccessState()
+    object Allowed : CheckInAccessState()
+    data class Denied(val reason: String) : CheckInAccessState()
+}
+
+@Serializable
+private data class OrganizerIdDto(@SerialName("organizer_id") val organizerId: String? = null)
+
 class CheckInViewModel : ViewModel() {
     private val repo = CheckInRepository()
+    private val helperRepo = HelperRepository()
+    private val client = SupabaseModule.client
     private val json = Json { ignoreUnknownKeys = true }
+
+    private val _accessState = MutableStateFlow<CheckInAccessState>(CheckInAccessState.Checking)
+    val accessState: StateFlow<CheckInAccessState> = _accessState
+
+    /**
+     * Verify that the user is allowed to run check-ins for this tournament.
+     * Access is granted if the user is the tournament organizer OR an assigned helper.
+     * Call this once on screen mount before exposing scanner / manual UI.
+     */
+    fun verifyAccess(userId: String, tournamentId: String) {
+        viewModelScope.launch {
+            _accessState.value = CheckInAccessState.Checking
+            try {
+                val isOrganizer = try {
+                    val row = client.from("tournaments")
+                        .select(Columns.raw("organizer_id")) {
+                            filter { eq("id", tournamentId) }
+                        }
+                        .decodeSingleOrNull<OrganizerIdDto>()
+                    row?.organizerId == userId
+                } catch (_: Exception) { false }
+
+                if (isOrganizer) {
+                    _accessState.value = CheckInAccessState.Allowed
+                    return@launch
+                }
+
+                val isHelper = try {
+                    helperRepo.isHelperForTournament(userId, tournamentId)
+                } catch (_: Exception) { false }
+
+                _accessState.value = if (isHelper) {
+                    CheckInAccessState.Allowed
+                } else {
+                    CheckInAccessState.Denied("У вас нет прав на check-in этого турнира")
+                }
+            } catch (e: Exception) {
+                _accessState.value = CheckInAccessState.Denied(e.message ?: "Ошибка проверки доступа")
+            }
+        }
+    }
 
     private val _scanState = MutableStateFlow<CheckInScanState>(CheckInScanState.Idle)
     val scanState: StateFlow<CheckInScanState> = _scanState

@@ -204,6 +204,103 @@ class RefereeRepository {
             }
     }
 
+    suspend fun updateMatchSlot(matchId: String, data: BracketSlotUpdateDto) {
+        client.from("bracket_matches")
+            .update({
+                data.participant1Id?.let { set("participant1_id", it) }
+                data.participant2Id?.let { set("participant2_id", it) }
+            }) {
+                filter { eq("id", matchId) }
+            }
+    }
+
+    /**
+     * Get all matches across every tournament the referee is assigned to.
+     * Enriched with tournament metadata and participant names for the "My matches" screen.
+     */
+    suspend fun getMyMatches(userId: String): List<RefereeMyMatch> {
+        // Step 1: find all tournaments where user is referee
+        val assignments = client.from("tournament_referees")
+            .select(Columns.raw("tournament_id, tournaments(id, name, status, sports(name))")) {
+                filter { eq("referee_id", userId) }
+            }
+            .decodeList<RefereeAssignmentDto>()
+
+        val tournamentInfoMap = assignments.mapNotNull { a ->
+            a.tournaments?.let { t ->
+                t.id to RefereeMyMatchTournamentInfo(
+                    id = t.id,
+                    name = t.name,
+                    status = t.status ?: "",
+                    sportName = t.sports?.name ?: ""
+                )
+            }
+        }.toMap()
+
+        if (tournamentInfoMap.isEmpty()) return emptyList()
+
+        val tournamentIds = tournamentInfoMap.keys.toList()
+
+        // Step 2: fetch all matches in those tournaments
+        val matches = client.from("bracket_matches")
+            .select {
+                filter { isIn("tournament_id", tournamentIds) }
+                order("tournament_id", Order.ASCENDING)
+                order("round", Order.ASCENDING)
+                order("match_number", Order.ASCENDING)
+            }
+            .decodeList<BracketMatchDto>()
+
+        if (matches.isEmpty()) return emptyList()
+
+        // Step 3: fetch participant names for all involved tournaments
+        val participants = client.from("tournament_participants")
+            .select(Columns.raw("tournament_id, athlete_id, seed, profiles(id, name)")) {
+                filter { isIn("tournament_id", tournamentIds) }
+            }
+            .decodeList<ParticipantDto>()
+
+        val nameById = participants.associate {
+            it.athleteId to (it.profiles?.name ?: "")
+        }
+
+        // Step 4: map to domain
+        return matches.mapNotNull { m ->
+            val tInfo = tournamentInfoMap[m.tournamentId] ?: return@mapNotNull null
+            RefereeMyMatch(
+                matchId = m.id,
+                tournamentId = m.tournamentId,
+                tournamentName = tInfo.name,
+                tournamentStatus = tInfo.status,
+                sportName = tInfo.sportName,
+                round = m.round,
+                matchNumber = m.matchNumber,
+                bracketType = m.bracketType ?: "upper",
+                participant1Id = m.participant1Id,
+                participant2Id = m.participant2Id,
+                participant1Name = m.participant1Id?.let { pid ->
+                    if (pid.startsWith("tbd-")) null else nameById[pid]
+                },
+                participant2Name = m.participant2Id?.let { pid ->
+                    if (pid.startsWith("tbd-")) null else nameById[pid]
+                },
+                participant1Score = m.participant1Score,
+                participant2Score = m.participant2Score,
+                games = m.games?.map { g ->
+                    MatchGame(g.gameNumber, g.participant1Score, g.participant2Score, g.winnerId, g.status)
+                } ?: emptyList(),
+                winnerId = m.winnerId,
+                status = m.status,
+                groupId = m.groupId,
+                isBye = m.isBye ?: false
+            )
+        }.filter {
+            // Hide byes and unfilled TBD matches — referee can't do anything with them
+            !it.isBye && it.participant1Id != null && it.participant2Id != null &&
+            !(it.participant1Id.startsWith("tbd-") || it.participant2Id.startsWith("tbd-"))
+        }
+    }
+
     suspend fun startMatch(matchId: String) {
         client.from("bracket_matches")
             .update(mapOf("status" to "in_progress")) {

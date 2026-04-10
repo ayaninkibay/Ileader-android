@@ -1,8 +1,11 @@
+@file:OptIn(androidx.camera.core.ExperimentalGetImage::class)
+
 package com.ileader.app.ui.screens.common
 
 import android.Manifest
 import android.util.Size
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -36,6 +39,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.viewmodels.CheckInAccessState
 import com.ileader.app.ui.viewmodels.CheckInScanState
 import com.ileader.app.ui.viewmodels.CheckInViewModel
 import java.util.concurrent.Executors
@@ -48,11 +52,17 @@ import java.util.concurrent.Executors
 fun QrScannerScreen(
     tournamentId: String,
     tournamentName: String,
+    userId: String,
     onBack: () -> Unit
 ) {
     val vm: CheckInViewModel = viewModel()
     val scanState by vm.scanState.collectAsState()
+    val accessState by vm.accessState.collectAsState()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
+
+    LaunchedEffect(userId, tournamentId) {
+        vm.verifyAccess(userId, tournamentId)
+    }
 
     LaunchedEffect(Unit) {
         if (!cameraPermission.status.isGranted) cameraPermission.launchPermissionRequest()
@@ -61,6 +71,67 @@ fun QrScannerScreen(
     // Reset scan state when leaving
     DisposableEffect(Unit) {
         onDispose { vm.resetScan() }
+    }
+
+    // ── Access gate: require helper OR organizer role for this tournament ──
+    when (val access = accessState) {
+        is CheckInAccessState.Checking -> {
+            Column(
+                Modifier.fillMaxSize().background(DarkTheme.Bg).statusBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                BackHeader(tournamentName, onBack)
+                Spacer(Modifier.height(48.dp))
+                CircularProgressIndicator(color = DarkTheme.Accent)
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Проверка доступа…",
+                    fontSize = 14.sp,
+                    color = DarkTheme.TextMuted
+                )
+            }
+            return
+        }
+        is CheckInAccessState.Denied -> {
+            Column(
+                Modifier.fillMaxSize().background(DarkTheme.Bg).statusBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                BackHeader(tournamentName, onBack)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Filled.ErrorOutline,
+                    null,
+                    tint = DarkTheme.Accent,
+                    modifier = Modifier.size(56.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Доступ запрещён",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkTheme.TextPrimary
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    access.reason,
+                    fontSize = 14.sp,
+                    color = DarkTheme.TextMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+                Spacer(Modifier.height(24.dp))
+                Button(
+                    onClick = onBack,
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkTheme.Accent),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Назад") }
+                Spacer(Modifier.weight(1f))
+            }
+            return
+        }
+        is CheckInAccessState.Allowed -> Unit
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -258,6 +329,7 @@ private fun ScannerCorners() {
     }
 }
 
+@OptIn(ExperimentalGetImage::class)
 @Composable
 private fun QrCameraPreview(onQrDetected: (String) -> Unit) {
     val context = LocalContext.current

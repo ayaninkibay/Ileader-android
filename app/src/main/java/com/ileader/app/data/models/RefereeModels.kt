@@ -109,6 +109,39 @@ data class RefereeMatch(
     val participants: Int
 )
 
+/**
+ * Match enriched with tournament context, used in the referee's cross-tournament
+ * "My matches" screen.
+ */
+data class RefereeMyMatch(
+    val matchId: String,
+    val tournamentId: String,
+    val tournamentName: String,
+    val tournamentStatus: String,
+    val sportName: String,
+    val round: Int,
+    val matchNumber: Int,
+    val bracketType: String,
+    val participant1Id: String?,
+    val participant2Id: String?,
+    val participant1Name: String?,
+    val participant2Name: String?,
+    val participant1Score: Int,
+    val participant2Score: Int,
+    val games: List<MatchGame>,
+    val winnerId: String?,
+    val status: String,
+    val groupId: String?,
+    val isBye: Boolean
+)
+
+internal data class RefereeMyMatchTournamentInfo(
+    val id: String,
+    val name: String,
+    val status: String,
+    val sportName: String
+)
+
 data class RefereeParticipant(
     val id: String,
     val name: String,

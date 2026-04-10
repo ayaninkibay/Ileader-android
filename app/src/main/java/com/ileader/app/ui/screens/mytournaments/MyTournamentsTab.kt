@@ -99,6 +99,7 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
             QrScannerScreen(
                 tournamentId = state.tournamentId,
                 tournamentName = state.tournamentName,
+                userId = user.id,
                 onBack = { navState = MyTournamentsNavState.List }
             )
         }
@@ -106,6 +107,7 @@ fun MyTournamentsTab(user: User, onSignOut: () -> Unit) {
             ManualCheckInScreen(
                 tournamentId = state.tournamentId,
                 tournamentName = state.tournamentName,
+                userId = user.id,
                 onBack = { navState = MyTournamentsNavState.List }
             )
         }

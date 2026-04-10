@@ -31,7 +31,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**
- * Shared QR ticket screen for both athletes and spectators
+ * Shared QR ticket screen for athletes, spectators and referees
  */
 @Composable
 fun QrTicketScreen(
@@ -39,7 +39,7 @@ fun QrTicketScreen(
     userId: String,
     tournamentId: String,
     tournamentName: String,
-    type: String, // "athlete" | "spectator"
+    type: String, // "athlete" | "spectator" | "referee"
     isCheckedIn: Boolean = false,
     onBack: () -> Unit
 ) {
@@ -49,8 +49,16 @@ fun QrTicketScreen(
         )
     }
 
-    val typeLabel = if (type == "spectator") "Зритель" else "Участник"
-    val typeBadgeColor = if (type == "spectator") Color(0xFF3B82F6) else DarkTheme.Accent
+    val typeLabel = when (type) {
+        "spectator" -> "Зритель"
+        "referee" -> "Судья"
+        else -> "Участник"
+    }
+    val typeBadgeColor = when (type) {
+        "spectator" -> Color(0xFF3B82F6)
+        "referee" -> Color(0xFFF59E0B)
+        else -> DarkTheme.Accent
+    }
 
     Column(
         Modifier

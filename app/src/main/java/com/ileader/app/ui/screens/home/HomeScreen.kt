@@ -73,6 +73,7 @@ fun HomeScreen(
     onAdminSportRequestsClick: () -> Unit = {},
     onAdminSettingsClick: () -> Unit = {},
     onLeaguesClick: () -> Unit = {},
+    onRefereeMatchesClick: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
@@ -208,7 +209,8 @@ fun HomeScreen(
             item {
                 RefereeDashboardSection(
                     dashboard = refDashboard,
-                    onTournamentClick = onTournamentClick
+                    onTournamentClick = onTournamentClick,
+                    onMyMatchesClick = onRefereeMatchesClick
                 )
             }
         }
@@ -1307,7 +1309,8 @@ private fun OrgStatCard(
 @Composable
 private fun RefereeDashboardSection(
     dashboard: RefereeDashboardState,
-    onTournamentClick: (String) -> Unit
+    onTournamentClick: (String) -> Unit,
+    onMyMatchesClick: () -> Unit = {}
 ) {
     val stats = dashboard.stats ?: return
 
@@ -1340,6 +1343,49 @@ private fun RefereeDashboardSection(
                 color = Color(0xFFF59E0B),
                 modifier = Modifier.weight(1f)
             )
+        }
+
+        // ── My matches quick action ──
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .clickable { onMyMatchesClick() },
+            shape = RoundedCornerShape(14.dp),
+            color = Accent
+        ) {
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.Gavel,
+                    null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Мои матчи",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        "Ввод результатов по всем турнирам",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(0.85f)
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForwardIos,
+                    null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
 
         // ── Active tournaments ──

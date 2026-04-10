@@ -44,6 +44,16 @@ data class MatchResultUpdateDto(
     val status: String = "completed"
 )
 
+/**
+ * Partial update used to place a participant into an empty slot of a downstream match
+ * (winner advancement via next_match_id / loser_next_match_id).
+ */
+@Serializable
+data class BracketSlotUpdateDto(
+    @SerialName("participant1_id") val participant1Id: String? = null,
+    @SerialName("participant2_id") val participant2Id: String? = null
+)
+
 @Serializable
 data class GroupStandingDto(
     @SerialName("participantId") val participantId: String,

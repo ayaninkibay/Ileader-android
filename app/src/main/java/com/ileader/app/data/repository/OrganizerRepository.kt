@@ -123,6 +123,12 @@ class OrganizerRepository {
             { filter { eq("id", tournamentId) } }
     }
 
+    suspend fun updateTournamentStage(tournamentId: String, stage: String?) {
+        client.from("tournaments")
+            .update({ set("current_stage", stage) })
+            { filter { eq("id", tournamentId) } }
+    }
+
     // ── PARTICIPANTS ──
 
     suspend fun getParticipants(tournamentId: String): List<ParticipantDto> {
@@ -247,6 +253,181 @@ class OrganizerRepository {
             }) {
                 filter { eq("id", matchId) }
             }
+    }
+
+    suspend fun updateMatchSlot(matchId: String, data: BracketSlotUpdateDto) {
+        client.from("bracket_matches")
+            .update({
+                data.participant1Id?.let { set("participant1_id", it) }
+                data.participant2Id?.let { set("participant2_id", it) }
+            }) {
+                filter { eq("id", matchId) }
+            }
+    }
+
+    suspend fun saveGroupStandings(groupId: String, standings: List<GroupStandingDto>) {
+        client.from("tournament_groups")
+            .update({ set("standings", standings) }) {
+                filter { eq("id", groupId) }
+            }
+    }
+
+    /**
+     * Advance tournament from group stage to playoffs:
+     * 1. Compute standings from completed group matches
+     * 2. Replace "tbd-A1", "tbd-B2" etc. placeholders in pre-generated playoff matches
+     *    with the actual athlete IDs based on group standings
+     * 3. Persist updated standings (with positions + qualified flag) to tournament_groups
+     *
+     * Returns the number of playoff slots filled.
+     */
+    suspend fun advanceToPlayoff(tournamentId: String, advancePerGroup: Int = 2): Int {
+        val allMatches = client.from("bracket_matches")
+            .select { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<BracketMatchDto>()
+
+        val groups = client.from("tournament_groups")
+            .select { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<TournamentGroupDto>()
+
+        if (groups.isEmpty()) {
+            throw IllegalStateException("Группы не найдены — это не групповой формат")
+        }
+
+        // All group-stage matches must be completed
+        val groupMatches = allMatches.filter { it.groupId != null }
+        val incomplete = groupMatches.count { it.status != "completed" }
+        if (incomplete > 0) {
+            throw IllegalStateException("Не завершены матчи группового этапа: $incomplete")
+        }
+
+        val groupNames = listOf("A", "B", "C", "D", "E", "F", "G", "H")
+
+        // tbd-placeholder -> actual athlete id
+        val tbdMap = mutableMapOf<String, String>()
+
+        groups.forEachIndexed { gIdx, group ->
+            val gLetter = groupNames.getOrElse(gIdx) { "${gIdx + 1}" }
+            val matches = groupMatches.filter { it.groupId == group.id }
+            val standings = computeStandings(matches, group.standings ?: emptyList())
+
+            // Persist standings (with updated positions + qualified flag)
+            val updatedStandings = standings.mapIndexed { index, s ->
+                s.copy(position = index + 1, qualified = index < advancePerGroup)
+            }
+            saveGroupStandings(group.id, updatedStandings)
+
+            // Fill tbd map: "tbd-A1" -> standings[0].participantId, "tbd-A2" -> standings[1], ...
+            for (pos in 1..advancePerGroup) {
+                val athlete = standings.getOrNull(pos - 1) ?: continue
+                tbdMap["tbd-$gLetter$pos"] = athlete.participantId
+            }
+        }
+
+        // Update playoff matches: swap any tbd-XY id with the real one
+        val playoffMatches = allMatches.filter { it.groupId == null }
+        var slotsFilled = 0
+        for (m in playoffMatches) {
+            val p1 = m.participant1Id
+            val p2 = m.participant2Id
+            val newP1 = if (p1 != null && p1.startsWith("tbd-")) tbdMap[p1] else null
+            val newP2 = if (p2 != null && p2.startsWith("tbd-")) tbdMap[p2] else null
+            if (newP1 == null && newP2 == null) continue
+
+            client.from("bracket_matches")
+                .update({
+                    newP1?.let { set("participant1_id", it) }
+                    newP2?.let { set("participant2_id", it) }
+                }) {
+                    filter { eq("id", m.id) }
+                }
+            if (newP1 != null) slotsFilled++
+            if (newP2 != null) slotsFilled++
+        }
+
+        // Mark tournament as entering playoff phase
+        updateTournamentStage(tournamentId, "playoff")
+
+        return slotsFilled
+    }
+
+    /**
+     * Standings computation: each completed match => winner gets 3 pts, draw 1-1,
+     * loss 0. Ranks by points desc, then by win difference, then gamesPlayed.
+     */
+    private fun computeStandings(
+        matches: List<BracketMatchDto>,
+        seedStandings: List<GroupStandingDto>
+    ): List<GroupStandingDto> {
+        // Start from seed (keeps names/teams/seeds) and reset counters
+        val byId = seedStandings.associateBy { it.participantId }.toMutableMap()
+
+        // Ensure everyone present in matches has a row
+        matches.forEach { m ->
+            listOfNotNull(m.participant1Id, m.participant2Id).forEach { pid ->
+                if (pid !in byId) {
+                    byId[pid] = GroupStandingDto(participantId = pid)
+                }
+            }
+        }
+
+        // Reset counters
+        val counters = byId.mapValues { (_, v) ->
+            v.copy(wins = 0, losses = 0, draws = 0, points = 0, gamesPlayed = 0)
+        }.toMutableMap()
+
+        for (m in matches) {
+            val p1 = m.participant1Id ?: continue
+            val p2 = m.participant2Id ?: continue
+            val winnerId = m.winnerId
+            val c1 = counters[p1] ?: continue
+            val c2 = counters[p2] ?: continue
+
+            when (winnerId) {
+                p1 -> {
+                    counters[p1] = c1.copy(
+                        wins = c1.wins + 1,
+                        points = c1.points + 3,
+                        gamesPlayed = c1.gamesPlayed + 1
+                    )
+                    counters[p2] = c2.copy(
+                        losses = c2.losses + 1,
+                        gamesPlayed = c2.gamesPlayed + 1
+                    )
+                }
+                p2 -> {
+                    counters[p2] = c2.copy(
+                        wins = c2.wins + 1,
+                        points = c2.points + 3,
+                        gamesPlayed = c2.gamesPlayed + 1
+                    )
+                    counters[p1] = c1.copy(
+                        losses = c1.losses + 1,
+                        gamesPlayed = c1.gamesPlayed + 1
+                    )
+                }
+                else -> {
+                    // draw
+                    counters[p1] = c1.copy(
+                        draws = c1.draws + 1,
+                        points = c1.points + 1,
+                        gamesPlayed = c1.gamesPlayed + 1
+                    )
+                    counters[p2] = c2.copy(
+                        draws = c2.draws + 1,
+                        points = c2.points + 1,
+                        gamesPlayed = c2.gamesPlayed + 1
+                    )
+                }
+            }
+        }
+
+        // Sort: points desc, wins desc, losses asc
+        return counters.values.sortedWith(
+            compareByDescending<GroupStandingDto> { it.points }
+                .thenByDescending { it.wins }
+                .thenBy { it.losses }
+        )
     }
 
     // ── LOCATIONS ──

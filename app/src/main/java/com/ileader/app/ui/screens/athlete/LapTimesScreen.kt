@@ -1,22 +1,27 @@
 package com.ileader.app.ui.screens.athlete
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.LapTimeItem
+import com.ileader.app.data.models.Tournament
+import com.ileader.app.data.models.TournamentStatus
 import com.ileader.app.data.remote.dto.LapTimeInsertDto
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.ui.components.*
@@ -35,13 +40,23 @@ fun LapTimesScreen(userId: String, onBack: () -> Unit) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var laps by remember { mutableStateOf<List<LapTimeItem>>(emptyList()) }
+    var activeTournaments by remember { mutableStateOf<List<Tournament>>(emptyList()) }
     var showDialog by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
 
     fun load() {
         scope.launch {
             loading = true; error = null
-            try { laps = repo.getLapTimes(userId) }
+            try {
+                laps = repo.getLapTimes(userId)
+                activeTournaments = try {
+                    repo.getMyTournaments(userId).filter {
+                        it.status == TournamentStatus.IN_PROGRESS ||
+                        it.status == TournamentStatus.CHECK_IN ||
+                        it.status == TournamentStatus.REGISTRATION_CLOSED
+                    }
+                } catch (_: Exception) { emptyList() }
+            }
             catch (e: Exception) { error = e.message ?: "Ошибка загрузки" }
             finally { loading = false }
         }
@@ -78,8 +93,9 @@ fun LapTimesScreen(userId: String, onBack: () -> Unit) {
 
     if (showDialog) {
         AddLapDialog(
+            tournaments = activeTournaments,
             onDismiss = { showDialog = false },
-            onSubmit = { time, conditions, equipment ->
+            onSubmit = { time, conditions, equipment, tournament ->
                 scope.launch {
                     try {
                         repo.addLapTime(LapTimeInsertDto(
@@ -87,7 +103,9 @@ fun LapTimesScreen(userId: String, onBack: () -> Unit) {
                             date = java.time.LocalDate.now().toString(),
                             timeSeconds = time,
                             conditions = conditions.ifBlank { null },
-                            equipment = equipment.ifBlank { null }
+                            equipment = equipment.ifBlank { null },
+                            tournamentId = tournament?.id,
+                            locationId = tournament?.locationId?.takeIf { it.isNotBlank() }
                         ))
                         showDialog = false
                         snackbar.showSnackbar("Добавлено")
@@ -140,10 +158,16 @@ private fun LapRow(l: LapTimeItem) {
 }
 
 @Composable
-private fun AddLapDialog(onDismiss: () -> Unit, onSubmit: (Double, String, String) -> Unit) {
+private fun AddLapDialog(
+    tournaments: List<Tournament>,
+    onDismiss: () -> Unit,
+    onSubmit: (Double, String, String, Tournament?) -> Unit
+) {
     var time by remember { mutableStateOf("") }
     var conditions by remember { mutableStateOf("") }
     var equipment by remember { mutableStateOf("") }
+    var selectedTournament by remember { mutableStateOf<Tournament?>(null) }
+    var tournamentMenuOpen by remember { mutableStateOf(false) }
     val parsed = time.replace(",", ".").toDoubleOrNull()
 
     AlertDialog(
@@ -158,10 +182,68 @@ private fun AddLapDialog(onDismiss: () -> Unit, onSubmit: (Double, String, Strin
                 DarkFormField("Условия", conditions, { conditions = it }, placeholder = "Сухо / Дождь")
                 Spacer(Modifier.height(8.dp))
                 DarkFormField("Оборудование", equipment, { equipment = it }, placeholder = "Шасси / двигатель")
+
+                if (tournaments.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "Турнир (опционально)",
+                        fontSize = 12.sp,
+                        color = TextMuted,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Bg,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { tournamentMenuOpen = true }
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    selectedTournament?.name ?: "Без привязки",
+                                    fontSize = 14.sp,
+                                    color = if (selectedTournament != null) TextPrimary else TextMuted,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(Icons.Default.ArrowDropDown, null, tint = TextMuted)
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = tournamentMenuOpen,
+                            onDismissRequest = { tournamentMenuOpen = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Без привязки") },
+                                onClick = {
+                                    selectedTournament = null
+                                    tournamentMenuOpen = false
+                                }
+                            )
+                            tournaments.forEach { t ->
+                                DropdownMenuItem(
+                                    text = { Text(t.name, fontSize = 14.sp) },
+                                    onClick = {
+                                        selectedTournament = t
+                                        tournamentMenuOpen = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { parsed?.let { onSubmit(it, conditions.trim(), equipment.trim()) } }, enabled = parsed != null && parsed > 0) {
+            TextButton(
+                onClick = { parsed?.let { onSubmit(it, conditions.trim(), equipment.trim(), selectedTournament) } },
+                enabled = parsed != null && parsed > 0
+            ) {
                 Text("Добавить", color = Accent, fontWeight = FontWeight.SemiBold)
             }
         },

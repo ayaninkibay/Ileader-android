@@ -26,5 +26,7 @@ data class LapTimeInsertDto(
     @SerialName("lap_number") val lapNumber: Int? = null,
     val conditions: String? = null,
     val equipment: String? = null,
-    @SerialName("is_best") val isBest: Boolean? = null
+    @SerialName("is_best") val isBest: Boolean? = null,
+    @SerialName("tournament_id") val tournamentId: String? = null,
+    @SerialName("location_id") val locationId: String? = null
 )

@@ -16,9 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.repository.CheckInRepository
 import com.ileader.app.data.repository.CheckInRepository.AttendeeInfo
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.viewmodels.CheckInAccessState
+import com.ileader.app.ui.viewmodels.CheckInViewModel
 import kotlinx.coroutines.launch
 
 private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
@@ -30,10 +34,17 @@ private val Accent: Color @Composable get() = DarkTheme.Accent
 fun ManualCheckInScreen(
     tournamentId: String,
     tournamentName: String,
+    userId: String,
     onBack: () -> Unit
 ) {
     val repo = remember { CheckInRepository() }
     val scope = rememberCoroutineScope()
+    val accessVm: CheckInViewModel = viewModel()
+    val accessState by accessVm.accessState.collectAsState()
+
+    LaunchedEffect(userId, tournamentId) {
+        accessVm.verifyAccess(userId, tournamentId)
+    }
 
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<AttendeeInfo>>(emptyList()) }
@@ -41,14 +52,66 @@ fun ManualCheckInScreen(
     var checkInMessage by remember { mutableStateOf<String?>(null) }
     var hasSearched by remember { mutableStateOf(false) }
 
-    // Load all attendees on start
-    LaunchedEffect(tournamentId) {
-        isSearching = true
-        try {
-            results = repo.searchAttendees(tournamentId, "")
-        } catch (_: Exception) { }
-        isSearching = false
-        hasSearched = true
+    // Load all attendees on start — only after access is granted
+    LaunchedEffect(tournamentId, accessState) {
+        if (accessState is CheckInAccessState.Allowed && !hasSearched) {
+            isSearching = true
+            try {
+                results = repo.searchAttendees(tournamentId, "")
+            } catch (_: Exception) { }
+            isSearching = false
+            hasSearched = true
+        }
+    }
+
+    // ── Access gate ──
+    when (val access = accessState) {
+        is CheckInAccessState.Checking -> {
+            Column(
+                Modifier.fillMaxSize().background(DarkTheme.Bg).statusBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                BackHeader(tournamentName, onBack)
+                Spacer(Modifier.height(48.dp))
+                CircularProgressIndicator(color = Accent)
+                Spacer(Modifier.height(16.dp))
+                Text("Проверка доступа…", fontSize = 14.sp, color = TextMuted)
+            }
+            return
+        }
+        is CheckInAccessState.Denied -> {
+            Column(
+                Modifier.fillMaxSize().background(DarkTheme.Bg).statusBarsPadding(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                BackHeader(tournamentName, onBack)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.Filled.ErrorOutline, null,
+                    tint = Accent, modifier = Modifier.size(56.dp)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text("Доступ запрещён", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    access.reason,
+                    fontSize = 14.sp,
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+                Spacer(Modifier.height(24.dp))
+                Button(
+                    onClick = onBack,
+                    colors = ButtonDefaults.buttonColors(containerColor = Accent),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Назад") }
+                Spacer(Modifier.weight(1f))
+            }
+            return
+        }
+        is CheckInAccessState.Allowed -> Unit
     }
 
     fun doSearch() {

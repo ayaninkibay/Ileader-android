@@ -41,6 +41,7 @@ data class TournamentDto(
     val prizes: List<String>? = null,
     val schedule: JsonElement? = null,
     @SerialName("stage_match_formats") val stageMatchFormats: JsonElement? = null,
+    @SerialName("current_stage") val currentStage: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     // JOIN fields

@@ -1138,7 +1138,8 @@ private fun BracketTab(
     var selectedMatch by remember { mutableStateOf<BracketMatch?>(null) }
 
     val isOrganizer = user.role == UserRole.ORGANIZER && data.tournament.organizerId == user.id
-    val canEdit = isOrganizer || user.role == UserRole.REFEREE
+    val isReferee = user.role == UserRole.REFEREE
+    val canEdit = isOrganizer || isReferee
     var showGenerateConfirm by remember { mutableStateOf(false) }
 
     // ── Generate bracket button (organizer only, when no bracket exists) ──
@@ -1207,6 +1208,120 @@ private fun BracketTab(
         )
     }
 
+    // ── Organizer: Advance to Playoff (groups format only) ──
+    if (isOrganizer && groups.isNotEmpty()) {
+        val groupMatches = data.bracket.filter { it.groupId != null }
+        val playoffMatches = data.bracket.filter { it.groupId == null }
+        val totalGroupMatches = groupMatches.size
+        val completedGroupMatches = groupMatches.count { it.status == "completed" }
+        // Use explicit current_stage field; fall back to tbd heuristic for older data
+        val currentStage = data.tournament.currentStage
+        val hasTbdSlots = playoffMatches.any {
+            it.participant1Id?.startsWith("tbd-") == true || it.participant2Id?.startsWith("tbd-") == true
+        }
+        val inGroupStage = currentStage == "group" || (currentStage == null && hasTbdSlots)
+        val allGroupsDone = totalGroupMatches > 0 && completedGroupMatches == totalGroupMatches
+
+        if (inGroupStage) {
+            var showAdvanceConfirm by remember { mutableStateOf(false) }
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp), color = CardBg
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.EmojiEvents, null, tint = Accent, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Групповой этап",
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            "$completedGroupMatches / $totalGroupMatches",
+                            fontSize = 12.sp, color = TextMuted
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (allGroupsDone) Accent else TextMuted.copy(0.3f))
+                            .clickable(enabled = allGroupsDone && !viewModel.advancingStage) {
+                                showAdvanceConfirm = true
+                            }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (viewModel.advancingStage) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Text(
+                                if (allGroupsDone) "Перейти в плей-офф" else "Завершите все матчи групп",
+                                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+
+            if (showAdvanceConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showAdvanceConfirm = false },
+                    title = { Text("Перейти в плей-офф?", fontWeight = FontWeight.SemiBold) },
+                    text = {
+                        Text(
+                            "Будут посчитаны итоговые таблицы групп, и лучшие участники займут места в сетке плей-офф.",
+                            fontSize = 14.sp
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.advanceToPlayoff(data.tournament.id)
+                            showAdvanceConfirm = false
+                        }) { Text("Перейти", color = Accent) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAdvanceConfirm = false }) { Text("Отмена") }
+                    }
+                )
+            }
+        }
+    }
+
+    // ── Stage badge (visible to all when tournament has stages) ──
+    data.tournament.currentStage?.let { stage ->
+        val (label, badgeColor) = when (stage) {
+            "group" -> "Групповой этап" to Color(0xFF3B82F6)
+            "playoff" -> "Плей-офф" to Accent
+            else -> null to null
+        }
+        if (label != null && badgeColor != null) {
+            Surface(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(50),
+                color = badgeColor.copy(alpha = 0.12f)
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        if (stage == "playoff") Icons.Filled.EmojiEvents else Icons.Filled.Groups,
+                        null,
+                        tint = badgeColor,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = badgeColor)
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+    }
+
     if (matches.isNotEmpty()) {
         SectionCard(title = "Турнирная сетка", modifier = Modifier.padding(horizontal = 4.dp)) {
             BracketView(
@@ -1224,10 +1339,10 @@ private fun BracketTab(
             canEdit = canEdit,
             onDismiss = { selectedMatch = null },
             onSaveResult = { matchId, games, winnerId ->
-                viewModel.saveMatchResult(data.tournament.id, matchId, games, winnerId)
+                viewModel.saveMatchResult(data.tournament.id, matchId, games, winnerId, asReferee = isReferee)
             },
             onRevert = { matchId ->
-                viewModel.revertMatch(data.tournament.id, matchId)
+                viewModel.revertMatch(data.tournament.id, matchId, asReferee = isReferee)
             }
         )
     }

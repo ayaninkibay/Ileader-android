@@ -14,6 +14,7 @@ import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.data.repository.HelperRepository
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.repository.RefereeRepository
 import com.ileader.app.data.repository.TrainerRepository
 import com.ileader.app.data.repository.TrainerTeamData
 import com.ileader.app.data.repository.ViewerRepository
@@ -44,6 +45,7 @@ class TournamentDetailViewModel : ViewModel() {
     private val viewerRepo = ViewerRepository()
     private val athleteRepo = AthleteRepository()
     private val organizerRepo = OrganizerRepository()
+    private val refereeRepo = RefereeRepository()
     private val helperRepo = HelperRepository()
     private val trainerRepo = TrainerRepository()
 
@@ -313,7 +315,13 @@ class TournamentDetailViewModel : ViewModel() {
 
     // ── Organizer/Referee: Match Result ──
 
-    fun saveMatchResult(tournamentId: String, matchId: String, games: List<MatchGame>, winnerId: String) {
+    fun saveMatchResult(
+        tournamentId: String,
+        matchId: String,
+        games: List<MatchGame>,
+        winnerId: String,
+        asReferee: Boolean = false
+    ) {
         viewModelScope.launch {
             try {
                 val p1Wins = games.count { it.participant1Score > it.participant2Score }
@@ -321,30 +329,74 @@ class TournamentDetailViewModel : ViewModel() {
                 val loserId = (state as? UiState.Success)?.data?.bracket?.find { it.id == matchId }?.let { m ->
                     if (winnerId == m.participant1Id) m.participant2Id else m.participant1Id
                 }
-                organizerRepo.updateMatch(
-                    matchId,
-                    MatchResultUpdateDto(
-                        participant1Score = p1Wins,
-                        participant2Score = p2Wins,
-                        games = games.map { g ->
-                            MatchGameDto(
-                                gameNumber = g.gameNumber,
-                                participant1Score = g.participant1Score,
-                                participant2Score = g.participant2Score,
-                                winnerId = g.winnerId,
-                                status = g.status
-                            )
-                        },
-                        winnerId = winnerId,
-                        loserId = loserId,
-                        status = "completed"
-                    )
+                val update = MatchResultUpdateDto(
+                    participant1Score = p1Wins,
+                    participant2Score = p2Wins,
+                    games = games.map { g ->
+                        MatchGameDto(
+                            gameNumber = g.gameNumber,
+                            participant1Score = g.participant1Score,
+                            participant2Score = g.participant2Score,
+                            winnerId = g.winnerId,
+                            status = g.status
+                        )
+                    },
+                    winnerId = winnerId,
+                    loserId = loserId,
+                    status = "completed"
                 )
+                if (asReferee) {
+                    refereeRepo.updateMatchResult(matchId, update)
+                } else {
+                    organizerRepo.updateMatch(matchId, update)
+                }
+                // Auto-advance winner/loser to next match (works for both organizer and referee)
+                autoAdvanceMatch(matchId, winnerId, loserId, asReferee)
                 snackbarMessage = "Результат сохранён"
                 load(tournamentId)
             } catch (e: Exception) {
                 snackbarMessage = e.message ?: "Ошибка сохранения результата"
             }
+        }
+    }
+
+    /**
+     * After a match is completed, propagate winner to nextMatchId and loser to loserNextMatchId.
+     * Fills the first empty participant slot. Silently ignores errors — saving result is primary.
+     */
+    private suspend fun autoAdvanceMatch(
+        matchId: String,
+        winnerId: String,
+        loserId: String?,
+        asReferee: Boolean
+    ) {
+        try {
+            val bracket = (state as? UiState.Success)?.data?.bracket ?: return
+            val match = bracket.find { it.id == matchId } ?: return
+
+            suspend fun placeInto(targetId: String, participantId: String) {
+                val target = bracket.find { it.id == targetId } ?: return
+                val slotIsP1 = target.participant1Id.isNullOrBlank()
+                val slotIsP2 = !slotIsP1 && target.participant2Id.isNullOrBlank()
+                if (!slotIsP1 && !slotIsP2) return // both slots filled
+                val update = if (slotIsP1) {
+                    BracketSlotUpdateDto(participant1Id = participantId)
+                } else {
+                    BracketSlotUpdateDto(participant2Id = participantId)
+                }
+                if (asReferee) {
+                    refereeRepo.updateMatchSlot(targetId, update)
+                } else {
+                    organizerRepo.updateMatchSlot(targetId, update)
+                }
+            }
+
+            match.nextMatchId?.let { placeInto(it, winnerId) }
+            if (loserId != null) {
+                match.loserNextMatchId?.let { placeInto(it, loserId) }
+            }
+        } catch (_: Exception) {
+            // auto-advance is best-effort
         }
     }
 
@@ -439,6 +491,10 @@ class TournamentDetailViewModel : ViewModel() {
                     organizerRepo.saveGroups(tournamentId, groupDtos)
                 }
 
+                // Set initial stage: "group" for group formats, null otherwise
+                val initialStage = if (groupDtos.isNotEmpty()) "group" else null
+                organizerRepo.updateTournamentStage(tournamentId, initialStage)
+
                 snackbarMessage = "Сетка сгенерирована (${matchDtos.size} матчей)"
                 load(tournamentId)
             } catch (e: Exception) {
@@ -466,20 +522,46 @@ class TournamentDetailViewModel : ViewModel() {
         }
     }
 
-    fun revertMatch(tournamentId: String, matchId: String) {
+    // ── Organizer: Advance to Playoff ──
+
+    var advancingStage by mutableStateOf(false)
+        private set
+
+    fun advanceToPlayoff(tournamentId: String, advancePerGroup: Int = 2) {
+        viewModelScope.launch {
+            advancingStage = true
+            try {
+                val filled = organizerRepo.advanceToPlayoff(tournamentId, advancePerGroup)
+                snackbarMessage = if (filled > 0) {
+                    "Плей-офф запущен: заполнено $filled мест"
+                } else {
+                    "Плей-офф уже заполнен"
+                }
+                load(tournamentId)
+            } catch (e: Exception) {
+                snackbarMessage = e.message ?: "Не удалось продвинуть этап"
+            } finally {
+                advancingStage = false
+            }
+        }
+    }
+
+    fun revertMatch(tournamentId: String, matchId: String, asReferee: Boolean = false) {
         viewModelScope.launch {
             try {
-                organizerRepo.updateMatch(
-                    matchId,
-                    MatchResultUpdateDto(
-                        participant1Score = 0,
-                        participant2Score = 0,
-                        games = null,
-                        winnerId = null,
-                        loserId = null,
-                        status = "scheduled"
-                    )
+                val update = MatchResultUpdateDto(
+                    participant1Score = 0,
+                    participant2Score = 0,
+                    games = null,
+                    winnerId = null,
+                    loserId = null,
+                    status = "scheduled"
                 )
+                if (asReferee) {
+                    refereeRepo.updateMatchResult(matchId, update)
+                } else {
+                    organizerRepo.updateMatch(matchId, update)
+                }
                 snackbarMessage = "Результат отменён"
                 load(tournamentId)
             } catch (e: Exception) {
