@@ -16,10 +16,16 @@ import com.ileader.app.ui.screens.admin.AdminSportRequestsScreen
 import com.ileader.app.ui.screens.admin.AdminUsersScreen
 import com.ileader.app.ui.screens.admin.AdminVerificationsScreen
 import com.ileader.app.ui.screens.chat.ChatScreen
+import com.ileader.app.ui.screens.common.ManualCheckInScreen
+import com.ileader.app.ui.screens.common.QrScannerScreen
 import com.ileader.app.ui.screens.leagues.LeagueDetailScreen
 import com.ileader.app.ui.screens.leagues.LeaguesListScreen
 import com.ileader.app.ui.screens.location.LocationDetailScreen
 import com.ileader.app.ui.screens.location.LocationReviewFormScreen
+import com.ileader.app.ui.screens.mytournaments.HelperManagementScreen
+import com.ileader.app.ui.screens.mytournaments.InviteCodesScreen
+import com.ileader.app.ui.screens.mytournaments.RefereeManagementScreen
+import com.ileader.app.ui.screens.mytournaments.TournamentEditScreen
 import com.ileader.app.ui.screens.sport.RankingsScreen
 import com.ileader.app.ui.viewmodels.StartConversationViewModel
 
@@ -44,6 +50,13 @@ sealed class HomeNavState {
     data class LocationReview(val id: String) : HomeNavState()
     data class StartChat(val otherUserId: String) : HomeNavState()
     data class Chat(val conversationId: String, val otherName: String) : HomeNavState()
+    // Organizer flow from a tournament opened from Home feed
+    data class TournamentEdit(val id: String) : HomeNavState()
+    data class QrScanner(val tournamentId: String, val tournamentName: String) : HomeNavState()
+    data class ManualCheckIn(val tournamentId: String, val tournamentName: String) : HomeNavState()
+    data class HelperManagement(val tournamentId: String, val tournamentName: String) : HomeNavState()
+    data class RefereeManagement(val tournamentId: String, val tournamentName: String) : HomeNavState()
+    data class InviteCodes(val tournamentId: String, val tournamentName: String) : HomeNavState()
 }
 
 @Composable
@@ -75,6 +88,12 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             tournamentId = state.id,
             user = user,
             onBack = { navState = HomeNavState.Home },
+            onEditTournament = { id -> navState = HomeNavState.TournamentEdit(id) },
+            onQrScan = { id, name -> navState = HomeNavState.QrScanner(id, name) },
+            onManualCheckIn = { id, name -> navState = HomeNavState.ManualCheckIn(id, name) },
+            onHelperManagement = { id, name -> navState = HomeNavState.HelperManagement(id, name) },
+            onRefereeManagement = { id, name -> navState = HomeNavState.RefereeManagement(id, name) },
+            onInviteCodes = { id, name -> navState = HomeNavState.InviteCodes(id, name) },
             onProfileClick = { navState = HomeNavState.PublicProfile(it) },
             onAthleteProfileClick = { navState = HomeNavState.AthleteProfile(it) },
             onRefereeProfileClick = { navState = HomeNavState.RefereeProfile(it) },
@@ -167,6 +186,38 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
             myUserId = user.id,
             title = state.otherName,
             onBack = { navState = HomeNavState.Home }
+        )
+
+        is HomeNavState.TournamentEdit -> TournamentEditScreen(
+            tournamentId = state.id,
+            onBack = { navState = HomeNavState.TournamentDetail(state.id) }
+        )
+        is HomeNavState.QrScanner -> QrScannerScreen(
+            tournamentId = state.tournamentId,
+            tournamentName = state.tournamentName,
+            onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
+        )
+        is HomeNavState.ManualCheckIn -> ManualCheckInScreen(
+            tournamentId = state.tournamentId,
+            tournamentName = state.tournamentName,
+            onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
+        )
+        is HomeNavState.HelperManagement -> HelperManagementScreen(
+            tournamentId = state.tournamentId,
+            tournamentName = state.tournamentName,
+            userId = user.id,
+            onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
+        )
+        is HomeNavState.RefereeManagement -> RefereeManagementScreen(
+            tournamentId = state.tournamentId,
+            tournamentName = state.tournamentName,
+            onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
+        )
+        is HomeNavState.InviteCodes -> InviteCodesScreen(
+            tournamentId = state.tournamentId,
+            tournamentName = state.tournamentName,
+            userId = user.id,
+            onBack = { navState = HomeNavState.TournamentDetail(state.tournamentId) }
         )
     }
 }
