@@ -2,6 +2,7 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.MemoryCache
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -121,12 +122,15 @@ class OrganizerRepository {
         client.from("tournaments")
             .update({ set("status", status) })
             { filter { eq("id", tournamentId) } }
+        MemoryCache.invalidate("tournament:$tournamentId")
+        MemoryCache.invalidateMatching("tournaments:upcoming:")
     }
 
     suspend fun updateTournamentStage(tournamentId: String, stage: String?) {
         client.from("tournaments")
             .update({ set("current_stage", stage) })
             { filter { eq("id", tournamentId) } }
+        MemoryCache.invalidate("tournament:$tournamentId")
     }
 
     // ── PARTICIPANTS ──
@@ -146,6 +150,7 @@ class OrganizerRepository {
                     eq("athlete_id", athleteId)
                 }
             }
+        MemoryCache.invalidate("participants:$tournamentId")
     }
 
     suspend fun declineParticipant(tournamentId: String, athleteId: String) {
@@ -156,6 +161,7 @@ class OrganizerRepository {
                     eq("athlete_id", athleteId)
                 }
             }
+        MemoryCache.invalidate("participants:$tournamentId")
     }
 
     // ── RESULTS ──
@@ -216,6 +222,7 @@ class OrganizerRepository {
         if (matches.isNotEmpty()) {
             client.from("bracket_matches").insert(matches)
         }
+        MemoryCache.invalidate("bracket:$tournamentId")
     }
 
     suspend fun saveGroups(tournamentId: String, groups: List<TournamentGroupInsertDto>) {
@@ -225,6 +232,7 @@ class OrganizerRepository {
         if (groups.isNotEmpty()) {
             client.from("tournament_groups").insert(groups)
         }
+        MemoryCache.invalidate("groups:$tournamentId")
     }
 
     suspend fun setMatchParticipant(matchId: String, slot: Int, participantId: String) {
@@ -253,6 +261,9 @@ class OrganizerRepository {
             }) {
                 filter { eq("id", matchId) }
             }
+        // matchId doesn't identify tournamentId — drop all bracket caches.
+        // Cheap (a few entries in practice) and keeps readers correct.
+        MemoryCache.invalidateMatching("bracket:")
     }
 
     suspend fun updateMatchSlot(matchId: String, data: BracketSlotUpdateDto) {
@@ -263,6 +274,7 @@ class OrganizerRepository {
             }) {
                 filter { eq("id", matchId) }
             }
+        MemoryCache.invalidateMatching("bracket:")
     }
 
     suspend fun saveGroupStandings(groupId: String, standings: List<GroupStandingDto>) {
@@ -270,6 +282,7 @@ class OrganizerRepository {
             .update({ set("standings", standings) }) {
                 filter { eq("id", groupId) }
             }
+        MemoryCache.invalidateMatching("groups:")
     }
 
     /**
@@ -395,6 +408,10 @@ class OrganizerRepository {
 
         // Mark tournament as entering playoff phase
         updateTournamentStage(tournamentId, "playoff")
+
+        // New matches inserted — invalidate caches so readers see them immediately.
+        MemoryCache.invalidate("bracket:$tournamentId")
+        MemoryCache.invalidate("tournament:$tournamentId")
 
         return playoffMatchDtos.size
     }

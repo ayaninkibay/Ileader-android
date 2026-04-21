@@ -6,6 +6,7 @@ import com.ileader.app.data.local.AppDatabase
 import com.ileader.app.data.local.toCached
 import com.ileader.app.data.local.toDto
 import com.ileader.app.data.util.AppLogger
+import com.ileader.app.data.util.MemoryCache
 import com.ileader.app.data.util.safeApiCall
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -62,38 +63,42 @@ class ViewerRepository {
     }
 
     suspend fun getSports(): List<SportDto> {
-        return try {
-            val result = client.from("sports")
-                .select { filter { eq("is_active", true) } }
-                .decodeList<SportDto>()
-            // Cache for offline
-            db?.sportDao()?.let { dao ->
-                dao.deleteAll()
-                dao.insertAll(result.map { it.toCached() })
+        // L1 memory (10 min) → L2 Supabase + Room write-through → L3 Room (offline fallback)
+        return MemoryCache.cached("sports", ttlMs = 600_000L) {
+            try {
+                val result = client.from("sports")
+                    .select { filter { eq("is_active", true) } }
+                    .decodeList<SportDto>()
+                db?.sportDao()?.let { dao ->
+                    dao.deleteAll()
+                    dao.insertAll(result.map { it.toCached() })
+                }
+                result
+            } catch (e: Exception) {
+                AppLogger.w("ViewerRepo.getSports: ${e.message}")
+                db?.sportDao()?.getAll()?.map { it.toDto() } ?: emptyList()
             }
-            result
-        } catch (e: Exception) {
-            AppLogger.w("ViewerRepo.getSports: ${e.message}")
-            // Fallback to cache
-            db?.sportDao()?.getAll()?.map { it.toDto() } ?: emptyList()
         }
     }
 
-    suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> = safeApiCall("ViewerRepo.getUpcomingTournaments") {
-        client.from("v_tournament_with_counts")
-            .select {
-                filter {
-                    eq("visibility", "public")
-                    or {
-                        eq("status", "registration_open")
-                        eq("status", "in_progress")
+    suspend fun getUpcomingTournaments(limit: Int = 10): List<TournamentWithCountsDto> =
+        MemoryCache.cached("tournaments:upcoming:$limit", ttlMs = 60_000L) {
+            safeApiCall("ViewerRepo.getUpcomingTournaments") {
+                client.from("v_tournament_with_counts")
+                    .select {
+                        filter {
+                            eq("visibility", "public")
+                            or {
+                                eq("status", "registration_open")
+                                eq("status", "in_progress")
+                            }
+                        }
+                        order("start_date", Order.ASCENDING)
+                        limit(limit.toLong())
                     }
-                }
-                order("start_date", Order.ASCENDING)
-                limit(limit.toLong())
+                    .decodeList<TournamentWithCountsDto>()
             }
-            .decodeList<TournamentWithCountsDto>()
-    }
+        }
 
     suspend fun getTournamentsByIds(ids: List<String>): List<TournamentWithCountsDto> {
         if (ids.isEmpty()) return emptyList()
@@ -132,26 +137,30 @@ class ViewerRepository {
         }
     }
 
-    suspend fun getTournamentDetail(tournamentId: String): TournamentDto = safeApiCall("ViewerRepo.getTournamentDetail") {
-        client.from("tournaments")
-            .select(Columns.raw("*, sports(id, name, slug), locations(*), profiles!organizer_id(name)"))
-            { filter { eq("id", tournamentId) } }
-            .decodeSingle<TournamentDto>()
-    }
-
-    suspend fun getTournamentParticipants(tournamentId: String): List<ParticipantDto> {
-        return client.from("tournament_participants")
-            .select(Columns.raw("*, profiles(name, avatar_url, city)"))
-            {
-                filter {
-                    eq("tournament_id", tournamentId)
-                    eq("status", "confirmed")
-                }
-                order("seed", Order.ASCENDING)
-                limit(2000)
+    suspend fun getTournamentDetail(tournamentId: String): TournamentDto =
+        MemoryCache.cached("tournament:$tournamentId", ttlMs = 30_000L) {
+            safeApiCall("ViewerRepo.getTournamentDetail") {
+                client.from("tournaments")
+                    .select(Columns.raw("*, sports(id, name, slug), locations(*), profiles!organizer_id(name)"))
+                    { filter { eq("id", tournamentId) } }
+                    .decodeSingle<TournamentDto>()
             }
-            .decodeList<ParticipantDto>()
-    }
+        }
+
+    suspend fun getTournamentParticipants(tournamentId: String): List<ParticipantDto> =
+        MemoryCache.cached("participants:$tournamentId", ttlMs = 30_000L) {
+            client.from("tournament_participants")
+                .select(Columns.raw("*, profiles(name, avatar_url, city)"))
+                {
+                    filter {
+                        eq("tournament_id", tournamentId)
+                        eq("status", "confirmed")
+                    }
+                    order("seed", Order.ASCENDING)
+                    limit(2000)
+                }
+                .decodeList<ParticipantDto>()
+        }
 
     suspend fun getTournamentResults(tournamentId: String): List<ResultDto> {
         return client.from("tournament_results")
@@ -163,22 +172,26 @@ class ViewerRepository {
             .decodeList<ResultDto>()
     }
 
-    suspend fun getTournamentBracket(tournamentId: String): List<BracketMatchDto> {
-        return client.from("bracket_matches")
-            .select {
-                filter { eq("tournament_id", tournamentId) }
-                order("round", Order.ASCENDING)
-                order("match_number", Order.ASCENDING)
-                limit(2000)
-            }
-            .decodeList<BracketMatchDto>()
-    }
+    suspend fun getTournamentBracket(tournamentId: String): List<BracketMatchDto> =
+        // Short TTL because live scoring changes bracket frequently.
+        // Invalidation on match save below keeps readers from seeing stale scores too long.
+        MemoryCache.cached("bracket:$tournamentId", ttlMs = 15_000L) {
+            client.from("bracket_matches")
+                .select {
+                    filter { eq("tournament_id", tournamentId) }
+                    order("round", Order.ASCENDING)
+                    order("match_number", Order.ASCENDING)
+                    limit(2000)
+                }
+                .decodeList<BracketMatchDto>()
+        }
 
-    suspend fun getTournamentGroups(tournamentId: String): List<TournamentGroupDto> {
-        return client.from("tournament_groups")
-            .select { filter { eq("tournament_id", tournamentId) } }
-            .decodeList<TournamentGroupDto>()
-    }
+    suspend fun getTournamentGroups(tournamentId: String): List<TournamentGroupDto> =
+        MemoryCache.cached("groups:$tournamentId", ttlMs = 30_000L) {
+            client.from("tournament_groups")
+                .select { filter { eq("tournament_id", tournamentId) } }
+                .decodeList<TournamentGroupDto>()
+        }
 
     suspend fun getTournamentReferees(tournamentId: String): List<RefereeAssignmentDto> {
         return client.from("tournament_referees")
@@ -253,15 +266,16 @@ class ViewerRepository {
             .decodeList<ArticleDto>()
     }
 
-    suspend fun getRecentArticles(limit: Int = 5): List<ArticleDto> {
-        return client.from("articles")
-            .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, profiles!author_id(id, name)")) {
-                filter { eq("status", "published") }
-                order("published_at", Order.DESCENDING)
-                limit(limit.toLong())
-            }
-            .decodeList<ArticleDto>()
-    }
+    suspend fun getRecentArticles(limit: Int = 5): List<ArticleDto> =
+        MemoryCache.cached("articles:recent:$limit", ttlMs = 120_000L) {
+            client.from("articles")
+                .select(Columns.raw("id, title, excerpt, cover_image_url, category, views, published_at, profiles!author_id(id, name)")) {
+                    filter { eq("status", "published") }
+                    order("published_at", Order.DESCENDING)
+                    limit(limit.toLong())
+                }
+                .decodeList<ArticleDto>()
+        }
 
     suspend fun getArticleDetail(articleId: String): ArticleDto {
         return client.from("articles")
@@ -274,54 +288,58 @@ class ViewerRepository {
     // COMMUNITY
     // ══════════════════════════════════════════════════════════
 
-    suspend fun getAthletes(): List<CommunityProfileDto> {
-        val roleId = getRoleId("athlete")
-        return client.from("profiles")
-            .select(Columns.raw("id, name, avatar_url, city, bio, athlete_subtype, user_sports(rating, is_primary, sports(id, name))"))
-            {
-                filter {
-                    eq("primary_role_id", roleId)
-                    eq("status", "active")
+    suspend fun getAthletes(): List<CommunityProfileDto> =
+        MemoryCache.cached("community:athletes", ttlMs = 180_000L) {
+            val roleId = getRoleId("athlete")
+            client.from("profiles")
+                .select(Columns.raw("id, name, avatar_url, city, bio, athlete_subtype, user_sports(rating, is_primary, sports(id, name))"))
+                {
+                    filter {
+                        eq("primary_role_id", roleId)
+                        eq("status", "active")
+                    }
+                    limit(50)
                 }
-                limit(50)
-            }
-            .decodeList<CommunityProfileDto>()
-    }
+                .decodeList<CommunityProfileDto>()
+        }
 
-    suspend fun getTrainers(): List<CommunityProfileDto> {
-        val roleId = getRoleId("trainer")
-        return client.from("profiles")
-            .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
-            {
-                filter {
-                    eq("primary_role_id", roleId)
-                    eq("status", "active")
+    suspend fun getTrainers(): List<CommunityProfileDto> =
+        MemoryCache.cached("community:trainers", ttlMs = 180_000L) {
+            val roleId = getRoleId("trainer")
+            client.from("profiles")
+                .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
+                {
+                    filter {
+                        eq("primary_role_id", roleId)
+                        eq("status", "active")
+                    }
+                    limit(50)
                 }
-                limit(50)
-            }
-            .decodeList<CommunityProfileDto>()
-    }
+                .decodeList<CommunityProfileDto>()
+        }
 
-    suspend fun getReferees(): List<CommunityProfileDto> {
-        val roleId = getRoleId("referee")
-        return client.from("profiles")
-            .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
-            {
-                filter {
-                    eq("primary_role_id", roleId)
-                    eq("status", "active")
+    suspend fun getReferees(): List<CommunityProfileDto> =
+        MemoryCache.cached("community:referees", ttlMs = 180_000L) {
+            val roleId = getRoleId("referee")
+            client.from("profiles")
+                .select(Columns.raw("id, name, avatar_url, city, bio, user_sports(rating, sports(id, name))"))
+                {
+                    filter {
+                        eq("primary_role_id", roleId)
+                        eq("status", "active")
+                    }
+                    limit(50)
                 }
-                limit(50)
-            }
-            .decodeList<CommunityProfileDto>()
-    }
+                .decodeList<CommunityProfileDto>()
+        }
 
-    suspend fun getTeams(): List<TeamWithStatsDto> {
-        return client.from("teams")
-            .select(Columns.raw("*, sports(id, name), profiles!owner_id(name), team_members(count)"))
-            { filter { eq("is_active", true) } }
-            .decodeList<TeamWithStatsDto>()
-    }
+    suspend fun getTeams(): List<TeamWithStatsDto> =
+        MemoryCache.cached("community:teams", ttlMs = 180_000L) {
+            client.from("teams")
+                .select(Columns.raw("*, sports(id, name), profiles!owner_id(name), team_members(count)"))
+                { filter { eq("is_active", true) } }
+                .decodeList<TeamWithStatsDto>()
+        }
 
     // ══════════════════════════════════════════════════════════
     // SPORT IMAGES

@@ -214,6 +214,9 @@ class AuthViewModel : ViewModel() {
             } catch (e: Exception) {
                 AppLogger.w("Sign-out error (non-critical)", e)
             }
+            // Drop every in-memory cache entry. The next user may see different
+            // data (privacy) and different server responses (session change).
+            com.ileader.app.data.util.MemoryCache.clear()
             _state.value = AuthState()
         }
     }

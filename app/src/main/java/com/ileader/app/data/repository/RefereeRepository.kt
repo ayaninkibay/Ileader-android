@@ -3,6 +3,7 @@ package com.ileader.app.data.repository
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.util.AppLogger
+import com.ileader.app.data.util.MemoryCache
 import com.ileader.app.data.remote.dto.*
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -212,6 +213,7 @@ class RefereeRepository {
             }) {
                 filter { eq("id", matchId) }
             }
+        MemoryCache.invalidateMatching("bracket:")
     }
 
     suspend fun updateMatchSlot(matchId: String, data: BracketSlotUpdateDto) {
@@ -222,6 +224,7 @@ class RefereeRepository {
             }) {
                 filter { eq("id", matchId) }
             }
+        MemoryCache.invalidateMatching("bracket:")
     }
 
     /**
