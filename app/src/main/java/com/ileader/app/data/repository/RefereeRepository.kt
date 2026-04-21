@@ -221,7 +221,7 @@ class RefereeRepository {
     suspend fun getMyMatches(userId: String): List<RefereeMyMatch> {
         // Step 1: find all tournaments where user is referee
         val assignments = client.from("tournament_referees")
-            .select(Columns.raw("tournament_id, tournaments(id, name, status, sports(name))")) {
+            .select(Columns.raw("tournament_id, tournaments(id, name, status, sports(id, name))")) {
                 filter { eq("referee_id", userId) }
             }
             .decodeList<RefereeAssignmentDto>()

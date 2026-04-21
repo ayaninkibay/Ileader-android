@@ -578,7 +578,7 @@ class OrganizerRepository {
             .decodeList<ProfileDto>()
     }
 
-    suspend fun assignReferee(tournamentId: String, refereeId: String, role: String = "main") {
+    suspend fun assignReferee(tournamentId: String, refereeId: String, role: String = "referee") {
         client.from("tournament_referees")
             .insert(RefereeAssignmentInsertDto(tournamentId, refereeId, role))
     }

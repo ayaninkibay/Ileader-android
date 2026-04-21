@@ -97,10 +97,10 @@ class CheckInRepository {
 
         // Athletes
         val athletes = client.from("tournament_participants")
-            .select(Columns.raw("athlete_id, status, check_in_status, profiles!athlete_id(id, name, avatar_url, city), teams(name)")) {
+            .select(Columns.raw("tournament_id, athlete_id, status, check_in_status, profiles!athlete_id(id, name, avatar_url, city), teams(name)")) {
                 filter {
                     eq("tournament_id", tournamentId)
-                    neq("status", "withdrawn")
+                    neq("status", "cancelled")
                 }
             }
             .decodeList<ParticipantDto>()
