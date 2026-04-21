@@ -148,6 +148,7 @@ class ViewerRepository {
                     eq("status", "confirmed")
                 }
                 order("seed", Order.ASCENDING)
+                limit(2000)
             }
             .decodeList<ParticipantDto>()
     }
@@ -168,6 +169,7 @@ class ViewerRepository {
                 filter { eq("tournament_id", tournamentId) }
                 order("round", Order.ASCENDING)
                 order("match_number", Order.ASCENDING)
+                limit(2000)
             }
             .decodeList<BracketMatchDto>()
     }

@@ -1896,8 +1896,7 @@ private fun AdminDashboardSection(
                 label = "Турниров",
                 icon = Icons.Filled.EmojiEvents,
                 color = Accent,
-                modifier = Modifier.weight(1f),
-                onClick = {}
+                modifier = Modifier.weight(1f)
             )
         }
         Spacer(Modifier.height(8.dp))
@@ -1910,8 +1909,7 @@ private fun AdminDashboardSection(
                 label = "Активных",
                 icon = Icons.Filled.PlayCircle,
                 color = Color(0xFF22C55E),
-                modifier = Modifier.weight(1f),
-                onClick = {}
+                modifier = Modifier.weight(1f)
             )
             AdminStatCard(
                 value = stats.pendingVerifications,
@@ -1967,10 +1965,13 @@ private fun AdminStatCard(
     icon: ImageVector,
     color: Color,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
+    val interactive = modifier
+        .clip(RoundedCornerShape(14.dp))
+        .let { if (onClick != null) it.clickable { onClick() } else it }
     Surface(
-        modifier = modifier.clip(RoundedCornerShape(14.dp)).clickable { onClick() },
+        modifier = interactive,
         shape = RoundedCornerShape(14.dp),
         color = CardBg
     ) {

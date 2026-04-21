@@ -51,6 +51,7 @@ fun PublicProfileScreen(
     userId: String,
     onBack: () -> Unit,
     onStartChat: ((otherUserId: String) -> Unit)? = null,
+    onTournamentClick: ((String) -> Unit)? = null,
     viewModel: PublicProfileViewModel = viewModel()
 ) {
     LaunchedEffect(userId) { viewModel.load(userId) }
@@ -65,13 +66,19 @@ fun PublicProfileScreen(
         is UiState.Success -> ProfileContent(
             data = state.data,
             onBack = onBack,
-            onStartChat = onStartChat?.let { cb -> { cb(userId) } }
+            onStartChat = onStartChat?.let { cb -> { cb(userId) } },
+            onTournamentClick = onTournamentClick
         )
     }
 }
 
 @Composable
-private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartChat: (() -> Unit)? = null) {
+private fun ProfileContent(
+    data: PublicProfileData,
+    onBack: () -> Unit,
+    onStartChat: (() -> Unit)? = null,
+    onTournamentClick: ((String) -> Unit)? = null
+) {
     val profile = data.profile
     val user = profile.toDomain()
     val sports = data.sports
@@ -336,7 +343,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartC
                             location = t.locationName ?: "",
                             date = t.startDate ?: "",
                             status = t.status ?: "",
-                            onClick = {}
+                            onClick = { onTournamentClick?.invoke(t.id) }
                         )
                     }
                 }
@@ -355,7 +362,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartC
                             location = t.locationName ?: "",
                             date = t.startDate ?: "",
                             status = t.status ?: "",
-                            onClick = {}
+                            onClick = { onTournamentClick?.invoke(t.id) }
                         )
                     }
                 }
@@ -380,7 +387,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartC
                             location = "",
                             date = a.tournaments?.startDate ?: "",
                             status = a.tournaments?.status ?: "",
-                            onClick = {}
+                            onClick = { onTournamentClick?.invoke(a.tournamentId) }
                         )
                     }
                 }
@@ -397,7 +404,7 @@ private fun ProfileContent(data: PublicProfileData, onBack: () -> Unit, onStartC
                             location = "",
                             date = a.tournaments?.startDate ?: "",
                             status = a.tournaments?.status ?: "",
-                            onClick = {}
+                            onClick = { onTournamentClick?.invoke(a.tournamentId) }
                         )
                     }
                 }
