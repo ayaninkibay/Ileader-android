@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
+import com.ileader.app.data.util.AppLogger
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.CommunityProfileDto
 import com.ileader.app.data.models.AthleteGoal
@@ -144,7 +145,9 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 unreadNotifications = notificationRepo.getUnreadCount(userId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadUnreadCount: ${e.message}")
+            }
         }
     }
 
@@ -153,7 +156,9 @@ class HomeViewModel : ViewModel() {
             try {
                 val sports = repo.getSports()
                 state = state.copy(sports = sports)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.init sports: ${e.message}")
+            }
         }
     }
 
@@ -204,7 +209,8 @@ class HomeViewModel : ViewModel() {
                     recentRegistrations = registrationsDeferred.await(),
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadOrganizerDashboard: ${e.message}")
                 organizerDashboard = organizerDashboard.copy(isLoaded = true)
             }
         }
@@ -225,7 +231,8 @@ class HomeViewModel : ViewModel() {
                     }.take(5),
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadRefereeDashboard: ${e.message}")
                 refereeDashboard = refereeDashboard.copy(isLoaded = true)
             }
         }
@@ -254,7 +261,8 @@ class HomeViewModel : ViewModel() {
                     upcomingTournaments = tournaments,
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadAthleteDashboard: ${e.message}")
                 athleteDashboard = athleteDashboard.copy(isLoaded = true)
             }
         }
@@ -272,7 +280,8 @@ class HomeViewModel : ViewModel() {
                     sponsorships = items.take(5),
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadSponsorDashboard: ${e.message}")
                 sponsorDashboard = sponsorDashboard.copy(isLoaded = true)
             }
         }
@@ -307,7 +316,8 @@ class HomeViewModel : ViewModel() {
                     recentArticles = recentDeferred.await(),
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadMediaDashboard: ${e.message}")
                 mediaDashboard = mediaDashboard.copy(isLoaded = true)
             }
         }
@@ -333,7 +343,8 @@ class HomeViewModel : ViewModel() {
                     upcomingTournaments = tournaments,
                     isLoaded = true
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadTrainerDashboard: ${e.message}")
                 trainerDashboard = trainerDashboard.copy(isLoaded = true)
             }
         }
