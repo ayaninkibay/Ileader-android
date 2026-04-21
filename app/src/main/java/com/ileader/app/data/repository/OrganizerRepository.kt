@@ -275,13 +275,22 @@ class OrganizerRepository {
     /**
      * Advance tournament from group stage to playoffs:
      * 1. Compute standings from completed group matches
-     * 2. Replace "tbd-A1", "tbd-B2" etc. placeholders in pre-generated playoff matches
-     *    with the actual athlete IDs based on group standings
-     * 3. Persist updated standings (with positions + qualified flag) to tournament_groups
+     * 2. Generate playoff matches using real winner IDs (single_elim by default)
+     * 3. Insert playoff matches into bracket_matches
+     * 4. Persist updated standings (with positions + qualified flag) to tournament_groups
      *
-     * Returns the number of playoff slots filled.
+     * Returns the number of playoff matches created.
+     *
+     * Note: playoff matches are NOT inserted at group-stage generation time because
+     * placeholder participant ids like "tbd-A1" fail the uuid cast on
+     * bracket_matches.participant1_id. They are generated here with real ids.
      */
-    suspend fun advanceToPlayoff(tournamentId: String, advancePerGroup: Int = 2): Int {
+    suspend fun advanceToPlayoff(
+        tournamentId: String,
+        advancePerGroup: Int = 2,
+        matchFormat: String = "BO1",
+        playoffFormat: String = "single_elimination"
+    ): Int {
         val allMatches = client.from("bracket_matches")
             .select { filter { eq("tournament_id", tournamentId) } }
             .decodeList<BracketMatchDto>()
@@ -301,54 +310,93 @@ class OrganizerRepository {
             throw IllegalStateException("Не завершены матчи группового этапа: $incomplete")
         }
 
-        val groupNames = listOf("A", "B", "C", "D", "E", "F", "G", "H")
+        // Don't re-run advance twice
+        val playoffAlreadyExists = allMatches.any { it.groupId == null }
+        if (playoffAlreadyExists) {
+            throw IllegalStateException("Плей-офф уже создан")
+        }
 
-        // tbd-placeholder -> actual athlete id
-        val tbdMap = mutableMapOf<String, String>()
-
-        groups.forEachIndexed { gIdx, group ->
-            val gLetter = groupNames.getOrElse(gIdx) { "${gIdx + 1}" }
+        // Compute standings for every group and collect qualified athletes, ordered
+        // first-by-position-then-by-group (position 1 of A, position 1 of B, ..., position 2 of A, ...)
+        val qualifiedByGroup: List<List<GroupStandingDto>> = groups.mapIndexed { gIdx, group ->
             val matches = groupMatches.filter { it.groupId == group.id }
             val standings = computeStandings(matches, group.standings ?: emptyList())
-
-            // Persist standings (with updated positions + qualified flag)
             val updatedStandings = standings.mapIndexed { index, s ->
                 s.copy(position = index + 1, qualified = index < advancePerGroup)
             }
+            // Persist standings (with updated positions + qualified flag)
             saveGroupStandings(group.id, updatedStandings)
+            updatedStandings.take(advancePerGroup)
+        }
 
-            // Fill tbd map: "tbd-A1" -> standings[0].participantId, "tbd-A2" -> standings[1], ...
-            for (pos in 1..advancePerGroup) {
-                val athlete = standings.getOrNull(pos - 1) ?: continue
-                tbdMap["tbd-$gLetter$pos"] = athlete.participantId
+        // Build qualified list: snake draft order — pos1 of all groups, then pos2 of all groups, etc.
+        val qualifiedParticipants = buildList {
+            for (pos in 0 until advancePerGroup) {
+                for (gIdx in groups.indices) {
+                    qualifiedByGroup[gIdx].getOrNull(pos)?.let { add(it) }
+                }
             }
         }
 
-        // Update playoff matches: swap any tbd-XY id with the real one
-        val playoffMatches = allMatches.filter { it.groupId == null }
-        var slotsFilled = 0
-        for (m in playoffMatches) {
-            val p1 = m.participant1Id
-            val p2 = m.participant2Id
-            val newP1 = if (p1 != null && p1.startsWith("tbd-")) tbdMap[p1] else null
-            val newP2 = if (p2 != null && p2.startsWith("tbd-")) tbdMap[p2] else null
-            if (newP1 == null && newP2 == null) continue
+        if (qualifiedParticipants.size < 2) {
+            throw IllegalStateException("Недостаточно квалифицированных для плей-офф: ${qualifiedParticipants.size}")
+        }
 
-            client.from("bracket_matches")
-                .update({
-                    newP1?.let { set("participant1_id", it) }
-                    newP2?.let { set("participant2_id", it) }
-                }) {
-                    filter { eq("id", m.id) }
-                }
-            if (newP1 != null) slotsFilled++
-            if (newP2 != null) slotsFilled++
+        // Generate playoff bracket with real ids
+        val bracketParticipants = qualifiedParticipants.mapIndexed { idx, s ->
+            com.ileader.app.data.bracket.BracketParticipant(
+                id = s.participantId,
+                name = s.athleteName,
+                seed = idx + 1,
+                rating = null
+            )
+        }
+        val playoffResult = com.ileader.app.data.bracket.BracketGenerator.generate(
+            bracketParticipants,
+            com.ileader.app.data.bracket.BracketGeneratorOptions(
+                tournamentId = tournamentId,
+                format = playoffFormat,
+                seedingType = "manual",
+                matchFormat = matchFormat,
+                hasThirdPlaceMatch = false,
+                groupCount = 0
+            )
+        )
+
+        // Offset match numbers so they come after group matches
+        val maxGroupMatchNumber = groupMatches.maxOfOrNull { it.matchNumber } ?: 0
+        val playoffMatchDtos = playoffResult.matches.mapIndexed { idx, m ->
+            BracketMatchInsertDto(
+                id = m.id,
+                tournamentId = tournamentId,
+                round = m.round + 1, // offset round so group=round 1, playoff starts at 2+
+                matchNumber = maxGroupMatchNumber + idx + 1,
+                bracketType = m.bracketType,
+                participant1Id = m.participant1Id,
+                participant2Id = m.participant2Id,
+                participant1Score = m.participant1Score,
+                participant2Score = m.participant2Score,
+                games = m.games.map { g ->
+                    MatchGameDto(g.gameNumber, g.participant1Score, g.participant2Score, g.winnerId, g.status)
+                },
+                winnerId = m.winnerId,
+                loserId = m.loserId,
+                status = m.status,
+                nextMatchId = m.nextMatchId,
+                loserNextMatchId = m.loserNextMatchId,
+                groupId = null,
+                isBye = m.isBye
+            )
+        }
+
+        if (playoffMatchDtos.isNotEmpty()) {
+            client.from("bracket_matches").insert(playoffMatchDtos)
         }
 
         // Mark tournament as entering playoff phase
         updateTournamentStage(tournamentId, "playoff")
 
-        return slotsFilled
+        return playoffMatchDtos.size
     }
 
     /**

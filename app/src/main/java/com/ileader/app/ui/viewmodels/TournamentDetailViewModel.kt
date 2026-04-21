@@ -441,8 +441,22 @@ class TournamentDetailViewModel : ViewModel() {
 
                 val result = BracketGenerator.generate(bracketParticipants, options)
 
+                // For group formats the generator emits BOTH group matches AND playoff
+                // matches with `tbd-A1`-style placeholder participant ids. Those fail
+                // the uuid cast on `bracket_matches.participant1_id`. Strip playoff
+                // matches here — advanceToPlayoff() re-generates them with real winner
+                // ids once the group stage is over.
+                val isGroupFormat = result.groups.isNotEmpty() &&
+                    (tournament.format == "groups_single_elim" ||
+                     tournament.format == "groups_double_elim")
+                val matchesToInsert = if (isGroupFormat) {
+                    result.matches.filter { it.groupId != null }
+                } else {
+                    result.matches
+                }
+
                 // Convert to insert DTOs
-                val matchDtos = result.matches.map { m ->
+                val matchDtos = matchesToInsert.map { m ->
                     BracketMatchInsertDto(
                         id = m.id,
                         tournamentId = tournamentId,
