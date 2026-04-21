@@ -427,8 +427,12 @@ fun ProfileScreen(
                             shadowElevation = 0.dp
                         ) {
                             Column {
-                                // My Tickets (viewer only)
-                                if (user.role == UserRole.USER) {
+                                // My Tickets — available for everyone who can register for tournaments
+                                // (participants: athletes, trainers; spectators: users, media; referees)
+                                if (user.role in listOf(
+                                        UserRole.USER, UserRole.ATHLETE, UserRole.TRAINER,
+                                        UserRole.REFEREE, UserRole.MEDIA
+                                    )) {
                                     MenuRow(icon = Icons.Outlined.ConfirmationNumber, label = "Мои билеты", onClick = onTickets)
                                     MenuDivider()
                                 }

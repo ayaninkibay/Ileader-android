@@ -18,7 +18,7 @@ class TicketRepository {
             .select(Columns.raw("tournament_id, athlete_id, status, check_in_status, tournaments(id, name, status, start_date, sports(name))")) {
                 filter {
                     eq("athlete_id", userId)
-                    neq("status", "withdrawn")
+                    neq("status", "cancelled")
                 }
             }
             .decodeList<ParticipantTicketDto>()
@@ -82,7 +82,7 @@ class TicketRepository {
             .select(Columns.raw("tournament_id")) {
                 filter {
                     eq("athlete_id", userId)
-                    neq("status", "withdrawn")
+                    neq("status", "cancelled")
                 }
             }
             .decodeList<IdOnlyTicketDto>()

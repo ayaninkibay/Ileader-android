@@ -79,7 +79,7 @@ class HelperRepository {
         return client.from("tournament_helpers")
             .select(Columns.raw("""
                 id, tournament_id, user_id, assigned_by, status, created_at,
-                profiles(id, name, avatar_url, email)
+                profiles!user_id(id, name, avatar_url, email)
             """.trimIndent())) {
                 filter {
                     eq("tournament_id", tournamentId)
