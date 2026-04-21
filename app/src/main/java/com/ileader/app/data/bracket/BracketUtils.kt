@@ -43,8 +43,22 @@ object BracketUtils {
         dtos: List<BracketMatchDto>,
         participants: List<ParticipantDto> = emptyList()
     ): List<BracketMatch> {
-        val nameMap = participants.associate { it.athleteId to (it.profiles?.name ?: "") }
-        val seedMap = participants.mapNotNull { p -> p.seed?.let { p.athleteId to it } }.toMap()
+        // bracket_matches.participant1_id is the tournament_participants.id (row UUID),
+        // so index by both id and athleteId to stay compatible with old / hybrid data.
+        val nameMap = buildMap {
+            participants.forEach { p ->
+                val name = p.profiles?.name ?: ""
+                p.id?.let { put(it, name) }
+                put(p.athleteId, name)
+            }
+        }
+        val seedMap = buildMap {
+            participants.forEach { p ->
+                val seed = p.seed ?: return@forEach
+                p.id?.let { put(it, seed) }
+                put(p.athleteId, seed)
+            }
+        }
         return dtos.map { mapDtoToMatch(it, nameMap, seedMap) }
     }
 

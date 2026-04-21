@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ParticipantDto(
+    val id: String? = null,
     @SerialName("tournament_id") val tournamentId: String,
     @SerialName("athlete_id") val athleteId: String,
     @SerialName("team_id") val teamId: String? = null,

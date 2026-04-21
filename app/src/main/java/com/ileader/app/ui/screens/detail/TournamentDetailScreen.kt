@@ -187,7 +187,7 @@ private fun TournamentContent(
     }
 
     // Tab state
-    val tabs = remember(data) { buildTabList(data) }
+    val tabs = remember(data, user) { buildTabList(data, user) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
@@ -274,7 +274,9 @@ private fun TournamentContent(
                 else -> OverviewTab(data, tournament, onProfileClick, onAthleteProfileClick, onRefereeProfileClick, onTrainerProfileClick, onTeamClick)
             }
 
-            Spacer(Modifier.height(80.dp))
+            // 180dp leaves room for the sticky organizer action bar (~120dp)
+            // on smaller screens; 80dp was clipping bracket-tab content.
+            Spacer(Modifier.height(180.dp))
         }
 
         // ── Action Button ──
@@ -624,12 +626,19 @@ private fun rememberCountdown(startDate: String?): String? {
 private enum class TabType { OVERVIEW, PARTICIPANTS, BRACKET, RESULTS, NEWS }
 private data class TabItem(val label: String, val type: TabType, val count: Int? = null)
 
-private fun buildTabList(data: HomeTournamentDetailData): List<TabItem> = buildList {
+private fun buildTabList(
+    data: HomeTournamentDetailData,
+    user: User? = null
+): List<TabItem> = buildList {
     add(TabItem("Обзор", TabType.OVERVIEW))
     if (data.participants.isNotEmpty()) {
         add(TabItem("Участники", TabType.PARTICIPANTS, data.participants.size))
     }
-    if (data.bracket.isNotEmpty()) {
+    val isOrganizer = user?.role == UserRole.ORGANIZER && data.tournament.organizerId == user.id
+    // Show "Сетка" when bracket exists, OR when organizer views a tournament with enough
+    // confirmed participants — so they can reach the "Сгенерировать сетку" button.
+    if (data.bracket.isNotEmpty() ||
+        (isOrganizer && data.participants.count { it.status in listOf("confirmed", "registered") } >= 2)) {
         add(TabItem("Сетка", TabType.BRACKET))
     }
     if (data.results.isNotEmpty() && data.tournament.status == "completed") {

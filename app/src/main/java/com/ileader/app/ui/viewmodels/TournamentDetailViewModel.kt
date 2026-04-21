@@ -421,7 +421,9 @@ class TournamentDetailViewModel : ViewModel() {
 
                 val bracketParticipants = confirmedParticipants.map { p ->
                     BracketParticipant(
-                        id = p.athleteId,
+                        // participant1_id / participant2_id in bracket_matches FK to tournament_participants.id,
+                        // not to profiles.id. Fall back to athleteId for back-compat when id is null.
+                        id = p.id ?: p.athleteId,
                         name = p.profiles?.name ?: "—",
                         seed = p.seed,
                         rating = null
