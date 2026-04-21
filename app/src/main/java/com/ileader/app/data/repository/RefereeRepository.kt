@@ -198,8 +198,18 @@ class RefereeRepository {
     }
 
     suspend fun updateMatchResult(matchId: String, data: MatchResultUpdateDto) {
+        // Use explicit builder DSL (not update(data)) so the `status` default
+        // value is actually sent — kotlinx-serialization may skip default-valued
+        // fields, which would leave the match stuck in "scheduled" after save.
         client.from("bracket_matches")
-            .update(data) {
+            .update({
+                set("participant1_score", data.participant1Score)
+                set("participant2_score", data.participant2Score)
+                data.games?.let { set("games", it) }
+                set("winner_id", data.winnerId)
+                set("loser_id", data.loserId)
+                set("status", data.status)
+            }) {
                 filter { eq("id", matchId) }
             }
     }
@@ -255,13 +265,19 @@ class RefereeRepository {
 
         // Step 3: fetch participant names for all involved tournaments
         val participants = client.from("tournament_participants")
-            .select(Columns.raw("tournament_id, athlete_id, seed, profiles(id, name)")) {
+            .select(Columns.raw("id, tournament_id, athlete_id, seed, profiles(id, name)")) {
                 filter { isIn("tournament_id", tournamentIds) }
             }
             .decodeList<ParticipantDto>()
 
-        val nameById = participants.associate {
-            it.athleteId to (it.profiles?.name ?: "")
+        // bracket_matches.participant1_id FK → tournament_participants.id,
+        // but keep athlete_id lookup as fallback for older data.
+        val nameById = buildMap {
+            participants.forEach { p ->
+                val name = p.profiles?.name ?: ""
+                p.id?.let { put(it, name) }
+                put(p.athleteId, name)
+            }
         }
 
         // Step 4: map to domain

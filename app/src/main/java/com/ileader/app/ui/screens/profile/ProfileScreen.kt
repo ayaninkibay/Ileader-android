@@ -483,8 +483,11 @@ fun ProfileScreen(
                                     )
                                     MenuDivider()
                                 }
-                                // Notifications
-                                MenuRow(icon = Icons.Outlined.ChatBubbleOutline, label = "Сообщения", onClick = onConversations)
+                                // Сообщения hidden until Supabase conversations schema is applied.
+                                // The DB has no `conversation_participants` / `conversations` / `messages`
+                                // tables yet; the Android chat code is ready but the backend isn't.
+                                // Re-enable this row once migrations for chat are shipped.
+                                // MenuRow(icon = Icons.Outlined.ChatBubbleOutline, label = "Сообщения", onClick = onConversations)
                                 MenuRow(icon = Icons.Outlined.Notifications, label = "Уведомления", onClick = onNotifications)
                                 MenuDivider()
                                 // Settings
