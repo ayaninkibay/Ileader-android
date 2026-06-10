@@ -1,4 +1,4 @@
-# iLeader Android
+﻿# iLeader Android
 
 Мобильный клиент спортивной платформы [iLeader](https://ileader.kz). Веб-версия и приложение работают на одной базе данных в Supabase, схема описана в разделе ниже. Приложение — мобильный клиент с **только необходимым** функционалом: просмотр турниров, регистрация, рейтинги, профили. Сложные CRUD-операции (создание турниров, статей, курсов) остаются на сайте.
 
@@ -33,7 +33,7 @@ app/src/main/java/com/ileader/app/
 │   ├── bracket/             Алгоритмы турнирной сетки (single/double elim, RR, groups)
 │   ├── local/               Room: AppDatabase, кэш
 │   ├── models/              Domain-модели (User, Tournament, Team, …)
-│   ├── notifications/       FCM (пока заглушка)
+│   ├── notifications/       FCM: токен в profiles.fcm_token, каналы, deep-link
 │   ├── preferences/         DataStore: тема, язык
 │   ├── remote/
 │   │   ├── SupabaseModule   Singleton Supabase-клиент. HttpTimeout 15s, retry 2× на 5xx/IOException
@@ -190,7 +190,7 @@ NavGraph (корень)
 - **DI отсутствует** — каждый VM создаёт свой Repository. Кандидат на Hilt.
 - **Тестов нет** — ни unit, ни UI, ни integration.
 - **28 экранов на моках** — `data/mock/` нужно постепенно подключить к Supabase.
-- **FCM-уведомления** — заглушка в `data/notifications/`, боевой код ждёт ключи Firebase.
+- **FCM-уведомления** — боевые: `google-services.json` подключён, токен сохраняется в `profiles.fcm_token`, пуши доставляются через Edge Function `send-push` (триггер на insert в `notifications`).
 - **Edge Function `create-user`** — нужна для создания юзеров из admin-панели.
 - **`platform_settings`** — Admin Settings экран не сохраняет в БД.
 

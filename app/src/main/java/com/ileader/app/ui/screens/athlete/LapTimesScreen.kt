@@ -139,7 +139,7 @@ private fun LapRow(l: LapTimeItem) {
                     if (l.isBest) {
                         Spacer(Modifier.width(8.dp))
                         Surface(shape = RoundedCornerShape(50), color = Accent.copy(0.15f)) {
-                            Text("BEST", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            Text("РЕКОРД", Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Accent)
                         }
                     }

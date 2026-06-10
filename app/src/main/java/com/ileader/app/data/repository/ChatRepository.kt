@@ -25,13 +25,45 @@ class ChatRepository {
 
             val ids = myRows.map { it.conversationId }.distinct()
             if (ids.isEmpty()) emptyList()
-            else client.from("conversations")
-                .select(Columns.raw("id, created_at, updated_at, conversation_participants(conversation_id, user_id, last_read_at, profiles(id, name, avatar_url))")) {
-                    filter { isIn("id", ids) }
-                    order("updated_at", Order.DESCENDING)
+            else {
+                val conversations = client.from("conversations")
+                    .select(Columns.raw("id, created_at, updated_at, conversation_participants(conversation_id, user_id, last_read_at, profiles(id, name, avatar_url))")) {
+                        filter { isIn("id", ids) }
+                        order("updated_at", Order.DESCENDING)
+                    }
+                    .decodeList<ConversationDto>()
+
+                // Последнее сообщение каждого диалога — для превью и метки
+                // «непрочитано». Один общий запрос вместо N+1.
+                val lastByConversation = client.from("messages")
+                    .select(Columns.raw("id, conversation_id, sender_id, content, created_at")) {
+                        filter { isIn("conversation_id", ids) }
+                        order("created_at", Order.DESCENDING)
+                        limit(400)
+                    }
+                    .decodeList<MessageDto>()
+                    .groupBy { it.conversationId }
+
+                conversations.map { conv ->
+                    conv.copy(messages = lastByConversation[conv.id]?.take(1).orEmpty())
                 }
-                .decodeList<ConversationDto>()
+            }
         }
+
+    /**
+     * Mark a conversation read for [userId] — bumps last_read_at to now.
+     * Drops the user's cached conversations list so the unread badge clears.
+     */
+    suspend fun markRead(conversationId: String, userId: String) {
+        client.from("conversation_participants")
+            .update({ set("last_read_at", java.time.Instant.now().toString()) }) {
+                filter {
+                    eq("conversation_id", conversationId)
+                    eq("user_id", userId)
+                }
+            }
+        MemoryCache.invalidate("chat:conversations:$userId")
+    }
 
     suspend fun getMessages(conversationId: String, limit: Int = 200): List<MessageDto> {
         // Messages are live data — explicitly not cached. Each call re-reads from

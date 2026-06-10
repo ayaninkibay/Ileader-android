@@ -1,4 +1,4 @@
-package com.ileader.app.ui.screens.athlete
+﻿package com.ileader.app.ui.screens.athlete
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -45,7 +45,7 @@ fun RacingLicenseScreen(userId: String, onBack: () -> Unit) {
             try {
                 license = repo.getLicense(userId)
                 if (license == null) editing = true
-            } catch (e: Exception) { error = e.message ?: "Ошибка загрузки" }
+            } catch (e: Exception) { error = e.message ?: "РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё" }
             finally { loading = false }
         }
     }
@@ -56,7 +56,7 @@ fun RacingLicenseScreen(userId: String, onBack: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(Bg)) {
-            BackHeader("Racing License", onBack)
+            BackHeader("Гоночная лицензия", onBack)
             when {
                 loading -> LoadingScreen()
                 error != null -> ErrorScreen(error!!) { load() }
@@ -67,13 +67,13 @@ fun RacingLicenseScreen(userId: String, onBack: () -> Unit) {
                         scope.launch {
                             try {
                                 repo.upsertLicense(upsert.copy(userId = userId))
-                                Alerts.success("Лицензия сохранена")
-                                snackbar.showSnackbar("Сохранено")
+                                Alerts.success("Р›РёС†РµРЅР·РёСЏ СЃРѕС…СЂР°РЅРµРЅР°")
+                                snackbar.showSnackbar("РЎРѕС…СЂР°РЅРµРЅРѕ")
                                 editing = false
                                 load()
                             } catch (e: Exception) {
-                                Alerts.error("Не удалось сохранить лицензию")
-                                snackbar.showSnackbar(e.message ?: "Ошибка")
+                                Alerts.error("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ Р»РёС†РµРЅР·РёСЋ")
+                                snackbar.showSnackbar(e.message ?: "РћС€РёР±РєР°")
                             }
                         }
                     }
@@ -81,10 +81,10 @@ fun RacingLicenseScreen(userId: String, onBack: () -> Unit) {
                 license != null -> LicenseView(license!!, onEdit = { editing = true })
                 else -> Box(Modifier.fillMaxSize().padding(16.dp)) {
                     EmptyState(
-                        title = "Лицензии нет",
-                        subtitle = "Добавьте данные вашей лицензии",
+                        title = "Р›РёС†РµРЅР·РёРё РЅРµС‚",
+                        subtitle = "Р”РѕР±Р°РІСЊС‚Рµ РґР°РЅРЅС‹Рµ РІР°С€РµР№ Р»РёС†РµРЅР·РёРё",
                         icon = Icons.Outlined.CardMembership,
-                        actionLabel = "Добавить",
+                        actionLabel = "Р”РѕР±Р°РІРёС‚СЊ",
                         onAction = { editing = true }
                     )
                 }
@@ -98,22 +98,22 @@ private fun LicenseView(l: License, onEdit: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), color = CardBg) {
             Column(Modifier.padding(20.dp)) {
-                Text("Racing License", fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                Text("Гоночная лицензия", fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(4.dp))
-                Text(l.number.ifBlank { "—" }, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                Text(l.number.ifBlank { "вЂ”" }, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column { Text("Категория", fontSize = 11.sp, color = TextMuted); Text(l.category.ifBlank { "—" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
-                    Column(horizontalAlignment = Alignment.End) { Text("Класс", fontSize = 11.sp, color = TextMuted); Text(l.className.ifBlank { "—" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
+                    Column { Text("РљР°С‚РµРіРѕСЂРёСЏ", fontSize = 11.sp, color = TextMuted); Text(l.category.ifBlank { "вЂ”" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
+                    Column(horizontalAlignment = Alignment.End) { Text("РљР»Р°СЃСЃ", fontSize = 11.sp, color = TextMuted); Text(l.className.ifBlank { "вЂ”" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column { Text("Федерация", fontSize = 11.sp, color = TextMuted); Text(l.federation.ifBlank { "—" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
+                    Column { Text("Р¤РµРґРµСЂР°С†РёСЏ", fontSize = 11.sp, color = TextMuted); Text(l.federation.ifBlank { "вЂ”" }, fontSize = 14.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold) }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("Статус", fontSize = 11.sp, color = TextMuted)
+                        Text("РЎС‚Р°С‚СѓСЃ", fontSize = 11.sp, color = TextMuted)
                         val active = l.status == "active"
                         Surface(shape = RoundedCornerShape(50), color = (if (active) ILeaderColors.Success else ILeaderColors.Error).copy(0.12f)) {
-                            Text(if (active) "Активна" else (l.status.ifBlank { "—" }),
+                            Text(if (active) "РђРєС‚РёРІРЅР°" else (l.status.ifBlank { "вЂ”" }),
                                 Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                                 color = if (active) ILeaderColors.Success else ILeaderColors.Error)
@@ -123,12 +123,12 @@ private fun LicenseView(l: License, onEdit: () -> Unit) {
             }
         }
         Spacer(Modifier.height(12.dp))
-        InfoRow("Дата выдачи", l.issueDate.ifBlank { "—" })
-        InfoRow("Действительна до", l.expiryDate.ifBlank { "—" })
-        InfoRow("Медосмотр", l.medicalCheckDate.ifBlank { "—" })
-        InfoRow("Медосмотр действителен до", l.medicalCheckExpiry.ifBlank { "—" })
+        InfoRow("Р”Р°С‚Р° РІС‹РґР°С‡Рё", l.issueDate.ifBlank { "вЂ”" })
+        InfoRow("Р”РµР№СЃС‚РІРёС‚РµР»СЊРЅР° РґРѕ", l.expiryDate.ifBlank { "вЂ”" })
+        InfoRow("РњРµРґРѕСЃРјРѕС‚СЂ", l.medicalCheckDate.ifBlank { "вЂ”" })
+        InfoRow("РњРµРґРѕСЃРјРѕС‚СЂ РґРµР№СЃС‚РІРёС‚РµР»РµРЅ РґРѕ", l.medicalCheckExpiry.ifBlank { "вЂ”" })
         Spacer(Modifier.height(20.dp))
-        GradientButton(text = "Редактировать", onClick = onEdit, modifier = Modifier.fillMaxWidth())
+        GradientButton(text = "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ", onClick = onEdit, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(32.dp))
     }
 }
@@ -159,26 +159,26 @@ private fun LicenseEditor(
     var medExpiry by remember { mutableStateOf(initial?.medicalCheckExpiry ?: "") }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        DarkFormField("Номер лицензии", number, { number = it }, placeholder = "KZ-2026-0001")
+        DarkFormField("РќРѕРјРµСЂ Р»РёС†РµРЅР·РёРё", number, { number = it }, placeholder = "KZ-2026-0001")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Категория", category, { category = it }, placeholder = "A / B / C")
+        DarkFormField("РљР°С‚РµРіРѕСЂРёСЏ", category, { category = it }, placeholder = "A / B / C")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Класс", cls, { cls = it }, placeholder = "Junior / Senior")
+        DarkFormField("РљР»Р°СЃСЃ", cls, { cls = it }, placeholder = "Junior / Senior")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Федерация", federation, { federation = it }, placeholder = "KAF")
+        DarkFormField("Р¤РµРґРµСЂР°С†РёСЏ", federation, { federation = it }, placeholder = "KAF")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Дата выдачи", issueDate, { issueDate = it }, placeholder = "YYYY-MM-DD")
+        DarkFormField("Р”Р°С‚Р° РІС‹РґР°С‡Рё", issueDate, { issueDate = it }, placeholder = "YYYY-MM-DD")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Действительна до", expiryDate, { expiryDate = it }, placeholder = "YYYY-MM-DD")
+        DarkFormField("Р”РµР№СЃС‚РІРёС‚РµР»СЊРЅР° РґРѕ", expiryDate, { expiryDate = it }, placeholder = "YYYY-MM-DD")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Медосмотр", medCheck, { medCheck = it }, placeholder = "YYYY-MM-DD")
+        DarkFormField("РњРµРґРѕСЃРјРѕС‚СЂ", medCheck, { medCheck = it }, placeholder = "YYYY-MM-DD")
         Spacer(Modifier.height(12.dp))
-        DarkFormField("Медосмотр до", medExpiry, { medExpiry = it }, placeholder = "YYYY-MM-DD")
+        DarkFormField("РњРµРґРѕСЃРјРѕС‚СЂ РґРѕ", medExpiry, { medExpiry = it }, placeholder = "YYYY-MM-DD")
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Отмена") }
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("РћС‚РјРµРЅР°") }
             GradientButton(
-                text = "Сохранить",
+                text = "РЎРѕС…СЂР°РЅРёС‚СЊ",
                 onClick = {
                     onSave(
                         LicenseUpsertDto(

@@ -498,11 +498,8 @@ fun ProfileScreen(
                                     )
                                     MenuDivider()
                                 }
-                                // Сообщения hidden until Supabase conversations schema is applied.
-                                // The DB has no `conversation_participants` / `conversations` / `messages`
-                                // tables yet; the Android chat code is ready but the backend isn't.
-                                // Re-enable this row once migrations for chat are shipped.
-                                // MenuRow(icon = Icons.Outlined.ChatBubbleOutline, label = "Сообщения", onClick = onConversations)
+                                MenuRow(icon = Icons.Outlined.ChatBubbleOutline, label = "Сообщения", onClick = onConversations)
+                                MenuDivider()
                                 MenuRow(icon = Icons.Outlined.Notifications, label = "Уведомления", onClick = onNotifications)
                                 MenuDivider()
                                 // Settings
@@ -890,7 +887,11 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
     var showLegal by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        try { pages = ViewerRepository().getLegalPages().filter { it.enabled } } catch (_: Exception) {}
+        try {
+            pages = ViewerRepository().getLegalPages().filter { it.enabled }
+        } catch (e: Exception) {
+            com.ileader.app.data.util.AppLogger.w("SettingsSheet: legal pages load failed: ${e.message}", e)
+        }
         loading = false
     }
 
@@ -965,7 +966,11 @@ internal fun LegalSheet(
     var selectedSlug by remember { mutableStateOf(initialSlug) }
 
     LaunchedEffect(Unit) {
-        try { pages = ViewerRepository().getLegalPages().filter { it.enabled } } catch (_: Exception) {}
+        try {
+            pages = ViewerRepository().getLegalPages().filter { it.enabled }
+        } catch (e: Exception) {
+            com.ileader.app.data.util.AppLogger.w("LegalSheet: legal pages load failed: ${e.message}", e)
+        }
         // If the requested slug is missing in the platform_settings payload, fall
         // back to the first available page so the sheet isn't empty.
         if (selectedSlug == null || pages.none { it.slug == selectedSlug }) {
@@ -1139,7 +1144,13 @@ private fun SportSelectionSheet(userId: String, onDismiss: () -> Unit) {
     val currentIds by sportPref.selectedSportIds.collectAsState(initial = emptyList())
 
     LaunchedEffect(Unit) {
-        try { allSports = ViewerRepository().getSports(); selectedIds.addAll(currentIds) } catch (_: Exception) {}
+        try {
+            allSports = ViewerRepository().getSports()
+            selectedIds.addAll(currentIds)
+        } catch (e: Exception) {
+            com.ileader.app.data.util.AppLogger.e("SportsSheet: load sports failed", e)
+            com.ileader.app.data.util.Alerts.error("Не удалось загрузить виды спорта — проверьте сеть")
+        }
         loading = false
     }
 

@@ -393,7 +393,10 @@ private fun QrCameraPreview(onQrDetected: (String) -> Unit) {
                         preview,
                         analysis
                     )
-                } catch (_: Exception) { }
+                } catch (e: Exception) {
+                    com.ileader.app.data.util.AppLogger.e("QrScanner: camera bind failed", e)
+                    com.ileader.app.data.util.Alerts.error("Не удалось открыть камеру")
+                }
             }, ContextCompat.getMainExecutor(ctx))
             previewView
         },

@@ -60,7 +60,10 @@ fun ManualCheckInScreen(
             isSearching = true
             try {
                 results = repo.searchAttendees(tournamentId, "")
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                com.ileader.app.data.util.AppLogger.e("ManualCheckIn: load attendees failed", e)
+                checkInMessage = "Не удалось загрузить список участников — проверьте сеть и попробуйте ещё раз"
+            }
             isSearching = false
             hasSearched = true
         }

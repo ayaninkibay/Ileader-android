@@ -207,7 +207,9 @@ class RefereeRepository {
             .update({
                 set("participant1_score", data.participant1Score)
                 set("participant2_score", data.participant2Score)
-                data.games?.let { set("games", it) }
+                // games=null означает откат — пишем [], как делает веб-клиент.
+                // `?.let { set(...) }` здесь нельзя: старые геймы пережили бы откат.
+                set("games", data.games ?: emptyList())
                 set("winner_id", data.winnerId)
                 set("loser_id", data.loserId)
                 set("status", data.status)

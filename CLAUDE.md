@@ -66,7 +66,7 @@ app/src/main/java/com/ileader/app/
 │   ├── bracket/                       # BracketGenerator, BracketUtils
 │   ├── local/                         # Room: AppDatabase, DAO, кэш для offline
 │   ├── models/                        # Domain-модели (User, Tournament, Team, ...)
-│   ├── notifications/                 # FCM-заглушка (NotificationHelper, FcmTokenManager)
+│   ├── notifications/                 # FCM (NotificationHelper, FcmTokenManager, ILeaderMessagingService — боевой)
 │   ├── preferences/                   # DataStore: тема, язык
 │   ├── remote/
 │   │   ├── SupabaseModule.kt          # Singleton клиент Supabase (HTTP timeouts, retry)
@@ -230,6 +230,13 @@ app/src/main/java/com/ileader/app/
 ---
 
 ## 7. Текущее состояние приложения — ПРОБЛЕМЫ
+
+> ⚠️ **УСТАРЕЛО (актуально на 2026-03, оставлено для истории).** К 2026-06 всё из этого
+> раздела закрыто: моки удалены, все экраны на Supabase, лиги/курсы/чат/QR check-in/
+> инвайты/верификация/семейные связи/rankings/отзывы/FCM реализованы, Room-кэш и
+> обработка ошибок (AppLogger + AlertController) на месте. Чат требует применённой
+> миграции `ileader/supabase/migrations/20260610_chat.sql`. Из осознанно не сделанного:
+> Hilt/DI (репозитории создаются в VM напрямую) и автотесты.
 
 ### Критические проблемы
 

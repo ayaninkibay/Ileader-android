@@ -277,7 +277,12 @@ private fun CreateTeamDialog(
     var city by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        try { sports = orgRepo.getSports() } catch (_: Exception) {}
+        try {
+            sports = orgRepo.getSports()
+        } catch (e: Exception) {
+            com.ileader.app.data.util.AppLogger.e("TeamManagement: load sports failed", e)
+            com.ileader.app.data.util.Alerts.error("Не удалось загрузить виды спорта — проверьте сеть")
+        }
     }
 
     AlertDialog(

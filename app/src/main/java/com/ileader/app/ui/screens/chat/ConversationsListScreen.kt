@@ -86,7 +86,16 @@ private fun ConversationRow(
         ?.profiles
     val name = other?.name ?: "Диалог"
     val avatarUrl = other?.avatarUrl
-    val preview = conversation.messages?.lastOrNull()?.content ?: "Нет сообщений"
+    val lastMessage = conversation.messages?.lastOrNull()
+    val preview = lastMessage?.content ?: "Нет сообщений"
+    // Непрочитано = чужое последнее сообщение новее моего last_read_at.
+    // Метки времени — ISO-8601 от Postgres, сравниваются лексикографически.
+    val myLastReadAt = conversation.participants
+        ?.firstOrNull { it.userId == myUserId }
+        ?.lastReadAt
+    val unread = lastMessage != null &&
+        lastMessage.senderId != myUserId &&
+        (myLastReadAt == null || (lastMessage.createdAt ?: "") > myLastReadAt)
 
     DarkCard(
         modifier = Modifier
@@ -130,11 +139,35 @@ private fun ConversationRow(
                 Text(
                     preview,
                     fontSize = 13.sp,
-                    color = TextMuted,
+                    color = if (unread) TextSecondary else TextMuted,
+                    fontWeight = if (unread) FontWeight.SemiBold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            Spacer(Modifier.width(8.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                lastMessage?.createdAt?.let { ts ->
+                    Text(formatChatTime(ts), fontSize = 11.sp, color = TextMuted)
+                }
+                if (unread) {
+                    Spacer(Modifier.height(6.dp))
+                    Box(Modifier.size(9.dp).clip(CircleShape).background(Accent))
+                }
+            }
         }
     }
+}
+
+/** "14:05" сегодня, иначе "10.06". */
+private fun formatChatTime(iso: String): String = try {
+    val dt = java.time.OffsetDateTime.parse(iso)
+        .atZoneSameInstant(java.time.ZoneId.systemDefault())
+    if (dt.toLocalDate() == java.time.LocalDate.now()) {
+        dt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+    } else {
+        dt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM"))
+    }
+} catch (_: Exception) {
+    ""
 }

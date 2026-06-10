@@ -106,8 +106,7 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
             onBack = { navState = HomeNavState.Home },
-            // onStartChat намеренно null — backend (`conversations` / `messages`) ещё не задеплоен.
-            // Возвращаем после миграций: onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) }
+            onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) },
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) }
         )
         is HomeNavState.Notifications -> com.ileader.app.ui.screens.notifications.NotificationsScreen(

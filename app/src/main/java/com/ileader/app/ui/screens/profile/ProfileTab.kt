@@ -182,8 +182,7 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
         is ProfileNavState.PublicProfile -> PublicProfileScreen(
             userId = state.userId,
             onBack = { navState = ProfileNavState.Main },
-            // onStartChat намеренно null — backend (`conversations` / `messages`) ещё не задеплоен.
-            // Возвращаем после миграций: onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) }
+            onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) },
         )
     }
 }

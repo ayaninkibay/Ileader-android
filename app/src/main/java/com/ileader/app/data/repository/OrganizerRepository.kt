@@ -217,22 +217,51 @@ class OrganizerRepository {
     }
 
     suspend fun saveBracketMatches(tournamentId: String, matches: List<BracketMatchInsertDto>) {
-        // Delete existing bracket
+        // PostgREST не даёт транзакций, а delete→insert без отката может стереть
+        // сетку при сбое вставки. Снимаем бэкап и восстанавливаем его, если
+        // insert упал — иначе сбой сети на полпути уничтожает турнир.
+        val backup = client.from("bracket_matches")
+            .select { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<BracketMatchInsertDto>()
         client.from("bracket_matches")
             .delete { filter { eq("tournament_id", tournamentId) } }
-        // Insert new matches
-        if (matches.isNotEmpty()) {
-            client.from("bracket_matches").insert(matches)
+        try {
+            if (matches.isNotEmpty()) {
+                client.from("bracket_matches").insert(matches)
+            }
+        } catch (e: Exception) {
+            try {
+                if (backup.isNotEmpty()) client.from("bracket_matches").insert(backup)
+            } catch (restoreError: Exception) {
+                com.ileader.app.data.util.AppLogger.e(
+                    "saveBracketMatches: restore after failed insert also failed", restoreError
+                )
+            }
+            throw e
         }
         MemoryCache.invalidate("bracket:$tournamentId")
     }
 
     suspend fun saveGroups(tournamentId: String, groups: List<TournamentGroupInsertDto>) {
-        // Delete existing groups
+        // Та же схема бэкап→delete→insert→restore, что и в saveBracketMatches.
+        val backup = client.from("tournament_groups")
+            .select { filter { eq("tournament_id", tournamentId) } }
+            .decodeList<TournamentGroupInsertDto>()
         client.from("tournament_groups")
             .delete { filter { eq("tournament_id", tournamentId) } }
-        if (groups.isNotEmpty()) {
-            client.from("tournament_groups").insert(groups)
+        try {
+            if (groups.isNotEmpty()) {
+                client.from("tournament_groups").insert(groups)
+            }
+        } catch (e: Exception) {
+            try {
+                if (backup.isNotEmpty()) client.from("tournament_groups").insert(backup)
+            } catch (restoreError: Exception) {
+                com.ileader.app.data.util.AppLogger.e(
+                    "saveGroups: restore after failed insert also failed", restoreError
+                )
+            }
+            throw e
         }
         MemoryCache.invalidate("groups:$tournamentId")
     }
@@ -256,9 +285,12 @@ class OrganizerRepository {
             .update({
                 set("participant1_score", data.participant1Score)
                 set("participant2_score", data.participant2Score)
-                data.games?.let { set("games", it) }
-                data.winnerId?.let { set("winner_id", it) }
-                data.loserId?.let { set("loser_id", it) }
+                // Откат (revertMatch) передаёт null-ы, и они ДОЛЖНЫ дойти до БД
+                // явными null/[] — иначе старый победитель переживает отмену
+                // результата (web revert пишет winner_id=null, games=[]).
+                set("games", data.games ?: emptyList())
+                set("winner_id", data.winnerId)
+                set("loser_id", data.loserId)
                 set("status", data.status)
             }) {
                 filter { eq("id", matchId) }

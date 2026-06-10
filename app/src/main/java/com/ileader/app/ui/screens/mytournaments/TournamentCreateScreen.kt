@@ -96,7 +96,10 @@ fun TournamentCreateScreen(
         try {
             sports = repo.getSports()
             locations = repo.getMyLocations(userId)
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            com.ileader.app.data.util.AppLogger.e("TournamentCreate: load sports/locations failed", e)
+            com.ileader.app.data.util.Alerts.error("Не удалось загрузить виды спорта и локации — проверьте сеть")
+        }
     }
 
     Scaffold(
