@@ -49,7 +49,7 @@ sealed class HomeNavState {
     data class LeagueDetail(val id: String) : HomeNavState()
     data class LocationDetail(val id: String) : HomeNavState()
     data class LocationReview(val id: String) : HomeNavState()
-    data class StartChat(val otherUserId: String) : HomeNavState()
+    data class StartChat(val otherUserId: String, val otherName: String) : HomeNavState()
     data class Chat(val conversationId: String, val otherName: String) : HomeNavState()
     // Organizer flow from a tournament opened from Home feed
     data class TournamentEdit(val id: String) : HomeNavState()
@@ -106,7 +106,7 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
             onBack = { navState = HomeNavState.Home },
-            onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) },
+            onStartChat = { otherId, otherName -> navState = HomeNavState.StartChat(otherId, otherName) },
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) }
         )
         is HomeNavState.Notifications -> com.ileader.app.ui.screens.notifications.NotificationsScreen(
@@ -179,7 +179,7 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
                 }
                 is UiState.Success -> {
                     LaunchedEffect(s.data) {
-                        navState = HomeNavState.Chat(s.data, "Диалог")
+                        navState = HomeNavState.Chat(s.data, state.otherName)
                     }
                     com.ileader.app.ui.components.LoadingScreen()
                 }

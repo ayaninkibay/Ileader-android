@@ -51,7 +51,7 @@ private sealed class ProfileNavState {
     data object Verification : ProfileNavState()
     data object Conversations : ProfileNavState()
     data class Chat(val conversationId: String, val otherName: String) : ProfileNavState()
-    data class StartChat(val otherUserId: String) : ProfileNavState()
+    data class StartChat(val otherUserId: String, val otherName: String) : ProfileNavState()
     data class PublicProfile(val userId: String) : ProfileNavState()
 }
 
@@ -173,7 +173,7 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
                 }
                 is UiState.Success -> {
                     LaunchedEffect(s.data) {
-                        navState = ProfileNavState.Chat(s.data, "Диалог")
+                        navState = ProfileNavState.Chat(s.data, state.otherName)
                     }
                     com.ileader.app.ui.components.LoadingScreen()
                 }
@@ -182,7 +182,7 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
         is ProfileNavState.PublicProfile -> PublicProfileScreen(
             userId = state.userId,
             onBack = { navState = ProfileNavState.Main },
-            onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) },
+            onStartChat = { otherId, otherName -> navState = ProfileNavState.StartChat(otherId, otherName) },
         )
     }
 }

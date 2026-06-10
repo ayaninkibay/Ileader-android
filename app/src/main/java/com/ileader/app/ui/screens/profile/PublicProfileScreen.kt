@@ -50,7 +50,7 @@ private val Border: Color @Composable get() = LocalAppColors.current.border
 fun PublicProfileScreen(
     userId: String,
     onBack: () -> Unit,
-    onStartChat: ((otherUserId: String) -> Unit)? = null,
+    onStartChat: ((otherUserId: String, otherName: String) -> Unit)? = null,
     onTournamentClick: ((String) -> Unit)? = null,
     viewModel: PublicProfileViewModel = viewModel()
 ) {
@@ -66,7 +66,7 @@ fun PublicProfileScreen(
         is UiState.Success -> ProfileContent(
             data = state.data,
             onBack = onBack,
-            onStartChat = onStartChat?.let { cb -> { cb(userId) } },
+            onStartChat = onStartChat?.let { cb -> { cb(userId, state.data.profile.name ?: "Диалог") } },
             onTournamentClick = onTournamentClick
         )
     }
