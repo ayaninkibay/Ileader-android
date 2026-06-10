@@ -169,7 +169,10 @@ private fun HeroSection(
                     shape = CircleShape,
                     color = CardBg,
                     shadowElevation = 0.dp,
-                    modifier = Modifier.size(40.dp).clickable(onClick = onBack)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .pressableClick(onClick = onBack)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад",

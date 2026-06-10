@@ -37,9 +37,12 @@ import coil.compose.AsyncImage
 import com.ileader.app.data.remote.dto.ProfileDto
 import com.ileader.app.data.remote.dto.RefereeAssignmentDto
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -145,6 +148,7 @@ fun RefereeManagementScreen(
                                             snackbarHostState.showSnackbar("Судья удалён")
                                             loadAssignments()
                                         } catch (e: Exception) {
+                                            Alerts.error("Не удалось удалить судью")
                                             snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                                         } finally {
                                             processingId = null
@@ -168,10 +172,12 @@ fun RefereeManagementScreen(
                 scope.launch {
                     try {
                         repo.assignReferee(tournamentId, rid)
+                        Alerts.success("Судья назначен")
                         snackbarHostState.showSnackbar("Судья назначен")
                         showAddDialog = false
                         loadAssignments()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось назначить судью")
                         snackbarHostState.showSnackbar(e.message ?: "Ошибка назначения")
                     }
                 }
@@ -234,17 +240,17 @@ private fun RefereeCard(
 
             // Remove button
             if (isProcessing) {
-                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFFEF4444))
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = ILeaderColors.Error)
             } else {
                 Surface(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onRemove() },
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onRemove),
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFEF4444).copy(alpha = 0.1f)
+                    color = ILeaderColors.Error.copy(alpha = 0.1f)
                 ) {
                     Icon(
-                        Icons.Filled.Close, null,
-                        tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(20.dp).padding(4.dp)
+                        Icons.Filled.Close, contentDescription = "Удалить",
+                        tint = ILeaderColors.Error,
+                        modifier = Modifier.size(28.dp).padding(6.dp)
                     )
                 }
             }

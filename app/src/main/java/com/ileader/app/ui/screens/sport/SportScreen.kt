@@ -404,7 +404,7 @@ private fun SportImageCard(
         modifier = modifier
             .fillMaxHeight()
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .pressableClick(onClick = onClick)
     ) {
         if (imgUrl != null) {
             AsyncImage(model = imgUrl, contentDescription = sport.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
@@ -447,7 +447,7 @@ private fun SectionTitle(title: String, action: String? = null, onAction: (() ->
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         if (action != null && onAction != null) {
             Text(action, fontSize = 13.sp, color = Accent, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onAction() })
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onAction).padding(horizontal = 6.dp, vertical = 4.dp))
         }
     }
 }
@@ -483,7 +483,10 @@ private fun TournamentMiniCard(t: TournamentWithCountsDto, onClick: () -> Unit) 
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(260.dp).clickable(onClick = onClick)
+        modifier = Modifier
+            .width(260.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .pressableClick(onClick = onClick)
     ) {
         Column {
             Box(Modifier.fillMaxWidth().height(120.dp)) {
@@ -538,7 +541,7 @@ private fun PersonMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(110.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(110.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick)
     ) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             UserAvatar(avatarUrl = p.avatarUrl, name = p.name ?: "?", size = 48.dp, showGradientBorder = p.primaryRating > 0)
@@ -578,7 +581,7 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(220.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(18.dp)).pressableClick(onClick = onClick)
     ) {
         Column {
             Box(Modifier.fillMaxWidth().height(120.dp)) {
@@ -596,9 +599,9 @@ private fun ArticleMiniCard(a: ArticleDto, onClick: () -> Unit) {
 
                 // Content type badge
                 val (badgeIcon, badgeLabel, badgeColor) = when {
-                    isVideo -> Triple(Icons.Filled.PlayCircle, "Видео", Color(0xFF3B82F6))
-                    isPhoto -> Triple(Icons.Filled.PhotoLibrary, "Фото", Color(0xFF22C55E))
-                    else -> Triple(Icons.Filled.Article, "Статья", Color(0xFFE53535))
+                    isVideo -> Triple(Icons.Filled.PlayCircle, "Видео", ILeaderColors.Info)
+                    isPhoto -> Triple(Icons.Filled.PhotoLibrary, "Фото", ILeaderColors.Success)
+                    else -> Triple(Icons.Filled.Article, "Статья", ILeaderColors.PrimaryRed)
                 }
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -658,7 +661,7 @@ private fun LeagueMiniCard(league: com.ileader.app.data.remote.dto.LeagueDto, on
     Surface(
         shape = RoundedCornerShape(18.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(280.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(280.dp).clip(RoundedCornerShape(18.dp)).pressableClick(onClick = onClick)
     ) {
         Column {
             // Hero
@@ -720,7 +723,7 @@ private fun RefereeMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(200.dp).height(90.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(200.dp).height(90.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             // Avatar
@@ -760,7 +763,7 @@ private fun TrainerMiniCard(p: CommunityProfileDto, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(200.dp).height(90.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(200.dp).height(90.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick)
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             UserAvatar(avatarUrl = p.avatarUrl, name = p.name ?: "?", size = 48.dp, showGradientBorder = false)
@@ -801,7 +804,7 @@ private fun TeamMiniCard(team: TeamWithStatsDto, onClick: () -> Unit = {}) {
     Surface(
         shape = RoundedCornerShape(16.dp), color = CardBg,
         shadowElevation = 0.dp,
-        modifier = Modifier.width(170.dp).height(170.dp).clickable(onClick = onClick)
+        modifier = Modifier.width(170.dp).height(170.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick)
     ) {
         Column(Modifier.padding(14.dp).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(

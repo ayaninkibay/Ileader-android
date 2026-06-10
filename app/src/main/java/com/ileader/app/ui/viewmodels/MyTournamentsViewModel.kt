@@ -18,6 +18,7 @@ import com.ileader.app.data.repository.OrganizerRepository
 import com.ileader.app.data.repository.RefereeRepository
 import com.ileader.app.data.repository.TrainerRepository
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +49,7 @@ class MyTournamentsViewModel : ViewModel() {
                 try {
                     helperRepo.getMyAssignments(userId)
                 } catch (e: Exception) {
+                    AppLogger.w("MyTournamentsVM.load helperAssignments: ${e.message}", e)
                     emptyList()
                 }
             }
@@ -78,6 +80,7 @@ class MyTournamentsViewModel : ViewModel() {
                         }
                     }
                 } catch (e: Exception) {
+                    AppLogger.e("MyTournamentsVM.load role=$role failed", e)
                     throw e
                 }
             }
@@ -90,6 +93,7 @@ class MyTournamentsViewModel : ViewModel() {
                         val goalsList = AthleteRepository().getGoals(userId)
                         _goals.value = UiState.Success(goalsList)
                     } catch (e: Exception) {
+                        AppLogger.e("MyTournamentsVM.load goals failed", e)
                         _goals.value = UiState.Error(e.message ?: "Ошибка загрузки целей")
                     }
                 }
@@ -100,6 +104,7 @@ class MyTournamentsViewModel : ViewModel() {
                 @Suppress("UNCHECKED_CAST")
                 _roleTournaments.value = UiState.Success(data as List<Any>)
             } catch (e: Exception) {
+                AppLogger.e("MyTournamentsVM.load roleTournaments failed", e)
                 _roleTournaments.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
 
@@ -107,6 +112,7 @@ class MyTournamentsViewModel : ViewModel() {
                 val helpers = helperDeferred.await()
                 _helperAssignments.value = UiState.Success(helpers)
             } catch (e: Exception) {
+                AppLogger.w("MyTournamentsVM.load helperAssignments await: ${e.message}", e)
                 _helperAssignments.value = UiState.Success(emptyList())
             }
         }
@@ -119,6 +125,7 @@ class MyTournamentsViewModel : ViewModel() {
                 val tournaments = viewerRepo.getTournamentsByIds(ids)
                 _favoriteTournaments.value = UiState.Success(tournaments)
             } catch (e: Exception) {
+                AppLogger.e("MyTournamentsVM.loadFavorites failed", e)
                 _favoriteTournaments.value = UiState.Error(e.message ?: "Ошибка")
             }
         }

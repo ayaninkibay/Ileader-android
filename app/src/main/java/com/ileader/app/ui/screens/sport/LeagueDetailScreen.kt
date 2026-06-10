@@ -33,6 +33,7 @@ import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.LoadingScreen
+import com.ileader.app.ui.components.pressableClick
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.LeagueDetailData
@@ -157,8 +158,9 @@ private fun LeagueDetailContent(
                     .padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 20.dp)
             ) {
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(0.3f))
-                        .clickable { onBack() },
+                    Modifier.size(40.dp).clip(CircleShape)
+                        .pressableClick(onClick = onBack)
+                        .background(Color.Black.copy(0.3f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад", tint = Color.White, modifier = Modifier.size(20.dp))

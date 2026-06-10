@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.ileader.app.MainActivity
@@ -84,8 +86,12 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val largeIcon = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher_foreground)
+            .setColor(Color.parseColor("#E53535"))
+            .setLargeIcon(largeIcon)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)

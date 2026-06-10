@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,9 +25,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +41,8 @@ import com.ileader.app.data.models.SignUpData
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.ui.components.ILeaderButton
 import com.ileader.app.ui.components.ILeaderInputField
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.screens.profile.LegalSheet
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 
@@ -55,13 +62,19 @@ fun RegisterScreen(
 ) {
     val colors = LocalAppColors.current
     var currentStep by remember { mutableStateOf(RegisterStep.CHOOSE_TYPE) }
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("") }
+    // rememberSaveable для всех введённых вручную текстовых полей: при rotation/
+    // тематическом переключении/process-death пользователь не теряет то что набил.
+    // Остальное (флаги UI, выбор enum-роли) переживёт recomposition но не Activity
+    // recreation — это допустимо, чтобы не тащить Saver'ы под enum.
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var city by rememberSaveable { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf<UserRole?>(null) }
+    var accepted by remember { mutableStateOf(false) }
+    var legalSlug by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
 
     Box(
@@ -153,6 +166,9 @@ fun RegisterScreen(
                         name = name, email = email, password = password,
                         phone = phone, city = city, passwordVisible = passwordVisible,
                         selectedRole = null, showRoleSelection = false, state = state,
+                        accepted = accepted,
+                        onAcceptChange = { accepted = it },
+                        onOpenLegal = { legalSlug = it },
                         onNameChange = { name = it },
                         onEmailChange = { email = it; onClearError() },
                         onPasswordChange = { password = it; onClearError() },
@@ -176,6 +192,9 @@ fun RegisterScreen(
                         name = name, email = email, password = password,
                         phone = phone, city = city, passwordVisible = passwordVisible,
                         selectedRole = selectedRole, showRoleSelection = true, state = state,
+                        accepted = accepted,
+                        onAcceptChange = { accepted = it },
+                        onOpenLegal = { legalSlug = it },
                         onNameChange = { name = it },
                         onEmailChange = { email = it; onClearError() },
                         onPasswordChange = { password = it; onClearError() },
@@ -219,6 +238,10 @@ fun RegisterScreen(
                 )
             }
         }
+    }
+
+    if (legalSlug != null) {
+        LegalSheet(initialSlug = legalSlug) { legalSlug = null }
     }
 }
 
@@ -339,7 +362,8 @@ private fun AccountTypeCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clip(RoundedCornerShape(18.dp))
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = colors.cardBg
     ) {
@@ -423,6 +447,9 @@ private fun RegistrationForm(
     selectedRole: UserRole?,
     showRoleSelection: Boolean,
     state: AuthState,
+    accepted: Boolean,
+    onAcceptChange: (Boolean) -> Unit,
+    onOpenLegal: (String) -> Unit,
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -585,10 +612,18 @@ private fun RegistrationForm(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        LegalConsentRow(
+            accepted = accepted,
+            onAcceptChange = onAcceptChange,
+            onOpenLegal = onOpenLegal
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         val isFormValid = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() &&
-                (!showRoleSelection || selectedRole != null)
+                (!showRoleSelection || selectedRole != null) && accepted
 
         ILeaderButton(
             text = "Создать аккаунт",
@@ -596,6 +631,61 @@ private fun RegistrationForm(
             enabled = isFormValid,
             isLoading = state.isLoading,
             icon = Icons.Default.HowToReg
+        )
+    }
+}
+
+@Composable
+private fun LegalConsentRow(
+    accepted: Boolean,
+    onAcceptChange: (Boolean) -> Unit,
+    onOpenLegal: (String) -> Unit
+) {
+    val colors = LocalAppColors.current
+    Row(verticalAlignment = Alignment.Top) {
+        Checkbox(
+            checked = accepted,
+            onCheckedChange = onAcceptChange,
+            colors = CheckboxDefaults.colors(
+                checkedColor = ILeaderColors.PrimaryRed,
+                uncheckedColor = colors.border,
+                checkmarkColor = Color.White
+            )
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+
+        val termsTag = "terms"
+        val privacyTag = "privacy"
+        val annotated = buildAnnotatedString {
+            append("Я принимаю ")
+            pushStringAnnotation(tag = termsTag, annotation = termsTag)
+            withStyle(SpanStyle(color = ILeaderColors.PrimaryRed, fontWeight = FontWeight.SemiBold)) {
+                append("Пользовательское соглашение")
+            }
+            pop()
+            append(" и ")
+            pushStringAnnotation(tag = privacyTag, annotation = privacyTag)
+            withStyle(SpanStyle(color = ILeaderColors.PrimaryRed, fontWeight = FontWeight.SemiBold)) {
+                append("Политику конфиденциальности")
+            }
+            pop()
+        }
+        ClickableText(
+            text = annotated,
+            style = androidx.compose.ui.text.TextStyle(
+                color = colors.textSecondary,
+                fontSize = 13.sp,
+                lineHeight = 18.sp
+            ),
+            modifier = Modifier.padding(top = 12.dp),
+            onClick = { offset ->
+                val link = annotated.getStringAnnotations(offset, offset).firstOrNull()
+                if (link != null) {
+                    onOpenLegal(link.item)
+                } else {
+                    onAcceptChange(!accepted)
+                }
+            }
         )
     }
 }
@@ -626,7 +716,8 @@ private fun RoleSelectionGrid(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onRoleSelected(role) },
+                            .clip(RoundedCornerShape(14.dp))
+                            .pressableClick { onRoleSelected(role) },
                         shape = RoundedCornerShape(14.dp),
                         color = if (isSelected) color.copy(alpha = 0.12f) else colors.cardBg
                     ) {

@@ -26,6 +26,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.FamilyLinkDto
 import com.ileader.app.data.remote.dto.ParentalApprovalDto
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.FamilyData
 import com.ileader.app.ui.viewmodels.FamilyViewModel
@@ -136,7 +137,7 @@ private fun FamilyContent(
             Surface(
                 shape = RoundedCornerShape(50),
                 color = Accent,
-                modifier = Modifier.clickable { onAddChild() }
+                modifier = Modifier.clip(RoundedCornerShape(50)).pressableClick(onClick = onAddChild)
             ) {
                 Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -202,9 +203,9 @@ private fun FamilyLinkCard(
     onRemove: () -> Unit
 ) {
     val statusColor = when (status) {
-        "active" -> Color(0xFF22C55E)
-        "pending" -> Color(0xFFF59E0B)
-        "removed" -> Color(0xFFEF4444)
+        "active" -> ILeaderColors.Success
+        "pending" -> ILeaderColors.Warning
+        "removed" -> ILeaderColors.Error
         else -> TextMuted
     }
     val statusLabel = when (status) {
@@ -218,13 +219,13 @@ private fun FamilyLinkCard(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.size(48.dp).clip(CircleShape)
-                    .background(if (isChild) Color(0xFF3B82F6).copy(0.15f) else Color(0xFF8B5CF6).copy(0.15f)),
+                    .background(if (isChild) ILeaderColors.Info.copy(0.15f) else ILeaderColors.SponsorColor.copy(0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     if (isChild) Icons.Outlined.ChildCare else Icons.Outlined.Person,
                     null,
-                    tint = if (isChild) Color(0xFF3B82F6) else Color(0xFF8B5CF6),
+                    tint = if (isChild) ILeaderColors.Info else ILeaderColors.SponsorColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -250,8 +251,8 @@ private fun FamilyLinkCard(
                 if (onConfirm != null) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF22C55E),
-                        modifier = Modifier.clickable { onConfirm() }
+                        color = ILeaderColors.Success,
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick { onConfirm() }
                     ) {
                         Text("Подтвердить", Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
@@ -260,11 +261,11 @@ private fun FamilyLinkCard(
                 }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFEF4444).copy(0.12f),
-                    modifier = Modifier.clickable { onRemove() }
+                    color = ILeaderColors.Error.copy(0.12f),
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onRemove)
                 ) {
                     Text("Удалить", Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Error)
                 }
             }
         }
@@ -288,10 +289,10 @@ private fun ApprovalCard(
     DarkCardPadded {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFF59E0B).copy(0.15f)),
+                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(ILeaderColors.Warning.copy(0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Approval, null, tint = Color(0xFFF59E0B), modifier = Modifier.size(22.dp))
+                Icon(Icons.Outlined.Approval, null, tint = ILeaderColors.Warning, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
@@ -302,19 +303,19 @@ private fun ApprovalCard(
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Surface(
-                shape = RoundedCornerShape(8.dp), color = Color(0xFF22C55E),
-                modifier = Modifier.clickable { onApprove() }
+                shape = RoundedCornerShape(8.dp), color = ILeaderColors.Success,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onApprove)
             ) {
                 Text("Одобрить", Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
             Spacer(Modifier.width(8.dp))
             Surface(
-                shape = RoundedCornerShape(8.dp), color = Color(0xFFEF4444).copy(0.12f),
-                modifier = Modifier.clickable { onReject() }
+                shape = RoundedCornerShape(8.dp), color = ILeaderColors.Error.copy(0.12f),
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onReject)
             ) {
                 Text("Отклонить", Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Error)
             }
         }
     }

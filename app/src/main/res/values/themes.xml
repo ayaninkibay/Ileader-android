@@ -5,8 +5,20 @@
         <item name="android:windowBackground">@color/splash_bg</item>
     </style>
 
-    <!-- Splash theme shown while app loads -->
-    <style name="Theme.ILeader.Splash" parent="Theme.ILeader">
-        <item name="android:windowBackground">@drawable/splash_background</item>
+    <!--
+        Launcher splash. Uses the AndroidX SplashScreen API (core-splashscreen):
+        on Android 12+ this hooks into the system splash, on API < 31 it's
+        backported. After installSplashScreen() returns, the activity switches
+        to postSplashScreenTheme (the real Theme.ILeader) before drawing.
+
+        windowSplashScreenAnimatedIcon points at the launcher foreground PNG
+        (the actual iLeader logo) — the old animated-vector wrapper rendered a
+        generic trophy, which was the wrong brand. Splash now matches the
+        launcher icon. No entrance animation; the splash is brief anyway.
+    -->
+    <style name="Theme.ILeader.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.ILeader</item>
     </style>
 </resources>

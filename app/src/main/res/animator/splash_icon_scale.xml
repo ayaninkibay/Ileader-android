@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Entrance animation for the splash icon: scale 0.6 → 1.0 with overshoot,
+    duration matched to windowSplashScreenAnimationDuration in the theme.
+    Plays exactly once when the splash is shown.
+-->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:ordering="together">
+    <objectAnimator
+        android:duration="400"
+        android:propertyName="scaleX"
+        android:valueFrom="0.6"
+        android:valueTo="1.0"
+        android:interpolator="@android:interpolator/overshoot" />
+    <objectAnimator
+        android:duration="400"
+        android:propertyName="scaleY"
+        android:valueFrom="0.6"
+        android:valueTo="1.0"
+        android:interpolator="@android:interpolator/overshoot" />
+</set>

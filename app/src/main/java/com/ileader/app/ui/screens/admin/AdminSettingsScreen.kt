@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.remote.dto.PlatformSettingDto
 import com.ileader.app.data.repository.AdminRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
@@ -114,6 +115,7 @@ fun AdminSettingsScreen(onBack: () -> Unit) {
                         editing = null
                         load()
                     } catch (_: Exception) {
+                        Alerts.error("Не удалось сохранить настройку")
                         editing = null
                     }
                 }

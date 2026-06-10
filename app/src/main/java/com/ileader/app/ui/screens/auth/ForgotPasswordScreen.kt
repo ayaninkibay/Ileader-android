@@ -81,7 +81,8 @@ fun ForgotPasswordScreen(
             AnimatedContent(
                 targetState = state.passwordResetSent,
                 transitionSpec = {
-                    EnterTransition.None togetherWith ExitTransition.None
+                    (fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 6 }) togetherWith
+                            (fadeOut(tween(200)) + slideOutVertically(tween(200)) { -it / 6 })
                 },
                 label = "resetState"
             ) { isSent ->

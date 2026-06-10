@@ -2,6 +2,8 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.MemoryCache
+import com.ileader.app.data.util.escapeLikePattern
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -9,21 +11,23 @@ import io.github.jan.supabase.postgrest.query.Order
 class SponsorRepository {
     private val client = SupabaseModule.client
 
-    suspend fun getMySponsorships(sponsorId: String): List<TournamentSponsorshipDto> {
-        return client.from("tournament_sponsorships")
-            .select(
-                Columns.raw(
-                    "sponsor_id, tournament_id, tier, amount, " +
-                    "tournaments(id, name, start_date, status, sports(id, name), locations(name, city), organizer_id)"
-                )
-            ) {
-                filter { eq("sponsor_id", sponsorId) }
-            }
-            .decodeList<TournamentSponsorshipDto>()
-            .sortedByDescending { it.tournaments?.startDate ?: "" }
-    }
+    suspend fun getMySponsorships(sponsorId: String): List<TournamentSponsorshipDto> =
+        MemoryCache.cached("sponsor:sponsorships:$sponsorId", ttlMs = 600_000L) {
+            client.from("tournament_sponsorships")
+                .select(
+                    Columns.raw(
+                        "sponsor_id, tournament_id, tier, amount, " +
+                        "tournaments(id, name, start_date, status, sports(id, name), locations(name, city), organizer_id)"
+                    )
+                ) {
+                    filter { eq("sponsor_id", sponsorId) }
+                }
+                .decodeList<TournamentSponsorshipDto>()
+                .sortedByDescending { it.tournaments?.startDate ?: "" }
+        }
 
     suspend fun getStats(sponsorId: String): SponsorStats {
+        // Derived from sponsorships — cache layered on the same data.
         val items = getMySponsorships(sponsorId)
         val active = items.count {
             val status = it.tournaments?.status
@@ -37,13 +41,14 @@ class SponsorRepository {
     }
 
     suspend fun searchTournaments(query: String, limit: Int = 50): List<TournamentWithCountsDto> {
+        // Search query — type-as-you-go, not worth caching.
         return client.from("v_tournament_with_counts")
             .select {
                 filter {
                     neq("status", "completed")
                     neq("status", "cancelled")
                     if (query.isNotBlank()) {
-                        ilike("name", "%$query%")
+                        ilike("name", "%${query.escapeLikePattern()}%")
                     }
                 }
                 order("start_date", Order.ASCENDING)
@@ -53,13 +58,15 @@ class SponsorRepository {
     }
 
     suspend fun getSponsoredTournamentIds(sponsorId: String): Set<String> {
-        return client.from("tournament_sponsorships")
-            .select(Columns.raw("tournament_id")) {
-                filter { eq("sponsor_id", sponsorId) }
-            }
-            .decodeList<TournamentSponsorshipDto>()
-            .map { it.tournamentId }
-            .toSet()
+        val cached = MemoryCache.cached("sponsor:sponsored_ids:$sponsorId", ttlMs = 600_000L) {
+            client.from("tournament_sponsorships")
+                .select(Columns.raw("tournament_id")) {
+                    filter { eq("sponsor_id", sponsorId) }
+                }
+                .decodeList<TournamentSponsorshipDto>()
+                .map { it.tournamentId }
+        }
+        return cached.toSet()
     }
 
     suspend fun createSponsorship(sponsorId: String, tournamentId: String, tier: String, amount: Double) {
@@ -72,6 +79,9 @@ class SponsorRepository {
                     amount = amount
                 )
             )
+        MemoryCache.invalidate("sponsor:sponsorships:$sponsorId")
+        MemoryCache.invalidate("sponsor:sponsored_ids:$sponsorId")
+        MemoryCache.invalidate("sponsors:$tournamentId")
     }
 
     suspend fun deleteSponsorship(sponsorId: String, tournamentId: String) {
@@ -82,5 +92,8 @@ class SponsorRepository {
                     eq("tournament_id", tournamentId)
                 }
             }
+        MemoryCache.invalidate("sponsor:sponsorships:$sponsorId")
+        MemoryCache.invalidate("sponsor:sponsored_ids:$sponsorId")
+        MemoryCache.invalidate("sponsors:$tournamentId")
     }
 }

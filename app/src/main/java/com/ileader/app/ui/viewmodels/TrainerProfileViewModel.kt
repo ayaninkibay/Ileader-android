@@ -10,6 +10,7 @@ import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.TrainerRepository
 import com.ileader.app.data.repository.TrainerTeamData
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -57,7 +58,9 @@ class TrainerProfileViewModel : ViewModel() {
 
                 val team = teamsDef.await().firstOrNull()
                 val teamStats = if (team != null) {
-                    try { trainerRepo.getTeamStatistics(team.id) } catch (_: Exception) { emptyList() }
+                    try { trainerRepo.getTeamStatistics(team.id) } catch (e: Exception) {
+                        AppLogger.w("TrainerProfileVM.load teamStats: ${e.message}", e); emptyList()
+                    }
                 } else emptyList()
 
                 state = UiState.Success(
@@ -71,6 +74,7 @@ class TrainerProfileViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("TrainerProfileVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки профиля тренера")
             }
         }

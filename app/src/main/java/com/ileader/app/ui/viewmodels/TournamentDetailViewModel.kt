@@ -18,6 +18,8 @@ import com.ileader.app.data.repository.RefereeRepository
 import com.ileader.app.data.repository.TrainerRepository
 import com.ileader.app.data.repository.TrainerTeamData
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -63,16 +65,15 @@ class TournamentDetailViewModel : ViewModel() {
             try {
                 val all = trainerRepo.getMyTeams(userId)
                 trainerTeams = if (sportId != null) all.filter { it.sportId == sportId } else all
-                // Check which teams are already registered
-                val registered = mutableSetOf<String>()
-                trainerTeams.forEach { team ->
-                    try {
-                        val ids = trainerRepo.getTeamRegisteredTournamentIds(team.id)
-                        if (tournamentId in ids) registered.add(team.id)
-                    } catch (_: Exception) {}
+                // Single batched query instead of one round-trip per team.
+                registeredTeamIds = try {
+                    trainerRepo.getRegisteredTeamIdsForTournament(tournamentId, trainerTeams.map { it.id })
+                } catch (e: Exception) {
+                    AppLogger.w("TournamentDetailVM.loadTrainerTeams registeredIds: ${e.message}", e)
+                    emptySet()
                 }
-                registeredTeamIds = registered
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("TournamentDetailVM.loadTrainerTeams: ${e.message}", e)
                 trainerTeams = emptyList()
             }
         }
@@ -87,6 +88,8 @@ class TournamentDetailViewModel : ViewModel() {
                 registeredTeamIds = registeredTeamIds + teamId
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.registerTeamForTournament failed", e)
+                Alerts.error("Не удалось зарегистрировать команду")
                 snackbarMessage = e.message ?: "Ошибка регистрации команды"
             } finally {
                 teamRegLoading = false
@@ -103,6 +106,8 @@ class TournamentDetailViewModel : ViewModel() {
                 registeredTeamIds = registeredTeamIds - teamId
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.unregisterTeamFromTournament failed", e)
+                Alerts.error("Не удалось снять команду с турнира")
                 snackbarMessage = e.message ?: "Ошибка"
             } finally {
                 teamRegLoading = false
@@ -115,7 +120,11 @@ class TournamentDetailViewModel : ViewModel() {
 
     fun checkHelperStatus(tournamentId: String, userId: String) {
         viewModelScope.launch {
-            isHelper = try { helperRepo.isHelperForTournament(userId, tournamentId) } catch (_: Exception) { false }
+            isHelper = try {
+                helperRepo.isHelperForTournament(userId, tournamentId)
+            } catch (e: Exception) {
+                AppLogger.w("TournamentDetailVM.checkHelperStatus: ${e.message}", e); false
+            }
         }
     }
 
@@ -148,9 +157,9 @@ class TournamentDetailViewModel : ViewModel() {
                 val resultsDef = async { viewerRepo.getTournamentResults(tournamentId) }
                 val bracketDef = async { viewerRepo.getTournamentBracket(tournamentId) }
                 val groupsDef = async { viewerRepo.getTournamentGroups(tournamentId) }
-                val sponsorsDef = async { try { viewerRepo.getTournamentSponsors(tournamentId) } catch (_: Exception) { emptyList() } }
-                val articlesDef = async { try { viewerRepo.getTournamentArticles(tournamentId) } catch (_: Exception) { emptyList() } }
-                val refereesDef = async { try { viewerRepo.getTournamentReferees(tournamentId) } catch (_: Exception) { emptyList() } }
+                val sponsorsDef = async { try { viewerRepo.getTournamentSponsors(tournamentId) } catch (e: Exception) { AppLogger.w("TournamentDetailVM.load sponsors: ${e.message}", e); emptyList() } }
+                val articlesDef = async { try { viewerRepo.getTournamentArticles(tournamentId) } catch (e: Exception) { AppLogger.w("TournamentDetailVM.load articles: ${e.message}", e); emptyList() } }
+                val refereesDef = async { try { viewerRepo.getTournamentReferees(tournamentId) } catch (e: Exception) { AppLogger.w("TournamentDetailVM.load referees: ${e.message}", e); emptyList() } }
 
                 state = UiState.Success(
                     HomeTournamentDetailData(
@@ -165,6 +174,7 @@ class TournamentDetailViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -189,7 +199,8 @@ class TournamentDetailViewModel : ViewModel() {
                         RegistrationState.NotRegistered
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("TournamentDetailVM.checkRegistration: ${e.message}", e)
                 registrationState = RegistrationState.NotRegistered
             }
         }
@@ -200,9 +211,12 @@ class TournamentDetailViewModel : ViewModel() {
             actionLoading = true
             try {
                 athleteRepo.registerForTournament(tournamentId, userId)
+                Alerts.success("Заявка принята")
                 registrationState = RegistrationState.RegisteredAsParticipant
                 load(tournamentId) // reload participants
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.registerAsParticipant failed", e)
+                Alerts.error("Не удалось зарегистрироваться на турнир")
                 registrationState = RegistrationState.Error(e.message ?: "Ошибка регистрации")
             } finally {
                 actionLoading = false
@@ -215,8 +229,11 @@ class TournamentDetailViewModel : ViewModel() {
             actionLoading = true
             try {
                 viewerRepo.registerAsSpectator(tournamentId, userId)
+                Alerts.success("Вы зарегистрированы как зритель")
                 registrationState = RegistrationState.RegisteredAsSpectator
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.registerAsSpectator failed", e)
+                Alerts.error("Не удалось зарегистрироваться")
                 registrationState = RegistrationState.Error(e.message ?: "Ошибка регистрации")
             } finally {
                 actionLoading = false
@@ -229,9 +246,12 @@ class TournamentDetailViewModel : ViewModel() {
             actionLoading = true
             try {
                 athleteRepo.cancelRegistration(tournamentId, userId)
+                Alerts.success("Заявка отозвана")
                 registrationState = RegistrationState.NotRegistered
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.unregister failed", e)
+                Alerts.error("Не удалось отменить регистрацию")
                 registrationState = RegistrationState.Error(e.message ?: "Ошибка отмены")
             } finally {
                 actionLoading = false
@@ -249,6 +269,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Участник подтверждён"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.approveParticipant failed", e)
+                Alerts.error("Не удалось подтвердить участника")
                 snackbarMessage = e.message ?: "Ошибка подтверждения"
             } finally {
                 participantActionId = null
@@ -264,6 +286,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Участник отклонён"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.declineParticipant failed", e)
+                Alerts.error("Не удалось отклонить участника")
                 snackbarMessage = e.message ?: "Ошибка отклонения"
             } finally {
                 participantActionId = null
@@ -289,6 +313,8 @@ class TournamentDetailViewModel : ViewModel() {
                 }
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.updateTournamentStatus failed", e)
+                Alerts.error("Не удалось изменить статус турнира")
                 snackbarMessage = e.message ?: "Ошибка смены статуса"
             } finally {
                 statusActionLoading = false
@@ -306,6 +332,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Турнир удалён"
                 onDeleted()
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.deleteTournament failed", e)
+                Alerts.error("Не удалось удалить турнир")
                 snackbarMessage = e.message ?: "Ошибка удаления"
             } finally {
                 statusActionLoading = false
@@ -355,6 +383,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Результат сохранён"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.saveMatchResult failed", e)
+                Alerts.error("Не удалось сохранить результат матча")
                 snackbarMessage = e.message ?: "Ошибка сохранения результата"
             }
         }
@@ -395,8 +425,9 @@ class TournamentDetailViewModel : ViewModel() {
             if (loserId != null) {
                 match.loserNextMatchId?.let { placeInto(it, loserId) }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             // auto-advance is best-effort
+            AppLogger.w("TournamentDetailVM.autoAdvanceMatch: ${e.message}", e)
         }
     }
 
@@ -514,6 +545,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Сетка сгенерирована (${matchDtos.size} матчей)"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.generateBracket failed", e)
+                Alerts.error("Не удалось сгенерировать сетку")
                 snackbarMessage = e.message ?: "Ошибка генерации сетки"
             } finally {
                 bracketGenerating = false
@@ -531,6 +564,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Результаты сохранены"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.saveFinalResults failed", e)
+                Alerts.error("Не удалось сохранить результаты")
                 snackbarMessage = e.message ?: "Ошибка сохранения результатов"
             } finally {
                 statusActionLoading = false
@@ -555,6 +590,8 @@ class TournamentDetailViewModel : ViewModel() {
                 }
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.advanceToPlayoff failed", e)
+                Alerts.error("Не удалось продвинуть этап")
                 snackbarMessage = e.message ?: "Не удалось продвинуть этап"
             } finally {
                 advancingStage = false
@@ -581,6 +618,8 @@ class TournamentDetailViewModel : ViewModel() {
                 snackbarMessage = "Результат отменён"
                 load(tournamentId)
             } catch (e: Exception) {
+                AppLogger.e("TournamentDetailVM.revertMatch failed", e)
+                Alerts.error("Не удалось отменить результат")
                 snackbarMessage = e.message ?: "Ошибка отката"
             }
         }

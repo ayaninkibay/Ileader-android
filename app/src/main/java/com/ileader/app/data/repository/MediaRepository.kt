@@ -3,9 +3,12 @@ package com.ileader.app.data.repository
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.MemoryCache
+import com.ileader.app.data.util.escapeLikePattern
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -64,18 +67,28 @@ class MediaRepository {
     // ══════════════════════════════════════════════════════════
 
     /**
+     * Single source for both [getAccreditationMap] and [getAccreditationStats].
+     * The dashboard typically calls both back-to-back; caching here means one
+     * HTTP round-trip serves both, plus repeat dashboard visits within 60s.
+     */
+    private suspend fun getAccreditationInvites(userId: String): List<MediaAccreditationDto> =
+        MemoryCache.cached("media:accreditations:$userId", ttlMs = 60_000L) {
+            client.from("tournament_invites")
+                .select(Columns.raw("id, tournament_id, status")) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("role", "media")
+                    }
+                }
+                .decodeList<MediaAccreditationDto>()
+        }
+
+    /**
      * Get accreditation statuses for this media user across all tournaments.
      * Returns a map of tournamentId → status (pending/accepted/declined).
      */
     suspend fun getAccreditationMap(userId: String): Map<String, String> {
-        val invites = client.from("tournament_invites")
-            .select(Columns.raw("id, tournament_id, status")) {
-                filter {
-                    eq("user_id", userId)
-                    eq("role", "media")
-                }
-            }
-            .decodeList<MediaAccreditationDto>()
+        val invites = getAccreditationInvites(userId)
         return invites.associate { it.tournamentId to (it.status ?: "pending") }
     }
 
@@ -83,14 +96,7 @@ class MediaRepository {
      * Get total accreditation stats for dashboard.
      */
     suspend fun getAccreditationStats(userId: String): AccreditationStats {
-        val invites = client.from("tournament_invites")
-            .select(Columns.raw("id, tournament_id, status")) {
-                filter {
-                    eq("user_id", userId)
-                    eq("role", "media")
-                }
-            }
-            .decodeList<MediaAccreditationDto>()
+        val invites = getAccreditationInvites(userId)
         return AccreditationStats(
             total = invites.size,
             accepted = invites.count { it.status == "accepted" },
@@ -110,6 +116,7 @@ class MediaRepository {
                     message = message
                 )
             )
+        MemoryCache.invalidate("media:accreditations:$userId")
     }
 
     /**
@@ -138,6 +145,7 @@ class MediaRepository {
                     eq("role", "media")
                 }
             }
+        MemoryCache.invalidate("media:accreditations:$userId")
     }
 
     // ══════════════════════════════════════════════════════════
@@ -294,15 +302,15 @@ class MediaRepository {
     }
 
     suspend fun getUnreadNotificationCount(userId: String): Int {
-        return client.from("notifications")
+        return (client.from("notifications")
             .select(Columns.raw("id")) {
+                count(Count.EXACT)
                 filter {
                     eq("user_id", userId)
                     eq("read", false)
                 }
             }
-            .decodeList<IdOnlyDto>()
-            .size
+            .countOrNull() ?: 0L).toInt()
     }
 
     suspend fun markNotificationAsRead(notificationId: String) {
@@ -392,7 +400,7 @@ class MediaRepository {
                 filter {
                     eq("role", "athlete")
                     if (query.isNotBlank()) {
-                        ilike("name", "%$query%")
+                        ilike("name", "%${query.escapeLikePattern()}%")
                     }
                 }
                 order("name", Order.ASCENDING)

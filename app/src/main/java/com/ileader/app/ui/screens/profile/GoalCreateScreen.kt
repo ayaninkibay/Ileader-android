@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.GoalType
 import com.ileader.app.data.remote.dto.GoalInsertDto
 import com.ileader.app.data.repository.AthleteRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -213,8 +214,10 @@ fun GoalCreateScreen(
                                 targetPoints = if (selectedType == GoalType.POINTS) target else null
                             )
                             repo.createGoal(dto)
+                            Alerts.success("Цель создана")
                             onCreated()
                         } catch (e: Exception) {
+                            Alerts.error("Не удалось создать цель")
                             error = e.message ?: "Ошибка создания цели"
                             saving = false
                         }

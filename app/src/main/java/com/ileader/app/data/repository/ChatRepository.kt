@@ -2,6 +2,7 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.MemoryCache
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
@@ -12,26 +13,29 @@ class ChatRepository {
     /**
      * Get all conversations for a given user, including participants with profile info.
      */
-    suspend fun getConversations(userId: String): List<ConversationDto> {
-        // First query: conversation IDs the user participates in
-        val myRows = client.from("conversation_participants")
-            .select(Columns.raw("conversation_id")) {
-                filter { eq("user_id", userId) }
-            }
-            .decodeList<ConversationIdRow>()
+    suspend fun getConversations(userId: String): List<ConversationDto> =
+        // Short TTL — chat list needs to reflect new conversations / latest messages
+        // quickly. Mostly here for deduping rapid screen re-entries.
+        MemoryCache.cached("chat:conversations:$userId", ttlMs = 60_000L) {
+            val myRows = client.from("conversation_participants")
+                .select(Columns.raw("conversation_id")) {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeList<ConversationIdRow>()
 
-        val ids = myRows.map { it.conversationId }.distinct()
-        if (ids.isEmpty()) return emptyList()
-
-        return client.from("conversations")
-            .select(Columns.raw("id, created_at, updated_at, conversation_participants(conversation_id, user_id, last_read_at, profiles(id, name, avatar_url))")) {
-                filter { isIn("id", ids) }
-                order("updated_at", Order.DESCENDING)
-            }
-            .decodeList<ConversationDto>()
-    }
+            val ids = myRows.map { it.conversationId }.distinct()
+            if (ids.isEmpty()) emptyList()
+            else client.from("conversations")
+                .select(Columns.raw("id, created_at, updated_at, conversation_participants(conversation_id, user_id, last_read_at, profiles(id, name, avatar_url))")) {
+                    filter { isIn("id", ids) }
+                    order("updated_at", Order.DESCENDING)
+                }
+                .decodeList<ConversationDto>()
+        }
 
     suspend fun getMessages(conversationId: String, limit: Int = 200): List<MessageDto> {
+        // Messages are live data — explicitly not cached. Each call re-reads from
+        // Supabase so the user sees fresh incoming messages.
         return client.from("messages")
             .select(Columns.raw("id, conversation_id, sender_id, content, created_at, profiles!sender_id(id, name, avatar_url)")) {
                 filter { eq("conversation_id", conversationId) }
@@ -42,7 +46,7 @@ class ChatRepository {
     }
 
     suspend fun sendMessage(conversationId: String, senderId: String, content: String): MessageDto {
-        return client.from("messages")
+        val result = client.from("messages")
             .insert(
                 MessageInsertDto(
                     conversationId = conversationId,
@@ -51,6 +55,10 @@ class ChatRepository {
                 )
             ) { select(Columns.raw("id, conversation_id, sender_id, content, created_at")) }
             .decodeSingle<MessageDto>()
+        // Drop every user's cached conversations list — any participant in this
+        // conversation should now see the updated_at change reflected.
+        MemoryCache.invalidateMatching("chat:conversations:")
+        return result
     }
 
     /**
@@ -95,6 +103,8 @@ class ChatRepository {
             ConversationParticipantInsertDto(conversationId = created.id, userId = it)
         }
         client.from("conversation_participants").insert(participants)
+        // New conversation visible to all participants — invalidate their lists.
+        userIds.forEach { MemoryCache.invalidate("chat:conversations:$it") }
 
         return created.id
     }

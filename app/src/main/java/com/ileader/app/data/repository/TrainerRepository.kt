@@ -3,6 +3,8 @@ package com.ileader.app.data.repository
 import com.ileader.app.data.models.*
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.util.AppLogger
+import com.ileader.app.data.util.MemoryCache
+import com.ileader.app.data.util.escapeLikePattern
 import com.ileader.app.data.remote.dto.*
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
@@ -14,78 +16,151 @@ class TrainerRepository {
 
     // ── PROFILE ──
 
-    suspend fun getProfile(userId: String): User {
-        val dto = client.from("profiles")
-            .select(Columns.raw("*, roles!primary_role_id(id, name)")) {
-                filter { eq("id", userId) }
-            }
-            .decodeSingle<ProfileDto>()
-        return dto.toDomain()
-    }
+    suspend fun getProfile(userId: String): User =
+        MemoryCache.cached("trainer:profile:$userId", ttlMs = 600_000L) {
+            val dto = client.from("profiles")
+                .select(Columns.raw("*, roles!primary_role_id(id, name)")) {
+                    filter { eq("id", userId) }
+                }
+                .decodeSingle<ProfileDto>()
+            dto.toDomain()
+        }
 
     suspend fun updateProfile(userId: String, data: ProfileUpdateDto) {
         client.from("profiles")
             .update(data) {
                 filter { eq("id", userId) }
             }
+        MemoryCache.invalidate("trainer:profile:$userId")
+        MemoryCache.invalidate("profile:$userId")
+        MemoryCache.invalidate("public_profile:$userId")
     }
 
-    suspend fun getSports(userId: String): List<Pair<String, String>> {
-        val userSports = client.from("user_sports")
-            .select(Columns.raw("*, sports(id, name)")) {
-                filter { eq("user_id", userId) }
+    suspend fun getSports(userId: String): List<Pair<String, String>> =
+        MemoryCache.cached("trainer:user_sport_pairs:$userId", ttlMs = 600_000L) {
+            val userSports = client.from("user_sports")
+                .select(Columns.raw("*, sports(id, name)")) {
+                    filter { eq("user_id", userId) }
+                }
+                .decodeList<UserSportDto>()
+            userSports.mapNotNull { us ->
+                us.sports?.let { it.name to it.id }
             }
-            .decodeList<UserSportDto>()
-        return userSports.mapNotNull { us ->
-            us.sports?.let { it.name to it.id }
         }
-    }
 
     // ── TEAMS ──
 
-    suspend fun getMyTeams(userId: String): List<TrainerTeamData> {
+    suspend fun getMyTeams(userId: String): List<TrainerTeamData> =
+        MemoryCache.cached("trainer:my_teams:$userId", ttlMs = 300_000L) {
+            getMyTeamsInternal(userId)
+        }
+
+    private suspend fun getMyTeamsInternal(userId: String): List<TrainerTeamData> {
         val teams = client.from("teams")
             .select(Columns.raw("*, sports(id, name)")) {
                 filter { eq("owner_id", userId) }
             }
             .decodeList<TeamDto>()
 
+        if (teams.isEmpty()) return emptyList()
+
+        // Batch members for all teams in one query, then batch stats for all members
+        // in another. Was N+1 over teams × members; now 3 queries total.
+        val teamIds = teams.map { it.id }
+        val allMembers = client.from("team_members")
+            .select(Columns.raw("*, profiles(id, name, avatar_url, email, city, birth_date, bio, created_at)")) {
+                filter { isIn("team_id", teamIds) }
+            }
+            .decodeList<TeamMemberDto>()
+
+        val memberIds = allMembers.mapNotNull { it.profiles?.id }.distinct()
+        val sportIds = teams.mapNotNull { it.sportId }.distinct()
+
+        val statsByUserSport: Map<Pair<String, String>, UserSportStatsDto> =
+            if (memberIds.isEmpty()) emptyMap()
+            else try {
+                client.from("v_user_sport_stats")
+                    .select {
+                        filter {
+                            isIn("user_id", memberIds)
+                            if (sportIds.isNotEmpty()) isIn("sport_id", sportIds)
+                        }
+                    }
+                    .decodeList<UserSportStatsDto>()
+                    .associateBy { (it.userId ?: "") to (it.sportId ?: "") }
+            } catch (e: Exception) {
+                AppLogger.w("TrainerRepo.getMyTeams stats: ${e.message}"); emptyMap()
+            }
+
+        val membersByTeam = allMembers.groupBy { it.teamId ?: "" }
+
         return teams.map { teamDto ->
-            val members = getTeamMembers(teamDto.id, teamDto.sportId)
+            val teamSportId = teamDto.sportId ?: ""
+            val members = (membersByTeam[teamDto.id] ?: emptyList()).map { m ->
+                val memberId = m.profiles?.id ?: ""
+                val stats = statsByUserSport[memberId to teamSportId]
+                TrainerAthleteData(
+                    id = memberId,
+                    name = m.profiles?.name ?: "",
+                    email = m.profiles?.email ?: "",
+                    avatarUrl = m.profiles?.avatarUrl,
+                    joinedDate = m.joinedAt ?: "",
+                    tournaments = stats?.tournaments ?: 0,
+                    wins = stats?.wins ?: 0,
+                    podiums = stats?.podiums ?: 0,
+                    rating = stats?.rating ?: 1000,
+                    bio = "",
+                    role = m.role ?: "member"
+                )
+            }
             TrainerTeamData(
                 id = teamDto.id,
                 name = teamDto.name,
-                sportId = teamDto.sportId ?: "",
+                sportId = teamSportId,
                 sportName = teamDto.sports?.name ?: "",
                 description = teamDto.description ?: "",
                 foundedYear = teamDto.foundedYear ?: 0,
-                ageCategory = "", // no age_category on teams table
+                ageCategory = "",
                 members = members
             )
         }
     }
 
-    suspend fun getTeamMembers(teamId: String, sportId: String? = null): List<TrainerAthleteData> {
+    suspend fun getTeamMembers(teamId: String, sportId: String? = null): List<TrainerAthleteData> =
+        MemoryCache.cached("trainer:team_members:$teamId:${sportId ?: "any"}", ttlMs = 300_000L) {
+            getTeamMembersInternal(teamId, sportId)
+        }
+
+    private suspend fun getTeamMembersInternal(teamId: String, sportId: String?): List<TrainerAthleteData> {
         val members = client.from("team_members")
             .select(Columns.raw("*, profiles(id, name, avatar_url, email, city, birth_date, bio, created_at)")) {
                 filter { eq("team_id", teamId) }
             }
             .decodeList<TeamMemberDto>()
 
-        return members.map { m ->
-            val memberId = m.profiles?.id ?: ""
-            val stats = try {
+        if (members.isEmpty()) return emptyList()
+
+        // Batch all members' stats in one query instead of one query per member.
+        val memberIds = members.mapNotNull { it.profiles?.id }
+        val statsByUser: Map<String, UserSportStatsDto> =
+            if (memberIds.isEmpty()) emptyMap()
+            else try {
                 client.from("v_user_sport_stats")
                     .select {
                         filter {
-                            eq("user_id", memberId)
+                            isIn("user_id", memberIds)
                             if (sportId != null) eq("sport_id", sportId)
                         }
                     }
                     .decodeList<UserSportStatsDto>()
-                    .firstOrNull()
-            } catch (e: Exception) { AppLogger.w("TrainerRepo: ${e.message}"); null }
+                    .associateBy { it.userId ?: "" }
+            } catch (e: Exception) {
+                AppLogger.w("TrainerRepo.getTeamMembers stats: ${e.message}"); emptyMap()
+            }
 
+        return members.map { m ->
+            val memberId = m.profiles?.id ?: ""
+            val stats = statsByUser[memberId]
             TrainerAthleteData(
                 id = memberId,
                 name = m.profiles?.name ?: "",
@@ -104,7 +179,12 @@ class TrainerRepository {
 
     // ── TEAM REQUESTS (notifications for trainer) ──
 
-    suspend fun getTeamRequests(userId: String): List<TrainerNotificationData> {
+    suspend fun getTeamRequests(userId: String): List<TrainerNotificationData> =
+        MemoryCache.cached("trainer:team_requests:$userId", ttlMs = 120_000L) {
+            getTeamRequestsInternal(userId)
+        }
+
+    private suspend fun getTeamRequestsInternal(userId: String): List<TrainerNotificationData> {
         // Get all teams owned by this trainer
         val teams = client.from("teams")
             .select(Columns.raw("id, name")) {
@@ -172,33 +252,51 @@ class TrainerRepository {
                 "user_id" to userId,
                 "role" to "member"
             ))
+            // Membership changed — drop team and member caches.
+            MemoryCache.invalidate("trainer:team_members:$teamId:any")
+            MemoryCache.invalidateMatching("trainer:team_members:$teamId:")
+            MemoryCache.invalidate("athlete:team:$teamId")
+            MemoryCache.invalidate("athlete:membership:$userId")
+            MemoryCache.invalidate("team:members:$teamId")
+            MemoryCache.invalidate("team:$teamId")
         }
+        MemoryCache.invalidateMatching("trainer:team_requests:")
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidateMatching("athlete:team_requests:")
     }
 
     // Sponsor offers removed — sponsorship management is web-only
 
     // ── TOURNAMENTS ──
 
-    suspend fun getAvailableTournaments(sportIds: List<String>): List<Tournament> {
-        val tournaments = client.from("v_tournament_with_counts")
-            .select {
-                filter { eq("visibility", "public") }
-                order("start_date", Order.ASCENDING)
-            }
-            .decodeList<TournamentWithCountsDto>()
+    suspend fun getAvailableTournaments(sportIds: List<String>): List<Tournament> =
+        MemoryCache.cached("trainer:available_tournaments", ttlMs = 300_000L) {
+            val tournaments = client.from("v_tournament_with_counts")
+                .select {
+                    filter { eq("visibility", "public") }
+                    order("start_date", Order.ASCENDING)
+                }
+                .decodeList<TournamentWithCountsDto>()
 
-        return tournaments.map { it.toDomain() }
-    }
+            tournaments.map { it.toDomain() }
+        }
 
     suspend fun createTeam(data: TeamInsertDto): String {
         val result = client.from("teams")
             .insert(data) { select() }
             .decodeSingle<TeamDto>()
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidate("community:teams")
         return result.id
     }
 
     suspend fun deleteTeam(teamId: String) {
         client.from("teams").delete { filter { eq("id", teamId) } }
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidate("athlete:team:$teamId")
+        MemoryCache.invalidate("team:$teamId")
+        MemoryCache.invalidate("team:members:$teamId")
+        MemoryCache.invalidate("community:teams")
     }
 
     suspend fun searchAthletes(query: String): List<ProfileMinimalDto> {
@@ -212,7 +310,7 @@ class TrainerRepository {
             .select(Columns.raw("id, name, avatar_url, city, email")) {
                 filter {
                     eq("primary_role_id", athleteRole.id)
-                    ilike("name", "%$query%")
+                    ilike("name", "%${query.escapeLikePattern()}%")
                 }
                 limit(20)
             }
@@ -221,6 +319,11 @@ class TrainerRepository {
 
     suspend fun addTeamMember(teamId: String, userId: String, role: String = "member") {
         client.from("team_members").insert(TeamMemberInsertDto(teamId, userId, role))
+        MemoryCache.invalidateMatching("trainer:team_members:$teamId:")
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidate("athlete:team:$teamId")
+        MemoryCache.invalidate("athlete:membership:$userId")
+        MemoryCache.invalidate("team:members:$teamId")
     }
 
     suspend fun removeTeamMember(teamId: String, userId: String) {
@@ -230,12 +333,22 @@ class TrainerRepository {
                 eq("user_id", userId)
             }
         }
+        MemoryCache.invalidateMatching("trainer:team_members:$teamId:")
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidate("athlete:team:$teamId")
+        MemoryCache.invalidate("athlete:membership:$userId")
+        MemoryCache.invalidate("team:members:$teamId")
     }
 
     /**
      * Returns all tournaments that any of the trainer's teams' members participate in
      */
-    suspend fun getMyTeamsTournaments(userId: String): List<TournamentWithCountsDto> {
+    suspend fun getMyTeamsTournaments(userId: String): List<TournamentWithCountsDto> =
+        MemoryCache.cached("trainer:my_teams_tournaments:$userId", ttlMs = 180_000L) {
+            getMyTeamsTournamentsInternal(userId)
+        }
+
+    private suspend fun getMyTeamsTournamentsInternal(userId: String): List<TournamentWithCountsDto> {
         // Get all team ids owned by trainer
         val teamIds = client.from("teams")
             .select(Columns.raw("id")) { filter { eq("owner_id", userId) } }
@@ -262,17 +375,38 @@ class TrainerRepository {
             .decodeList<TournamentWithCountsDto>()
     }
 
-    suspend fun getTeamRegisteredTournamentIds(teamId: String): List<String> {
-        val participants = client.from("tournament_participants")
-            .select(Columns.raw("tournament_id, athlete_id")) {
+    suspend fun getTeamRegisteredTournamentIds(teamId: String): List<String> =
+        MemoryCache.cached("trainer:team_registrations:$teamId", ttlMs = 180_000L) {
+            val participants = client.from("tournament_participants")
+                .select(Columns.raw("tournament_id, athlete_id")) {
+                    filter {
+                        eq("team_id", teamId)
+                        neq("status", "cancelled")
+                    }
+                }
+                .decodeList<ParticipantDto>()
+
+            participants.map { it.tournamentId }
+        }
+
+    /**
+     * Of the given [teamIds], returns the subset that already has at least one
+     * non-cancelled registration for [tournamentId]. Replaces an O(teams)
+     * loop of single-team lookups with one query.
+     */
+    suspend fun getRegisteredTeamIdsForTournament(tournamentId: String, teamIds: List<String>): Set<String> {
+        if (teamIds.isEmpty()) return emptySet()
+        return client.from("tournament_participants")
+            .select(Columns.raw("team_id")) {
                 filter {
-                    eq("team_id", teamId)
+                    eq("tournament_id", tournamentId)
+                    isIn("team_id", teamIds)
                     neq("status", "cancelled")
                 }
             }
             .decodeList<ParticipantDto>()
-
-        return participants.map { it.tournamentId }
+            .mapNotNull { it.teamId }
+            .toSet()
     }
 
     suspend fun registerTeamForTournament(tournamentId: String, teamId: String, memberIds: List<String>) {
@@ -286,6 +420,14 @@ class TrainerRepository {
             )
         }
         client.from("tournament_participants").insert(inserts)
+        MemoryCache.invalidate("trainer:team_registrations:$teamId")
+        MemoryCache.invalidateMatching("trainer:my_teams_tournaments:")
+        MemoryCache.invalidate("participants:$tournamentId")
+        MemoryCache.invalidate("tournament:$tournamentId")
+        memberIds.forEach { memberId ->
+            MemoryCache.invalidate("athlete:my_tournaments:$memberId")
+            MemoryCache.invalidate("athlete:participation:$tournamentId:$memberId")
+        }
     }
 
     suspend fun unregisterTeamFromTournament(tournamentId: String, teamId: String) {
@@ -296,33 +438,43 @@ class TrainerRepository {
                     eq("team_id", teamId)
                 }
             }
+        MemoryCache.invalidate("trainer:team_registrations:$teamId")
+        MemoryCache.invalidateMatching("trainer:my_teams_tournaments:")
+        MemoryCache.invalidate("participants:$tournamentId")
+        MemoryCache.invalidate("tournament:$tournamentId")
+        MemoryCache.invalidateMatching("athlete:my_tournaments:")
+        MemoryCache.invalidateMatching("athlete:participation:$tournamentId:")
     }
 
     // ── ATHLETE RESULTS ──
 
-    suspend fun getAthleteResults(athleteId: String): List<TournamentResult> {
-        val results = client.from("tournament_results")
-            .select(Columns.raw("*, tournaments(id, name, start_date, sport_id, sports(id, name))")) {
-                filter { eq("athlete_id", athleteId) }
-                order("tournaments.start_date", Order.DESCENDING)
-            }
-            .decodeList<ResultDto>()
+    suspend fun getAthleteResults(athleteId: String): List<TournamentResult> =
+        MemoryCache.cached("trainer:athlete_results:$athleteId", ttlMs = 300_000L) {
+            val results = client.from("tournament_results")
+                .select(Columns.raw("*, tournaments(id, name, start_date, sport_id, sports(id, name))")) {
+                    filter { eq("athlete_id", athleteId) }
+                    order("tournaments.start_date", Order.DESCENDING)
+                }
+                .decodeList<ResultDto>()
 
-        return results.map { it.toDomain() }
-    }
+            results.map { it.toDomain() }
+        }
 
     suspend fun getAthleteStats(athleteId: String, sportId: String?): UserSportStatsDto? {
-        return try {
-            val query = client.from("v_user_sport_stats")
-                .select {
-                    filter {
-                        eq("user_id", athleteId)
-                        if (sportId != null) eq("sport_id", sportId)
+        val cached = MemoryCache.cached("trainer:athlete_stats:$athleteId:${sportId ?: "any"}", ttlMs = 300_000L) {
+            try {
+                val query = client.from("v_user_sport_stats")
+                    .select {
+                        filter {
+                            eq("user_id", athleteId)
+                            if (sportId != null) eq("sport_id", sportId)
+                        }
                     }
-                }
-                .decodeList<UserSportStatsDto>()
-            query.firstOrNull()
-        } catch (e: Exception) { AppLogger.w("TrainerRepo: ${e.message}"); null }
+                    .decodeList<UserSportStatsDto>()
+                listOfNotNull(query.firstOrNull())
+            } catch (e: Exception) { AppLogger.w("TrainerRepo: ${e.message}"); emptyList() }
+        }
+        return cached.firstOrNull()
     }
 
     // ── INVITE ATHLETE ──
@@ -342,11 +494,18 @@ class TrainerRepository {
             "direction" to "outgoing",
             "message" to "Приглашение от тренера"
         ))
+        MemoryCache.invalidateMatching("trainer:pending_invites:")
+        MemoryCache.invalidate("athlete:team_requests:${profile.id}")
     }
 
     // ── PENDING INVITES (outgoing from trainer) ──
 
-    suspend fun getPendingInvites(userId: String): List<PendingInviteData> {
+    suspend fun getPendingInvites(userId: String): List<PendingInviteData> =
+        MemoryCache.cached("trainer:pending_invites:$userId", ttlMs = 120_000L) {
+            getPendingInvitesInternal(userId)
+        }
+
+    private suspend fun getPendingInvitesInternal(userId: String): List<PendingInviteData> {
         val teams = client.from("teams")
             .select(Columns.raw("id, name")) {
                 filter { eq("owner_id", userId) }
@@ -393,43 +552,56 @@ class TrainerRepository {
                     eq("user_id", athleteId)
                 }
             }
+        MemoryCache.invalidateMatching("trainer:team_members:$teamId:")
+        MemoryCache.invalidateMatching("trainer:my_teams:")
+        MemoryCache.invalidate("athlete:team:$teamId")
+        MemoryCache.invalidate("athlete:membership:$athleteId")
+        MemoryCache.invalidate("team:members:$teamId")
     }
 
     // ── ATHLETE GOALS ──
 
-    suspend fun getAthleteGoals(athleteId: String): List<GoalDto> {
-        return client.from("athlete_goals")
-            .select {
-                filter { eq("athlete_id", athleteId) }
-                order("created_at", Order.DESCENDING)
-            }
-            .decodeList<GoalDto>()
-    }
+    suspend fun getAthleteGoals(athleteId: String): List<GoalDto> =
+        MemoryCache.cached("trainer:athlete_goals:$athleteId", ttlMs = 300_000L) {
+            client.from("athlete_goals")
+                .select {
+                    filter { eq("athlete_id", athleteId) }
+                    order("created_at", Order.DESCENDING)
+                }
+                .decodeList<GoalDto>()
+        }
 
     suspend fun createGoalForAthlete(goal: GoalInsertDto) {
         client.from("athlete_goals").insert(goal)
+        MemoryCache.invalidate("trainer:athlete_goals:${goal.athleteId}")
+        MemoryCache.invalidate("athlete:goals:${goal.athleteId}")
     }
 
     // ── TEAM STATISTICS ──
 
-    suspend fun getTeamStatistics(teamId: String): List<UserSportStatsDto> {
-        val memberIds = client.from("team_members")
-            .select(Columns.raw("user_id")) {
-                filter { eq("team_id", teamId) }
-            }
-            .decodeList<TeamMemberDto>()
-            .mapNotNull { it.userId }
+    suspend fun getTeamStatistics(teamId: String): List<UserSportStatsDto> =
+        MemoryCache.cached("trainer:team_stats:$teamId", ttlMs = 300_000L) {
+            val memberIds = client.from("team_members")
+                .select(Columns.raw("user_id")) {
+                    filter { eq("team_id", teamId) }
+                }
+                .decodeList<TeamMemberDto>()
+                .mapNotNull { it.userId }
 
-        if (memberIds.isEmpty()) return emptyList()
+            if (memberIds.isEmpty()) emptyList()
+            else client.from("v_user_sport_stats")
+                .select {
+                    filter { isIn("user_id", memberIds) }
+                }
+                .decodeList<UserSportStatsDto>()
+        }
 
-        return client.from("v_user_sport_stats")
-            .select {
-                filter { isIn("user_id", memberIds) }
-            }
-            .decodeList<UserSportStatsDto>()
-    }
+    suspend fun getTeamResultsDistribution(teamId: String): List<ResultDistribution> =
+        MemoryCache.cached("trainer:team_distribution:$teamId", ttlMs = 300_000L) {
+            getTeamResultsDistributionInternal(teamId)
+        }
 
-    suspend fun getTeamResultsDistribution(teamId: String): List<ResultDistribution> {
+    private suspend fun getTeamResultsDistributionInternal(teamId: String): List<ResultDistribution> {
         val memberIds = client.from("team_members")
             .select(Columns.raw("user_id")) {
                 filter { eq("team_id", teamId) }

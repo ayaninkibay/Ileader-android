@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -27,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.MessageDto
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.components.pressableClick
 import com.ileader.app.ui.viewmodels.ChatViewModel
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -124,14 +126,13 @@ fun ChatScreen(
                 Box(
                     modifier = Modifier
                         .size(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .pressableClick(enabled = enabled) {
+                            vm.send(input); input = ""
+                        }
                         .background(
                             if (enabled) Accent else Accent.copy(0.3f),
                             RoundedCornerShape(22.dp)
-                        )
-                        .then(
-                            if (enabled) Modifier.clickable {
-                                vm.send(input); input = ""
-                            } else Modifier
                         ),
                     contentAlignment = Alignment.Center
                 ) {

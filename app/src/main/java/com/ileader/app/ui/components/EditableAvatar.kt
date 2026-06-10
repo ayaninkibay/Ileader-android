@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 @Composable
@@ -34,13 +38,20 @@ fun EditableAvatar(
     onImageSelected: (ByteArray) -> Unit
 ) {
     val context = LocalContext.current
+    // Декод/ресайз/JPEG-сжатие — десятки/сотни мс на телефонах поскромнее.
+    // Раньше блокировало main → дроп фреймов и риск ANR на больших фотках.
+    val scope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            val bytes = compressImage(context, it)
-            if (bytes != null) onImageSelected(bytes)
+        uri?.let { selectedUri ->
+            scope.launch(Dispatchers.IO) {
+                val bytes = compressImage(context, selectedUri)
+                if (bytes != null) {
+                    withContext(Dispatchers.Main) { onImageSelected(bytes) }
+                }
+            }
         }
     }
 
@@ -85,24 +96,42 @@ private fun compressImage(
     maxSizeKb: Int = 500
 ): ByteArray? {
     return try {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-        val original = BitmapFactory.decodeStream(inputStream)
-        inputStream.close()
+        // Pass 1: read только размеры, без аллокации пикселей.
+        // BitmapFactory.decodeStream(stream) на 12MP-фотке = ~48MB в памяти
+        // → OOM на low-end девайсах. inSampleSize даунсемплит при декоде.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, bounds)
+        } ?: return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        // Степень двойки — это требование inSampleSize. Целимся в 2× maxDimension,
+        // дальше точный resize даст финальный размер.
+        var sample = 1
+        while (bounds.outWidth / sample > maxDimension * 2 ||
+               bounds.outHeight / sample > maxDimension * 2) {
+            sample *= 2
+        }
+
+        val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val decoded = context.contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, decodeOpts)
+        } ?: return null
 
         val scale = minOf(
-            maxDimension.toFloat() / original.width,
-            maxDimension.toFloat() / original.height,
+            maxDimension.toFloat() / decoded.width,
+            maxDimension.toFloat() / decoded.height,
             1f
         )
         val resized = if (scale < 1f) {
             Bitmap.createScaledBitmap(
-                original,
-                (original.width * scale).toInt(),
-                (original.height * scale).toInt(),
+                decoded,
+                (decoded.width * scale).toInt(),
+                (decoded.height * scale).toInt(),
                 true
             )
         } else {
-            original
+            decoded
         }
 
         var quality = 85
@@ -114,8 +143,8 @@ private fun compressImage(
             quality -= 10
         } while (bytes.size > maxSizeKb * 1024 && quality > 20)
 
-        if (resized !== original) resized.recycle()
-        original.recycle()
+        if (resized !== decoded) resized.recycle()
+        decoded.recycle()
 
         bytes
     } catch (_: Exception) {

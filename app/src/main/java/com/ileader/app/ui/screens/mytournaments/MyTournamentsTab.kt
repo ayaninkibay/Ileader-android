@@ -6,14 +6,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
-import com.ileader.app.ui.screens.common.ManualCheckInScreen
-import com.ileader.app.ui.screens.common.QrScannerScreen
-import com.ileader.app.ui.screens.detail.AthleteProfilePage
-import com.ileader.app.ui.screens.detail.PublicProfileScreen
-import com.ileader.app.ui.screens.detail.RefereeProfilePage
-import com.ileader.app.ui.screens.detail.TrainerProfilePage
-import com.ileader.app.ui.screens.detail.TeamDetailScreen
-import com.ileader.app.ui.screens.detail.TournamentDetailScreen
+import com.ileader.app.ui.screens.checkin.ManualCheckInScreen
+import com.ileader.app.ui.screens.tickets.QrScannerScreen
+import com.ileader.app.ui.screens.profile.AthleteProfilePage
+import com.ileader.app.ui.screens.profile.PublicProfileScreen
+import com.ileader.app.ui.screens.profile.RefereeProfilePage
+import com.ileader.app.ui.screens.profile.TrainerProfilePage
+import com.ileader.app.ui.screens.teams.TeamDetailScreen
+import com.ileader.app.ui.screens.tournaments.TournamentDetailScreen
 
 private sealed class MyTournamentsNavState {
     data object List : MyTournamentsNavState()

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Запрет cleartext-трафика (http://) для всего приложения. С Android 9 это
+    дефолт, но фиксируем явно — на случай если будущая зависимость попытается
+    обратиться по http, краш будет на этапе разработки, а не в проде.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

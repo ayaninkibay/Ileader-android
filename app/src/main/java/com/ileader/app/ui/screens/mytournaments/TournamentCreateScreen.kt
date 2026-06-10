@@ -47,6 +47,7 @@ import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TournamentInsertDto
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkSwitchField
@@ -284,9 +285,11 @@ fun TournamentCreateScreen(
                                             prize = prize.ifBlank { null }
                                         )
                                     )
+                                    Alerts.success("Турнир создан")
                                     snackbarHostState.showSnackbar("Турнир создан")
                                     onCreated(tournamentId)
                                 } catch (e: Exception) {
+                                    Alerts.error("Не удалось создать турнир")
                                     snackbarHostState.showSnackbar(e.message ?: "Ошибка создания")
                                 } finally {
                                     isCreating = false

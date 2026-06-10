@@ -5,6 +5,7 @@ import com.ileader.app.data.remote.dto.InviteCodeDto
 import com.ileader.app.data.remote.dto.InviteCodeInsertDto
 import com.ileader.app.data.remote.dto.TournamentHelperDto
 import com.ileader.app.data.remote.dto.TournamentHelperInsertDto
+import com.ileader.app.data.util.MemoryCache
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 
@@ -14,36 +15,40 @@ class HelperRepository {
     /**
      * Get all active tournament helper assignments for a user
      */
-    suspend fun getMyAssignments(userId: String): List<TournamentHelperDto> {
-        return client.from("tournament_helpers")
-            .select(Columns.raw("""
-                id, tournament_id, user_id, assigned_by, status, created_at,
-                tournaments(id, name, status, start_date, end_date, image_url, has_check_in,
-                    sports(id, name)
-                )
-            """.trimIndent())) {
-                filter {
-                    eq("user_id", userId)
-                    eq("status", "active")
+    suspend fun getMyAssignments(userId: String): List<TournamentHelperDto> =
+        MemoryCache.cached("helper:assignments:$userId", ttlMs = 600_000L) {
+            client.from("tournament_helpers")
+                .select(Columns.raw("""
+                    id, tournament_id, user_id, assigned_by, status, created_at,
+                    tournaments(id, name, status, start_date, end_date, image_url, has_check_in,
+                        sports(id, name)
+                    )
+                """.trimIndent())) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("status", "active")
+                    }
                 }
-            }
-            .decodeList<TournamentHelperDto>()
-    }
+                .decodeList<TournamentHelperDto>()
+        }
 
     /**
      * Check if a user is a helper for a specific tournament
      */
     suspend fun isHelperForTournament(userId: String, tournamentId: String): Boolean {
-        val result = client.from("tournament_helpers")
-            .select(Columns.raw("id")) {
-                filter {
-                    eq("user_id", userId)
-                    eq("tournament_id", tournamentId)
-                    eq("status", "active")
+        val cached = MemoryCache.cached("helper:check:$tournamentId:$userId", ttlMs = 600_000L) {
+            val result = client.from("tournament_helpers")
+                .select(Columns.raw("id")) {
+                    filter {
+                        eq("user_id", userId)
+                        eq("tournament_id", tournamentId)
+                        eq("status", "active")
+                    }
                 }
-            }
-            .decodeList<IdOnlyDto>()
-        return result.isNotEmpty()
+                .decodeList<IdOnlyDto>()
+            listOf(result.isNotEmpty())
+        }
+        return cached.first()
     }
 
     /**
@@ -59,6 +64,9 @@ class HelperRepository {
         val result = client.from("tournament_helpers")
             .insert(data) { select() }
             .decodeSingle<TournamentHelperDto>()
+        MemoryCache.invalidate("helper:assignments:$userId")
+        MemoryCache.invalidate("helper:check:$tournamentId:$userId")
+        MemoryCache.invalidate("helper:tournament:$tournamentId")
         return result.id
     }
 
@@ -70,23 +78,26 @@ class HelperRepository {
             .update({ set("status", "revoked") }) {
                 filter { eq("id", helperId) }
             }
+        // Affected user/tournament unknown from helperId alone — drop all helper caches.
+        MemoryCache.invalidateMatching("helper:")
     }
 
     /**
      * Get all helpers for a tournament (for organizer view)
      */
-    suspend fun getTournamentHelpers(tournamentId: String): List<TournamentHelperDto> {
-        return client.from("tournament_helpers")
-            .select(Columns.raw("""
-                id, tournament_id, user_id, assigned_by, status, created_at,
-                profiles!user_id(id, name, avatar_url, email)
-            """.trimIndent())) {
-                filter {
-                    eq("tournament_id", tournamentId)
+    suspend fun getTournamentHelpers(tournamentId: String): List<TournamentHelperDto> =
+        MemoryCache.cached("helper:tournament:$tournamentId", ttlMs = 300_000L) {
+            client.from("tournament_helpers")
+                .select(Columns.raw("""
+                    id, tournament_id, user_id, assigned_by, status, created_at,
+                    profiles!user_id(id, name, avatar_url, email)
+                """.trimIndent())) {
+                    filter {
+                        eq("tournament_id", tournamentId)
+                    }
                 }
-            }
-            .decodeList<TournamentHelperDto>()
-    }
+                .decodeList<TournamentHelperDto>()
+        }
 
     /**
      * Redeem an invite code to become a helper

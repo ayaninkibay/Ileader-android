@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.NotificationDto
 import com.ileader.app.data.repository.NotificationRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -29,6 +31,7 @@ class NotificationsViewModel : ViewModel() {
                 _state.value = UiState.Success(notifications)
                 _unreadCount.value = notifications.count { !it.read }
             } catch (e: Exception) {
+                AppLogger.e("NotificationsVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -38,7 +41,9 @@ class NotificationsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _unreadCount.value = repo.getUnreadCount(userId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("NotificationsVM.loadUnreadCount: ${e.message}", e)
+            }
         }
     }
 
@@ -49,9 +54,11 @@ class NotificationsViewModel : ViewModel() {
     fun markAsRead(notificationId: String, userId: String) {
         viewModelScope.launch {
             try {
-                repo.markAsRead(notificationId)
+                repo.markAsRead(notificationId, userId)
                 load(userId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("NotificationsVM.markAsRead: ${e.message}", e)
+            }
         }
     }
 
@@ -60,16 +67,22 @@ class NotificationsViewModel : ViewModel() {
             try {
                 repo.markAllAsRead(userId)
                 load(userId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("NotificationsVM.markAllAsRead: ${e.message}", e)
+                Alerts.error("Не удалось пометить все как прочитанные")
+            }
         }
     }
 
     fun deleteNotification(notificationId: String, userId: String) {
         viewModelScope.launch {
             try {
-                repo.deleteNotification(notificationId)
+                repo.deleteNotification(notificationId, userId)
                 load(userId)
-            } catch (_: Exception) {}
+            } catch (e: Exception) {
+                AppLogger.w("NotificationsVM.deleteNotification: ${e.message}", e)
+                Alerts.error("Не удалось удалить уведомление")
+            }
         }
     }
 }

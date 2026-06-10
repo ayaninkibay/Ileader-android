@@ -19,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ileader.app.data.DeepLinkTarget
 import com.ileader.app.ui.components.AnimatedBackground
+import com.ileader.app.ui.providers.LocalCurrentUser
 import com.ileader.app.ui.screens.auth.*
 import com.ileader.app.ui.screens.main.MainScreen
 import com.ileader.app.ui.screens.onboarding.OnboardingSportScreen
@@ -29,6 +30,7 @@ sealed class Screen(val route: String) {
     data object Welcome : Screen("welcome")
     data object Login : Screen("login")
     data object Register : Screen("register")
+    data object VerifyCode : Screen("verify_code")
     data object ForgotPassword : Screen("forgot_password")
     data object Onboarding : Screen("onboarding")
     data object Main : Screen("main")
@@ -128,6 +130,20 @@ fun NavGraph(
             )
         }
 
+        composable(Screen.VerifyCode.route) {
+            VerifyCodeScreen(
+                state = authState,
+                onVerify = { code -> authViewModel.verifyOtp(code) },
+                onResend = { authViewModel.resendOtp() },
+                onTickCooldown = { authViewModel.tickResendCooldown() },
+                onBack = {
+                    authViewModel.cancelEmailConfirmation()
+                    navController.popBackStack(Screen.Welcome.route, inclusive = false)
+                },
+                onClearError = { authViewModel.clearError() }
+            )
+        }
+
         composable(Screen.ForgotPassword.route) {
             ForgotPasswordScreen(
                 state = authState,
@@ -146,7 +162,10 @@ fun NavGraph(
         }
 
         composable(Screen.Onboarding.route) {
-            val user = authState.currentUser
+            // Subscribe to UserSession via LocalCurrentUser instead of re-reading
+            // authState.currentUser — both are kept in sync by AuthViewModel,
+            // but LocalCurrentUser is the canonical access path going forward.
+            val user = LocalCurrentUser.current
             if (user != null) {
                 OnboardingSportScreen(
                     userId = user.id,
@@ -160,7 +179,7 @@ fun NavGraph(
         }
 
         composable(Screen.Main.route) {
-            val user = authState.currentUser
+            val user = LocalCurrentUser.current
             if (user != null) {
                 MainScreen(
                     user = user,
@@ -182,6 +201,17 @@ fun NavGraph(
         }
     }
     } // Box
+
+    // Navigate to verify-code screen after signUp succeeded but email not confirmed yet.
+    LaunchedEffect(authState.awaitingEmailConfirmation) {
+        if (authState.awaitingEmailConfirmation &&
+            navController.currentDestination?.route != Screen.VerifyCode.route) {
+            navController.navigate(Screen.VerifyCode.route) {
+                // Из Register уезжаем целиком — назад вернётся на Welcome.
+                popUpTo(Screen.Register.route) { inclusive = true }
+            }
+        }
+    }
 
     // Navigate when auth state changes
     LaunchedEffect(authState.isAuthenticated) {

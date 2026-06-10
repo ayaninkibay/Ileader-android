@@ -18,7 +18,9 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.License
 import com.ileader.app.data.remote.dto.LicenseUpsertDto
 import com.ileader.app.data.repository.AthleteRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -65,10 +67,12 @@ fun RacingLicenseScreen(userId: String, onBack: () -> Unit) {
                         scope.launch {
                             try {
                                 repo.upsertLicense(upsert.copy(userId = userId))
+                                Alerts.success("Лицензия сохранена")
                                 snackbar.showSnackbar("Сохранено")
                                 editing = false
                                 load()
                             } catch (e: Exception) {
+                                Alerts.error("Не удалось сохранить лицензию")
                                 snackbar.showSnackbar(e.message ?: "Ошибка")
                             }
                         }
@@ -108,11 +112,11 @@ private fun LicenseView(l: License, onEdit: () -> Unit) {
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Статус", fontSize = 11.sp, color = TextMuted)
                         val active = l.status == "active"
-                        Surface(shape = RoundedCornerShape(50), color = (if (active) Color(0xFF22C55E) else Color(0xFFEF4444)).copy(0.12f)) {
+                        Surface(shape = RoundedCornerShape(50), color = (if (active) ILeaderColors.Success else ILeaderColors.Error).copy(0.12f)) {
                             Text(if (active) "Активна" else (l.status.ifBlank { "—" }),
                                 Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                                color = if (active) Color(0xFF22C55E) else Color(0xFFEF4444))
+                                color = if (active) ILeaderColors.Success else ILeaderColors.Error)
                         }
                     }
                 }

@@ -26,8 +26,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ileader.app.data.remote.dto.AdminUserDto
 import com.ileader.app.data.repository.AdminRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -87,14 +89,18 @@ fun AdminVerificationsScreen(onBack: () -> Unit) {
                             scope.launch {
                                 try {
                                     repo.approveVerification(user.id); load()
-                                } catch (_: Exception) {}
+                                } catch (_: Exception) {
+                                    Alerts.error("Не удалось одобрить заявку")
+                                }
                             }
                         },
                         onReject = {
                             scope.launch {
                                 try {
                                     repo.rejectVerification(user.id); load()
-                                } catch (_: Exception) {}
+                                } catch (_: Exception) {
+                                    Alerts.error("Не удалось отклонить заявку")
+                                }
                             }
                         }
                     )
@@ -145,31 +151,31 @@ private fun VerificationCard(
                 Surface(
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { onApprove() },
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFF22C55E).copy(alpha = 0.15f)
+                    color = ILeaderColors.Success.copy(alpha = 0.15f)
                 ) {
                     Row(
                         Modifier.padding(10.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Filled.Check, null, tint = Color(0xFF22C55E), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Check, null, tint = ILeaderColors.Success, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Одобрить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                        Text("Одобрить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Success)
                     }
                 }
                 Surface(
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { onReject() },
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFEF4444).copy(alpha = 0.15f)
+                    color = ILeaderColors.Error.copy(alpha = 0.15f)
                 ) {
                     Row(
                         Modifier.padding(10.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Filled.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Close, null, tint = ILeaderColors.Error, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Отклонить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
+                        Text("Отклонить", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Error)
                     }
                 }
             }

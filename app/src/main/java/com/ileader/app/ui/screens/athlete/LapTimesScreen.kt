@@ -24,6 +24,7 @@ import com.ileader.app.data.models.Tournament
 import com.ileader.app.data.models.TournamentStatus
 import com.ileader.app.data.remote.dto.LapTimeInsertDto
 import com.ileader.app.data.repository.AthleteRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.*
 import kotlinx.coroutines.launch
 
@@ -108,9 +109,11 @@ fun LapTimesScreen(userId: String, onBack: () -> Unit) {
                             locationId = tournament?.locationId?.takeIf { it.isNotBlank() }
                         ))
                         showDialog = false
+                        Alerts.success("Время круга добавлено")
                         snackbar.showSnackbar("Добавлено")
                         load()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось сохранить время круга")
                         snackbar.showSnackbar(e.message ?: "Ошибка")
                     }
                 }
@@ -122,7 +125,8 @@ fun LapTimesScreen(userId: String, onBack: () -> Unit) {
 private fun formatLapTime(t: Double): String {
     val mins = (t / 60).toInt()
     val secs = t - mins * 60
-    return if (mins > 0) String.format("%d:%06.3f", mins, secs) else String.format("%.3f", secs)
+    return if (mins > 0) String.format(java.util.Locale.ROOT, "%d:%06.3f", mins, secs)
+    else String.format(java.util.Locale.ROOT, "%.3f", secs)
 }
 
 @Composable

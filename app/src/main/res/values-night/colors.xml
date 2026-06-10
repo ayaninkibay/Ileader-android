@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode override for the splash background so users with the system
+         in dark mode don't get a flash of light grey before the app theme
+         applies. Kept in sync with AppColorScheme.dark.bg (#0A0A0A). -->
+    <color name="splash_bg">#FF0A0A0A</color>
+</resources>

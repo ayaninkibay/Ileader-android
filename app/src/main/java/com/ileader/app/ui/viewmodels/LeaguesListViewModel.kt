@@ -6,6 +6,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.LeagueDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.repository.LeagueRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,7 @@ class LeaguesListViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("LeaguesListVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки лиг")
             }
         }

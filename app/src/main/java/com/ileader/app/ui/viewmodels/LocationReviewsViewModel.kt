@@ -7,6 +7,8 @@ import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.LocationReviewDto
 import com.ileader.app.data.remote.dto.LocationReviewInsertDto
 import com.ileader.app.data.repository.LocationRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,7 @@ class LocationDetailViewModel : ViewModel() {
                     LocationDetailData(locDef.await(), reviewsDef.await())
                 )
             } catch (e: Exception) {
+                AppLogger.e("LocationDetailVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -66,8 +69,11 @@ class LocationReviewFormViewModel : ViewModel() {
                         comment = comment
                     )
                 )
+                Alerts.success("Отзыв отправлен")
                 _submit.value = UiState.Success(Unit)
             } catch (e: Exception) {
+                AppLogger.e("LocationReviewFormVM.submit failed", e)
+                Alerts.error("Не удалось отправить отзыв")
                 _submit.value = UiState.Error(e.message ?: "Ошибка отправки")
             }
         }

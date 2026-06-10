@@ -53,11 +53,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.remote.dto.TournamentHelperDto
 import com.ileader.app.data.repository.HelperRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.EmptyState
 import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.LoadingScreen
+import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
@@ -156,7 +158,9 @@ fun HelperManagementScreen(
                                     try {
                                         val code = repo.createHelperInviteCode(tournamentId, userId)
                                         generatedCode = code
+                                        Alerts.success("Код приглашения создан")
                                     } catch (e: Exception) {
+                                        Alerts.error("Не удалось создать код приглашения")
                                         Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
                                     } finally {
                                         isGeneratingCode = false
@@ -274,6 +278,7 @@ fun HelperManagementScreen(
                                             repo.revokeHelper(helper.id)
                                             loadHelpers()
                                         } catch (e: Exception) {
+                                            Alerts.error("Не удалось отозвать помощника")
                                             Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
                                         }
                                     }
@@ -361,7 +366,7 @@ private fun HelperCard(
                     Icon(
                         Icons.Default.PersonOff,
                         contentDescription = "Отозвать",
-                        tint = Color(0xFFEF4444),
+                        tint = ILeaderColors.Error,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -373,8 +378,8 @@ private fun HelperCard(
 @Composable
 private fun HelperStatusBadge(status: String) {
     val (label, bgColor, textColor) = when (status) {
-        "active" -> Triple("Активен", Color(0xFF22C55E).copy(alpha = 0.15f), Color(0xFF22C55E))
-        "revoked" -> Triple("Отозван", Color(0xFFEF4444).copy(alpha = 0.15f), Color(0xFFEF4444))
+        "active" -> Triple("Активен", ILeaderColors.Success.copy(alpha = 0.15f), ILeaderColors.Success)
+        "revoked" -> Triple("Отозван", ILeaderColors.Error.copy(alpha = 0.15f), ILeaderColors.Error)
         else -> Triple(status, Color.Gray.copy(alpha = 0.15f), Color.Gray)
     }
 

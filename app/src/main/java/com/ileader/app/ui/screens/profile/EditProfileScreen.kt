@@ -69,6 +69,7 @@ import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.ErrorScreen
 import com.ileader.app.ui.components.LoadingScreen
+import com.ileader.app.ui.components.pressableClick
 import com.ileader.app.ui.components.sportImageUrl
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.AvatarViewModel
@@ -291,8 +292,8 @@ fun EditProfileScreen(
                                         modifier = Modifier
                                             .size(110.dp)
                                             .clip(CircleShape)
-                                            .border(3.dp, Color.White.copy(0.3f), CircleShape)
-                                            .clickable { imagePicker.launch("image/*") },
+                                            .pressableClick { imagePicker.launch("image/*") }
+                                            .border(3.dp, Color.White.copy(0.3f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (avatarUrl != null) {
@@ -334,12 +335,12 @@ fun EditProfileScreen(
                                             .offset(x = (-4).dp, y = (-4).dp)
                                             .size(34.dp)
                                             .clip(CircleShape)
-                                            .background(Accent)
-                                            .clickable { imagePicker.launch("image/*") },
+                                            .pressableClick { imagePicker.launch("image/*") }
+                                            .background(Accent),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            Icons.Outlined.CameraAlt, null,
+                                            Icons.Outlined.CameraAlt, contentDescription = "Изменить аватар",
                                             tint = Color.White, modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -475,8 +476,8 @@ fun EditProfileScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .clip(RoundedCornerShape(14.dp))
+                                .pressableClick(enabled = enabled, onClick = { doSave() })
                                 .background(if (enabled) Accent else TextMuted.copy(alpha = 0.3f))
-                                .clickable(enabled = enabled) { doSave() }
                                 .padding(vertical = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {

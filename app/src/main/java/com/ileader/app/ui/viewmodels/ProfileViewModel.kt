@@ -8,6 +8,8 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,16 +54,21 @@ class ProfileViewModel : ViewModel() {
                 viewerRepo.getProfile(userId)
             }
             val statsDeferred = async {
-                try { viewerRepo.getUserSportStats(userId) } catch (_: Exception) { emptyList() }
+                try { viewerRepo.getUserSportStats(userId) } catch (e: Exception) {
+                    AppLogger.w("ProfileVM.load stats: ${e.message}", e); emptyList()
+                }
             }
             val sportsDeferred = async {
-                try { viewerRepo.getUserSports(userId) } catch (_: Exception) { emptyList() }
+                try { viewerRepo.getUserSports(userId) } catch (e: Exception) {
+                    AppLogger.w("ProfileVM.load sports: ${e.message}", e); emptyList()
+                }
             }
 
             try {
                 val profileData = profileDeferred.await()
                 _profile.value = UiState.Success(profileData)
             } catch (e: Exception) {
+                AppLogger.e("ProfileVM.load profile failed", e)
                 _profile.value = UiState.Error(e.message ?: "Ошибка загрузки профиля")
             }
 
@@ -75,6 +82,7 @@ class ProfileViewModel : ViewModel() {
                     try {
                         _goals.value = UiState.Success(athleteRepo.getGoals(userId))
                     } catch (e: Exception) {
+                        AppLogger.e("ProfileVM.load goals failed", e)
                         _goals.value = UiState.Error(e.message ?: "Ошибка загрузки целей")
                     }
                 }
@@ -85,6 +93,7 @@ class ProfileViewModel : ViewModel() {
                 try {
                     _myTournaments.value = UiState.Success(viewerRepo.getUserTournaments(userId, 10))
                 } catch (e: Exception) {
+                    AppLogger.e("ProfileVM.load myTournaments failed", e)
                     _myTournaments.value = UiState.Error(e.message ?: "Ошибка")
                 }
             }
@@ -94,6 +103,7 @@ class ProfileViewModel : ViewModel() {
                 try {
                     _myResults.value = UiState.Success(viewerRepo.getAthleteResults(userId, 5))
                 } catch (e: Exception) {
+                    AppLogger.e("ProfileVM.load myResults failed", e)
                     _myResults.value = UiState.Error(e.message ?: "Ошибка")
                 }
             }
@@ -102,7 +112,9 @@ class ProfileViewModel : ViewModel() {
             launch {
                 try {
                     _myTeam.value = viewerRepo.getAthleteMembership(userId)
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    AppLogger.w("ProfileVM.load myTeam: ${e.message}", e)
+                }
             }
 
             // Load referee assignments
@@ -110,7 +122,9 @@ class ProfileViewModel : ViewModel() {
                 launch {
                     try {
                         _refereeAssignments.value = viewerRepo.getRefereeAssignments(userId)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        AppLogger.w("ProfileVM.load refereeAssignments: ${e.message}", e)
+                    }
                 }
             }
         }
@@ -121,9 +135,12 @@ class ProfileViewModel : ViewModel() {
             _saveState.value = UiState.Loading
             try {
                 viewerRepo.updateProfile(userId, data)
+                Alerts.success("Профиль сохранён")
                 _saveState.value = UiState.Success(Unit)
                 load(userId)
             } catch (e: Exception) {
+                AppLogger.e("ProfileVM.updateProfile failed", e)
+                Alerts.error("Не удалось сохранить профиль")
                 _saveState.value = UiState.Error(e.message ?: "Ошибка сохранения")
             }
         }

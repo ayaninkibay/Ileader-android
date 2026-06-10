@@ -3,8 +3,10 @@ package com.ileader.app.data.repository
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.util.MemoryCache
+import com.ileader.app.data.util.escapeLikePattern
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 
@@ -567,15 +569,16 @@ class OrganizerRepository {
     }
 
     suspend fun getUnreadNotificationCount(userId: String): Int {
-        return client.from("notifications")
+        // head + count → Postgres returns the count in a header, no rows.
+        return (client.from("notifications")
             .select(Columns.raw("id")) {
+                count(Count.EXACT)
                 filter {
                     eq("user_id", userId)
                     eq("read", false)
                 }
             }
-            .decodeList<IdOnlyDto>()
-            .size
+            .countOrNull() ?: 0L).toInt()
     }
 
     suspend fun markNotificationAsRead(notificationId: String) {
@@ -636,7 +639,7 @@ class OrganizerRepository {
             .select(Columns.raw("id, name, email, avatar_url, city, primary_role_id, roles!primary_role_id(id, name)")) {
                 filter {
                     eq("primary_role_id", refereeRole.id)
-                    if (query.isNotBlank()) ilike("name", "%$query%")
+                    if (query.isNotBlank()) ilike("name", "%${query.escapeLikePattern()}%")
                 }
                 limit(20)
             }

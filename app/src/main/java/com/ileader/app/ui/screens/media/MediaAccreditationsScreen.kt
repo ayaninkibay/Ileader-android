@@ -380,7 +380,7 @@ private fun ActionCard(
     val colors = LocalAppColors.current
 
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier.clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
@@ -686,7 +686,7 @@ private fun AccreditationCard(
     val statusLabel = getAccStatusLabel(invite.status)
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke

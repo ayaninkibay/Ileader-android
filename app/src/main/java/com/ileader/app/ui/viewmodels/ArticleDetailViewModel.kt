@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.launch
 
 class ArticleDetailViewModel : ViewModel() {
@@ -22,6 +23,7 @@ class ArticleDetailViewModel : ViewModel() {
             try {
                 state = UiState.Success(repo.getArticleDetail(articleId))
             } catch (e: Exception) {
+                AppLogger.e("ArticleDetailVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки статьи")
             }
         }

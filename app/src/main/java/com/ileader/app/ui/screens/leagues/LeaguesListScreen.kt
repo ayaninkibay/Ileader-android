@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -122,7 +123,7 @@ fun LeaguesListScreen(
 
 @Composable
 private fun LeagueCard(league: LeagueDto, onClick: () -> Unit) {
-    DarkCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    DarkCard(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick)) {
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth(),

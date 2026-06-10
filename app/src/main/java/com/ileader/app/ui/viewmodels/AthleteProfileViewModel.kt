@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -47,10 +48,14 @@ class AthleteProfileViewModel : ViewModel() {
 
                 // Load team details if athlete has a team
                 val teamDetail = if (membership?.teamId != null) {
-                    try { repo.getTeamDetail(membership.teamId) } catch (_: Exception) { null }
+                    try { repo.getTeamDetail(membership.teamId) } catch (e: Exception) {
+                        AppLogger.w("AthleteProfileVM.load teamDetail: ${e.message}", e); null
+                    }
                 } else null
                 val teamMembers = if (membership?.teamId != null) {
-                    try { repo.getTeamMembers(membership.teamId) } catch (_: Exception) { emptyList() }
+                    try { repo.getTeamMembers(membership.teamId) } catch (e: Exception) {
+                        AppLogger.w("AthleteProfileVM.load teamMembers: ${e.message}", e); emptyList()
+                    }
                 } else emptyList()
 
                 state = UiState.Success(
@@ -68,6 +73,7 @@ class AthleteProfileViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("AthleteProfileVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки профиля")
             }
         }

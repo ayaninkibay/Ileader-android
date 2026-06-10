@@ -4,21 +4,21 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.UiState
-import com.ileader.app.ui.screens.detail.ArticleDetailScreen
-import com.ileader.app.ui.screens.detail.AthleteProfilePage
-import com.ileader.app.ui.screens.detail.PublicProfileScreen
-import com.ileader.app.ui.screens.detail.RefereeProfilePage
-import com.ileader.app.ui.screens.detail.TrainerProfilePage
-import com.ileader.app.ui.screens.detail.TeamDetailScreen
-import com.ileader.app.ui.screens.detail.TournamentDetailScreen
+import com.ileader.app.ui.screens.articles.ArticleDetailScreen
+import com.ileader.app.ui.screens.profile.AthleteProfilePage
+import com.ileader.app.ui.screens.profile.PublicProfileScreen
+import com.ileader.app.ui.screens.profile.RefereeProfilePage
+import com.ileader.app.ui.screens.profile.TrainerProfilePage
+import com.ileader.app.ui.screens.teams.TeamDetailScreen
+import com.ileader.app.ui.screens.tournaments.TournamentDetailScreen
 import com.ileader.app.ui.screens.admin.AdminSettingsScreen
 import com.ileader.app.ui.screens.admin.AdminSportRequestsScreen
 import com.ileader.app.ui.screens.admin.AdminUsersScreen
 import com.ileader.app.ui.screens.admin.AdminVerificationsScreen
 import com.ileader.app.ui.screens.chat.ChatScreen
-import com.ileader.app.ui.screens.common.ManualCheckInScreen
-import com.ileader.app.ui.screens.common.QrScannerScreen
-import com.ileader.app.ui.screens.common.RefereeMatchesScreen
+import com.ileader.app.ui.screens.checkin.ManualCheckInScreen
+import com.ileader.app.ui.screens.tickets.QrScannerScreen
+import com.ileader.app.ui.screens.referee.RefereeMatchesScreen
 import com.ileader.app.ui.screens.leagues.LeagueDetailScreen
 import com.ileader.app.ui.screens.leagues.LeaguesListScreen
 import com.ileader.app.ui.screens.location.LocationDetailScreen
@@ -106,10 +106,11 @@ fun HomeTab(user: User, onNavigateToSport: () -> Unit = {}) {
         is HomeNavState.PublicProfile -> PublicProfileScreen(
             userId = state.id,
             onBack = { navState = HomeNavState.Home },
-            onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) },
+            // onStartChat намеренно null — backend (`conversations` / `messages`) ещё не задеплоен.
+            // Возвращаем после миграций: onStartChat = { otherId -> navState = HomeNavState.StartChat(otherId) }
             onTournamentClick = { navState = HomeNavState.TournamentDetail(it) }
         )
-        is HomeNavState.Notifications -> com.ileader.app.ui.screens.common.NotificationsScreen(
+        is HomeNavState.Notifications -> com.ileader.app.ui.screens.notifications.NotificationsScreen(
             user = user,
             onBack = { navState = HomeNavState.Home }
         )

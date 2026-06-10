@@ -6,8 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    // TODO: Раскомментировать после добавления google-services.json в app/
-    // alias(libs.plugins.google.services)
+    alias(libs.plugins.google.services)
 }
 
 val localProps = Properties().apply {
@@ -36,6 +35,30 @@ android {
         buildConfigField("String", "DEMO_ADMIN_PASSWORD", "\"${localProps.getProperty("demo.admin.password") ?: error("demo.admin.password not set in local.properties")}\"")
     }
 
+    // Release signing. Keystore path + passwords come from local.properties
+    // (never committed). If they're missing, the `release` config below silently
+    // falls back to unsigned — useful for local R8 testing — and the upload to
+    // Play Store will need to be signed manually via Android Studio.
+    val releaseStoreFile = localProps.getProperty("release.store.file")
+    val releaseStorePassword = localProps.getProperty("release.store.password")
+    val releaseKeyAlias = localProps.getProperty("release.key.alias")
+    val releaseKeyPassword = localProps.getProperty("release.key.password")
+    val hasReleaseSigning = !releaseStoreFile.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -44,6 +67,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+
+    // AAB: бандлим все локали в основной APK, не сплитим по языкам.
+    // Иначе при ручной смене языка через LanguagePreference (MainActivity)
+    // нужный locale-resource не подгружен → крашится с MissingResourceException.
+    bundle {
+        language {
+            enableSplit = false
         }
     }
     compileOptions {
@@ -64,6 +99,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
 
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -112,10 +148,10 @@ dependencies {
     // Supabase Realtime (для чата)
     implementation(libs.supabase.realtime)
 
-    // Firebase (TODO: раскомментировать после добавления google-services.json)
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.messaging)
-    // implementation(libs.firebase.analytics)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.analytics)
 
     // QR code generation (ZXing)
     implementation(libs.zxing.core)

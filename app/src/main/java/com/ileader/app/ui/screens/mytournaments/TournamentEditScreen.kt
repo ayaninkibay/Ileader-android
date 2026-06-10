@@ -53,6 +53,7 @@ import com.ileader.app.data.remote.dto.ScheduleItemDto
 import com.ileader.app.data.remote.dto.TournamentDto
 import com.ileader.app.data.remote.dto.TournamentInsertDto
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkSwitchField
@@ -226,8 +227,10 @@ fun TournamentEditScreen(
                                     try {
                                         val url = repo.uploadTournamentImage(tournamentId, bytes)
                                         imageUrl = url
+                                        Alerts.success("Обложка обновлена")
                                         snackbarHostState.showSnackbar("Обложка обновлена")
                                     } catch (e: Exception) {
+                                        Alerts.error("Не удалось загрузить обложку")
                                         snackbarHostState.showSnackbar(e.message ?: "Ошибка загрузки")
                                     } finally {
                                         isUploadingImage = false
@@ -578,9 +581,11 @@ fun TournamentEditScreen(
                                                     stageMatchFormats = tournament.stageMatchFormats
                                                 )
                                             )
+                                            Alerts.success("Турнир обновлён")
                                             snackbarHostState.showSnackbar("Турнир обновлён")
                                             onBack()
                                         } catch (e: Exception) {
+                                            Alerts.error("Не удалось сохранить турнир")
                                             snackbarHostState.showSnackbar(e.message ?: "Ошибка сохранения")
                                         } finally {
                                             isSaving = false

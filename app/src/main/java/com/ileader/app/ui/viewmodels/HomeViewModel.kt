@@ -132,7 +132,8 @@ class HomeViewModel : ViewModel() {
             try {
                 val stats = adminRepo.getStats()
                 adminDashboard = AdminDashboardState(stats = stats, isLoaded = true)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("HomeVM.loadAdminDashboard: ${e.message}", e)
                 adminDashboard = adminDashboard.copy(isLoaded = true)
             }
         }
@@ -168,7 +169,9 @@ class HomeViewModel : ViewModel() {
 
             val sportsDeferred = async {
                 if (currentSports.isNotEmpty()) currentSports
-                else try { repo.getSports() } catch (_: Exception) { emptyList() }
+                else try { repo.getSports() } catch (e: Exception) {
+                    AppLogger.w("HomeVM.load sports: ${e.message}", e); emptyList()
+                }
             }
 
             val newsDeferred = async {
@@ -244,10 +247,14 @@ class HomeViewModel : ViewModel() {
             try {
                 val statsDeferred = async { athleteRepo.getStats(userId) }
                 val goalsDeferred = async {
-                    try { athleteRepo.getGoals(userId) } catch (_: Exception) { emptyList() }
+                    try { athleteRepo.getGoals(userId) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadAthleteDashboard goals: ${e.message}", e); emptyList()
+                    }
                 }
                 val tournamentsDeferred = async {
-                    try { athleteRepo.getMyTournaments(userId) } catch (_: Exception) { emptyList() }
+                    try { athleteRepo.getMyTournaments(userId) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadAthleteDashboard tournaments: ${e.message}", e); emptyList()
+                    }
                 }
 
                 val tournaments = tournamentsDeferred.await()
@@ -292,16 +299,24 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val articleStatsDeferred = async {
-                    try { mediaRepo.getArticleStats(userId) } catch (_: Exception) { null }
+                    try { mediaRepo.getArticleStats(userId) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadMediaDashboard articleStats: ${e.message}", e); null
+                    }
                 }
                 val accStatsDeferred = async {
-                    try { mediaRepo.getAccreditationStats(userId) } catch (_: Exception) { null }
+                    try { mediaRepo.getAccreditationStats(userId) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadMediaDashboard accStats: ${e.message}", e); null
+                    }
                 }
                 val intStatsDeferred = async {
-                    try { mediaRepo.getInterviewStats(userId) } catch (_: Exception) { null }
+                    try { mediaRepo.getInterviewStats(userId) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadMediaDashboard intStats: ${e.message}", e); null
+                    }
                 }
                 val recentDeferred = async {
-                    try { mediaRepo.getMyArticles(userId).take(5) } catch (_: Exception) { emptyList() }
+                    try { mediaRepo.getMyArticles(userId).take(5) } catch (e: Exception) {
+                        AppLogger.w("HomeVM.loadMediaDashboard recent: ${e.message}", e); emptyList()
+                    }
                 }
 
                 val accStats = accStatsDeferred.await()

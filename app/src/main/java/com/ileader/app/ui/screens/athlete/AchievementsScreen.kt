@@ -22,6 +22,7 @@ import com.ileader.app.data.models.AchievementItem
 import com.ileader.app.data.models.AchievementRarity
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -30,10 +31,10 @@ private val TextPrimary: Color @Composable get() = DarkTheme.TextPrimary
 private val TextMuted: Color @Composable get() = DarkTheme.TextMuted
 
 private fun rarityColor(r: AchievementRarity): Color = when (r) {
-    AchievementRarity.LEGENDARY -> Color(0xFFFFD700)
-    AchievementRarity.EPIC -> Color(0xFFA855F7)
-    AchievementRarity.RARE -> Color(0xFF3B82F6)
-    AchievementRarity.COMMON -> Color(0xFF94A3B8)
+    AchievementRarity.LEGENDARY -> ILeaderColors.Gold
+    AchievementRarity.EPIC -> ILeaderColors.SponsorColor
+    AchievementRarity.RARE -> ILeaderColors.Info
+    AchievementRarity.COMMON -> ILeaderColors.ViewerColor
 }
 
 @Composable

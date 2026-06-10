@@ -10,6 +10,7 @@ import com.ileader.app.data.remote.dto.CommunityProfileDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.UserSportStatsDto
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -75,6 +76,7 @@ class RankingsViewModel : ViewModel() {
                     totalTournaments = entries.sumOf { it.tournaments }
                 )
             } catch (e: Exception) {
+                AppLogger.e("RankingsVM.loadData failed", e)
                 state = state.copy(entries = UiState.Error(e.message ?: "Ошибка загрузки"))
             }
         }

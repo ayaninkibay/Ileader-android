@@ -33,6 +33,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ArticleDto
 import com.ileader.app.data.remote.dto.ArticleStatsDto
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import com.ileader.app.ui.viewmodels.MediaViewModel
 
@@ -307,7 +308,7 @@ private fun TopArticleCard(article: ArticleDto, onClick: () -> Unit) {
     val colors = LocalAppColors.current
 
     Surface(
-        modifier = Modifier.width(200.dp).clickable(onClick = onClick),
+        modifier = Modifier.width(200.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
@@ -384,7 +385,7 @@ private fun CreateArticleButton(onClick: () -> Unit) {
     val colors = LocalAppColors.current
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, MediaColor.copy(0.3f)),
@@ -477,10 +478,10 @@ private fun ArticleCard(
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
     val isPublished = article.status == "published"
-    val statusColor = if (isPublished) Color(0xFF10B981) else Color(0xFFF59E0B)
+    val statusColor = if (isPublished) ILeaderColors.Success else ILeaderColors.Warning
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke

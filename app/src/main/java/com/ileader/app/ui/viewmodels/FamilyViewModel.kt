@@ -9,6 +9,8 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.FamilyLinkDto
 import com.ileader.app.data.remote.dto.ParentalApprovalDto
 import com.ileader.app.data.repository.FamilyRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.launch
 
 data class FamilyData(
@@ -36,6 +38,7 @@ class FamilyViewModel : ViewModel() {
                 val approvals = repo.getPendingApprovals(userId)
                 state = UiState.Success(FamilyData(links, approvals))
             } catch (e: Exception) {
+                AppLogger.e("FamilyVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -49,9 +52,12 @@ class FamilyViewModel : ViewModel() {
                     ?: throw Exception("Пользователь с email $childEmail не найден")
                 val childId = child.id ?: throw Exception("ID не найден")
                 repo.createFamilyLink(parentId, childId)
+                Alerts.success("Запрос на привязку отправлен")
                 actionState = UiState.Success(Unit)
                 load(parentId)
             } catch (e: Exception) {
+                AppLogger.e("FamilyVM.linkChild failed", e)
+                Alerts.error(e.message ?: "Не удалось привязать аккаунт")
                 actionState = UiState.Error(e.message ?: "Ошибка привязки")
             }
         }
@@ -61,8 +67,11 @@ class FamilyViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repo.confirmFamilyLink(linkId)
+                Alerts.success("Привязка подтверждена")
                 load(userId)
             } catch (e: Exception) {
+                AppLogger.e("FamilyVM.confirmLink failed", e)
+                Alerts.error("Не удалось подтвердить привязку")
                 actionState = UiState.Error(e.message ?: "Ошибка подтверждения")
             }
         }
@@ -74,6 +83,8 @@ class FamilyViewModel : ViewModel() {
                 repo.removeFamilyLink(linkId)
                 load(userId)
             } catch (e: Exception) {
+                AppLogger.e("FamilyVM.removeLink failed", e)
+                Alerts.error("Не удалось удалить привязку")
                 actionState = UiState.Error(e.message ?: "Ошибка удаления")
             }
         }
@@ -83,8 +94,11 @@ class FamilyViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repo.respondToApproval(approvalId, approved, comment)
+                Alerts.success(if (approved) "Запрос одобрен" else "Запрос отклонён")
                 load(userId)
             } catch (e: Exception) {
+                AppLogger.e("FamilyVM.respondToApproval failed", e)
+                Alerts.error("Не удалось обработать запрос")
                 actionState = UiState.Error(e.message ?: "Ошибка")
             }
         }

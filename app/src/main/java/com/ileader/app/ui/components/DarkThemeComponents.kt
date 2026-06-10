@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -214,9 +215,72 @@ fun DarkCardPadded(
 // ANIMATIONS
 // ══════════════════════════════════════════════════════════
 
+/**
+ * Subtle press-feedback scale for tappable surfaces. Combines press detection
+ * and click into one modifier — replaces `.clickable { ... }` with
+ * `.pressableClick { ... }` to get a 0.97 scale-down while held.
+ */
+@Composable
+fun Modifier.pressableClick(
+    pressedScale: Float = 0.97f,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+): Modifier {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && enabled) pressedScale else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "pressScale"
+    )
+    return this
+        .graphicsLayer { scaleX = scale; scaleY = scale }
+        .pointerInput(enabled) {
+            if (!enabled) return@pointerInput
+            detectTapGestures(
+                onPress = {
+                    pressed = true
+                    val released = tryAwaitRelease()
+                    pressed = false
+                    if (released) onClick()
+                }
+            )
+        }
+}
+
+/**
+ * Staggered fade + slide-up entrance for a section.
+ *
+ * Used on profile pages to cascade sections in with a small delay between each.
+ * The implementation was previously a no-op; sections rendered without any
+ * animation. Pass `delayMs` per section to stagger.
+ */
 @Composable
 fun FadeIn(visible: Boolean, delayMs: Int, content: @Composable () -> Unit) {
-    content()
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(visible) {
+        if (visible) shown = true else shown = false
+    }
+    val alpha by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(durationMillis = 450, delayMillis = delayMs, easing = FastOutSlowInEasing),
+        label = "fadeInAlpha"
+    )
+    val translateY by animateFloatAsState(
+        targetValue = if (shown) 0f else 24f,
+        animationSpec = tween(durationMillis = 500, delayMillis = delayMs, easing = FastOutSlowInEasing),
+        label = "fadeInY"
+    )
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier.graphicsLayer {
+            this.alpha = alpha
+            this.translationY = translateY
+        }
+    ) {
+        content()
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -238,7 +302,7 @@ fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)?
             Row(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onAction() }
+                    .pressableClick(onClick = onAction)
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -266,9 +330,9 @@ fun BackHeader(title: String, onBack: () -> Unit, extra: @Composable RowScope.()
             Modifier
                 .size(40.dp)
                 .clip(CircleShape)
+                .pressableClick(onClick = onBack)
                 .background(colors.cardBg)
-                .border(0.5.dp, colors.border.copy(alpha = 0.5f), CircleShape)
-                .clickable { onBack() },
+                .border(0.5.dp, colors.border.copy(alpha = 0.5f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(

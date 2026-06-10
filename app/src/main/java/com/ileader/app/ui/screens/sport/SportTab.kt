@@ -10,13 +10,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.User
-import com.ileader.app.ui.screens.detail.ArticleDetailScreen
-import com.ileader.app.ui.screens.detail.PublicProfileScreen
-import com.ileader.app.ui.screens.detail.AthleteProfilePage
-import com.ileader.app.ui.screens.detail.RefereeProfilePage
-import com.ileader.app.ui.screens.detail.TrainerProfilePage
-import com.ileader.app.ui.screens.detail.TeamDetailScreen
-import com.ileader.app.ui.screens.detail.TournamentDetailScreen
+import com.ileader.app.ui.screens.articles.ArticleDetailScreen
+import com.ileader.app.ui.screens.profile.PublicProfileScreen
+import com.ileader.app.ui.screens.profile.AthleteProfilePage
+import com.ileader.app.ui.screens.profile.RefereeProfilePage
+import com.ileader.app.ui.screens.profile.TrainerProfilePage
+import com.ileader.app.ui.screens.teams.TeamDetailScreen
+import com.ileader.app.ui.screens.tournaments.TournamentDetailScreen
 
 sealed class SportNavState {
     data object Search : SportNavState()

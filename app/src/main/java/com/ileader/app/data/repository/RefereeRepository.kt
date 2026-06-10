@@ -8,6 +8,7 @@ import com.ileader.app.data.remote.dto.*
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -70,27 +71,27 @@ class RefereeRepository {
             }
             .decodeList<IdOnlyDto>()
 
-        val participantCounts = assignments.mapNotNull { a ->
-            a.tournaments?.id?.let { tid ->
-                try {
-                    val data = client.from("tournament_participants")
-                        .select(Columns.raw("athlete_id")) {
-                            filter {
-                                eq("tournament_id", tid)
-                                neq("status", "cancelled")
-                            }
-                        }
-                        .data
-                    Json.parseToJsonElement(data).jsonArray.size
-                } catch (e: Exception) { AppLogger.w("RefereeRepo: ${e.message}"); 0 }
-            }
-        }
+        // One batched query for all participants across the referee's tournaments
+        // instead of one round-trip per tournament.
+        val tournamentIds = assignments.mapNotNull { it.tournaments?.id }
+        val totalParticipants = if (tournamentIds.isEmpty()) 0
+        else try {
+            client.from("tournament_participants")
+                .select(Columns.raw("athlete_id, tournament_id")) {
+                    filter {
+                        isIn("tournament_id", tournamentIds)
+                        neq("status", "cancelled")
+                    }
+                }
+                .decodeList<ParticipantDto>()
+                .size
+        } catch (e: Exception) { AppLogger.w("RefereeRepo: ${e.message}"); 0 }
 
         return RefereeStats(
             totalTournaments = totalTournaments,
             thisMonth = thisMonth,
             pendingResults = pendingResults,
-            totalParticipants = participantCounts.sum(),
+            totalParticipants = totalParticipants,
             totalViolations = violations.size
         )
     }
@@ -467,15 +468,15 @@ class RefereeRepository {
     }
 
     suspend fun getUnreadNotificationCount(userId: String): Int {
-        return client.from("notifications")
+        return (client.from("notifications")
             .select(Columns.raw("id")) {
+                count(Count.EXACT)
                 filter {
                     eq("user_id", userId)
                     eq("read", false)
                 }
             }
-            .decodeList<IdOnlyDto>()
-            .size
+            .countOrNull() ?: 0L).toInt()
     }
 
     suspend fun markNotificationAsRead(notificationId: String) {

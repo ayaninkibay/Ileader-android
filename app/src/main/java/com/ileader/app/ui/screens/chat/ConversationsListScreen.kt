@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.Text
@@ -88,7 +89,9 @@ private fun ConversationRow(
     val preview = conversation.messages?.lastOrNull()?.content ?: "Нет сообщений"
 
     DarkCard(
-        modifier = Modifier.clickable { onClick(conversation.id, name) }
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .pressableClick { onClick(conversation.id, name) }
     ) {
         Row(
             Modifier.fillMaxWidth().padding(14.dp),

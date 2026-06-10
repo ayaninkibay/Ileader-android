@@ -7,6 +7,8 @@ import com.ileader.app.data.remote.dto.CourseDto
 import com.ileader.app.data.remote.dto.CourseLessonDto
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.repository.CourseRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -65,6 +67,7 @@ class CoursesListViewModel : ViewModel() {
 
                 _state.value = UiState.Success(CoursesListData(items, sports))
             } catch (e: Exception) {
+                AppLogger.e("CoursesListVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки курсов")
             }
         }
@@ -83,6 +86,12 @@ class CourseDetailViewModel : ViewModel() {
 
     private val _enrollState = MutableStateFlow<UiState<Unit>?>(null)
     val enrollState: StateFlow<UiState<Unit>?> = _enrollState
+
+    private val _requestState = MutableStateFlow<UiState<Unit>?>(null)
+    val requestState: StateFlow<UiState<Unit>?> = _requestState
+
+    private val _requestSent = MutableStateFlow(false)
+    val requestSent: StateFlow<Boolean> = _requestSent
 
     fun load(courseId: String, userId: String?) {
         viewModelScope.launch {
@@ -108,6 +117,7 @@ class CourseDetailViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("CourseDetailVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки курса")
             }
         }
@@ -118,12 +128,62 @@ class CourseDetailViewModel : ViewModel() {
             _enrollState.value = UiState.Loading
             try {
                 repo.enrollInFreeCourse(userId, courseId)
+                Alerts.success("Вы записаны на курс")
                 _enrollState.value = UiState.Success(Unit)
                 // Reload to update access status
                 load(courseId, userId)
             } catch (e: Exception) {
+                AppLogger.e("CourseDetailVM.enroll failed", e)
+                Alerts.error("Не удалось записаться на курс")
                 _enrollState.value = UiState.Error(e.message ?: "Ошибка записи на курс")
             }
         }
+    }
+
+    /** Checks once on load whether the user already sent a pending request. */
+    fun checkPendingRequest(courseId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                _requestSent.value = repo.hasPendingAccessRequest(courseId, userId)
+            } catch (_: Exception) { /* non-critical */ }
+        }
+    }
+
+    fun submitAccessRequest(
+        courseId: String,
+        userId: String,
+        userName: String,
+        userEmail: String?,
+        userPhone: String?,
+        messengerType: String,
+        messengerHandle: String,
+        message: String?,
+    ) {
+        viewModelScope.launch {
+            _requestState.value = UiState.Loading
+            try {
+                repo.createAccessRequest(
+                    courseId = courseId,
+                    userId = userId,
+                    userName = userName,
+                    userEmail = userEmail,
+                    userPhone = userPhone,
+                    messengerType = messengerType,
+                    messengerHandle = messengerHandle,
+                    message = message,
+                )
+                _requestSent.value = true
+                _requestState.value = UiState.Success(Unit)
+                Alerts.success("Заявка отправлена. Менеджер свяжется с вами")
+            } catch (e: Exception) {
+                AppLogger.e("CourseDetailVM.submitAccessRequest failed", e)
+                _requestState.value = UiState.Error(e.message ?: "Не удалось отправить заявку")
+                Alerts.error(e.message ?: "Не удалось отправить заявку")
+            }
+        }
+    }
+
+    fun clearRequestError() {
+        if (_requestState.value is UiState.Error) _requestState.value = null
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.RatingHistoryEntry
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -120,8 +121,8 @@ private fun RatingChart(entries: List<RatingHistoryEntry>) {
 @Composable
 private fun RatingRow(entry: RatingHistoryEntry) {
     val (icon, color) = when {
-        entry.delta > 0 -> Icons.Default.TrendingUp to Color(0xFF22C55E)
-        entry.delta < 0 -> Icons.Default.TrendingDown to Color(0xFFEF4444)
+        entry.delta > 0 -> Icons.Default.TrendingUp to ILeaderColors.Success
+        entry.delta < 0 -> Icons.Default.TrendingDown to ILeaderColors.Error
         else -> Icons.Default.TrendingFlat to TextMuted
     }
     val reasonLabel = when (entry.reason) {

@@ -9,6 +9,8 @@ import com.ileader.app.data.remote.dto.SpectatorDto
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.repository.CheckInRepository
 import com.ileader.app.data.repository.HelperRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,7 +84,9 @@ class CheckInViewModel : ViewModel() {
                         }
                         .decodeSingleOrNull<OrganizerIdDto>()
                     row?.organizerId == userId
-                } catch (_: Exception) { false }
+                } catch (e: Exception) {
+                    AppLogger.w("CheckInVM.verifyAccess isOrganizer: ${e.message}", e); false
+                }
 
                 if (isOrganizer) {
                     _accessState.value = CheckInAccessState.Allowed
@@ -91,7 +95,9 @@ class CheckInViewModel : ViewModel() {
 
                 val isHelper = try {
                     helperRepo.isHelperForTournament(userId, tournamentId)
-                } catch (_: Exception) { false }
+                } catch (e: Exception) {
+                    AppLogger.w("CheckInVM.verifyAccess isHelper: ${e.message}", e); false
+                }
 
                 _accessState.value = if (isHelper) {
                     CheckInAccessState.Allowed
@@ -99,6 +105,7 @@ class CheckInViewModel : ViewModel() {
                     CheckInAccessState.Denied("У вас нет прав на check-in этого турнира")
                 }
             } catch (e: Exception) {
+                AppLogger.e("CheckInVM.verifyAccess failed", e)
                 _accessState.value = CheckInAccessState.Denied(e.message ?: "Ошибка проверки доступа")
             }
         }
@@ -164,6 +171,7 @@ class CheckInViewModel : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
+                AppLogger.w("CheckInVM.onQrScanned: ${e.message}", e)
                 _scanState.value = CheckInScanState.Error("Неверный QR-код")
             }
         }
@@ -186,8 +194,11 @@ class CheckInViewModel : ViewModel() {
                         repo.markParticipantCheckIn(p.tournamentId, p.athleteId)
                     }
                 }
+                Alerts.success("Участник отмечен")
                 _scanState.value = CheckInScanState.CheckedIn
             } catch (e: Exception) {
+                AppLogger.e("CheckInVM.confirmCheckIn failed", e)
+                Alerts.error("Не удалось отметить участника")
                 _scanState.value = CheckInScanState.Error("Ошибка при check-in")
             }
         }

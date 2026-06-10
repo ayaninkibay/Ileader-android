@@ -6,6 +6,8 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.ConversationDto
 import com.ileader.app.data.remote.dto.MessageDto
 import com.ileader.app.data.repository.ChatRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,7 @@ class ConversationsListViewModel : ViewModel() {
             try {
                 _state.value = UiState.Success(repo.getConversations(userId))
             } catch (e: Exception) {
+                AppLogger.e("ConversationsListVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -49,6 +52,7 @@ class ChatViewModel : ViewModel() {
             try {
                 _state.value = UiState.Success(repo.getMessages(conversationId))
             } catch (e: Exception) {
+                AppLogger.e("ChatVM.load failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки сообщений")
             }
         }
@@ -62,7 +66,9 @@ class ChatViewModel : ViewModel() {
                 val msg = repo.sendMessage(convId, myUserId, content.trim())
                 val current = (_state.value as? UiState.Success)?.data ?: emptyList()
                 _state.value = UiState.Success(current + msg)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("ChatVM.send: ${e.message}", e)
+                Alerts.error("Не удалось отправить сообщение")
                 // keep state
             } finally {
                 _sending.value = false
@@ -84,6 +90,8 @@ class StartConversationViewModel : ViewModel() {
                 val id = repo.createConversation(listOf(myUserId, otherUserId))
                 _state.value = UiState.Success(id)
             } catch (e: Exception) {
+                AppLogger.e("StartConversationVM.start failed", e)
+                Alerts.error("Не удалось начать диалог")
                 _state.value = UiState.Error(e.message ?: "Не удалось создать диалог")
             }
         }

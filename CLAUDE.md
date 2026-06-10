@@ -1,7 +1,12 @@
 # iLeader Android - Project Context for Claude Chats
 
 > Этот файл содержит полный контекст проекта для всех Claude-чатов, работающих над приложением.
-> Обновлено: 2026-03-16
+> Обновлено: 2026-05-11
+>
+> Для оптимизации контекста есть локальные подсказки:
+> - `app/src/main/java/com/ileader/app/data/CLAUDE.md` — конвенции data-слоя (DTO, репозитории, MemoryCache)
+> - `app/src/main/java/com/ileader/app/ui/CLAUDE.md` — UI-слой (тема, навигация, сессия пользователя)
+> - `app/src/main/java/com/ileader/app/ui/screens/CLAUDE.md` — таксономия экранов и где что лежит
 
 ---
 
@@ -56,24 +61,57 @@ Kotlin 2.0.21 + Jetpack Compose + Material 3
 
 ```
 app/src/main/java/com/ileader/app/
-├── MainActivity.kt                    # Точка входа, тема, навигация
+├── MainActivity.kt                    # Точка входа, тема, UserProvider, навигация
 ├── data/
-│   ├── bracket/                       # BracketGenerator.kt, BracketUtils.kt
-│   ├── mock/                          # 8 файлов с моковыми данными (УБРАТЬ)
-│   ├── models/                        # Domain-модели (User, Tournament, Team, etc.)
-│   ├── preferences/                   # ThemePreference.kt (DataStore)
+│   ├── bracket/                       # BracketGenerator, BracketUtils
+│   ├── local/                         # Room: AppDatabase, DAO, кэш для offline
+│   ├── models/                        # Domain-модели (User, Tournament, Team, ...)
+│   ├── notifications/                 # FCM-заглушка (NotificationHelper, FcmTokenManager)
+│   ├── preferences/                   # DataStore: тема, язык
 │   ├── remote/
-│   │   ├── SupabaseModule.kt          # Singleton клиент Supabase
-│   │   ├── UiState.kt                 # Sealed class: Loading/Success/Error
-│   │   └── dto/                       # 20+ DTO-файлов для сериализации
-│   └── repository/                    # 9 репозиториев по ролям
+│   │   ├── SupabaseModule.kt          # Singleton клиент Supabase (HTTP timeouts, retry)
+│   │   ├── UiState.kt                 # Sealed: Loading/Success/Error
+│   │   └── dto/                       # ~20 DTO-файлов для сериализации
+│   ├── repository/                    # 19 репозиториев (Viewer/Athlete/Trainer/Organizer/Referee/Sponsor/Media/Admin/User + Course/League/Location/Chat/Family/Helper/Notification/Ticket/CheckIn/Avatar)
+│   ├── session/                       # UserSession (single source of truth по user'у)
+│   └── util/                          # AppLogger, MemoryCache, safeApiCall
 ├── ui/
 │   ├── components/                    # DarkThemeComponents.kt (50+ composable)
 │   ├── navigation/                    # NavGraph.kt, BottomNavItems.kt
-│   ├── screens/                       # 85 экранов по ролям + auth + common
-│   ├── theme/                         # Color.kt, Theme.kt, Type.kt, Shadows.kt
-│   └── viewmodels/                    # 58 ViewModel'ов
+│   ├── providers/                     # LocalCurrentUser, UserProvider
+│   ├── screens/                       # ~71 экранов, фичевая таксономия (см. ниже)
+│   ├── theme/                         # Color, Theme, Type, Shadows
+│   └── viewmodels/                    # 24 ViewModel'а (плоская папка)
 ```
+
+### Таксономия `ui/screens/` — по фичам
+
+| Папка | Что внутри |
+|---|---|
+| `auth/` | Welcome, Login, Register, ForgotPassword, MainPlaceholder, AuthViewModel |
+| `onboarding/` | OnboardingSportScreen |
+| `main/` | MainScreen (контейнер с floating bottom nav по ролям) |
+| `home/` | HomeScreen, HomeTab |
+| `tournaments/` | TournamentDetailScreen |
+| `mytournaments/` | Tab + создание/редактирование + management (helper/referee/team/invites/locations) |
+| `articles/` | ArticleDetailScreen |
+| `media/` | MediaTab + Articles/Interviews lists/editors + Accreditations |
+| `profile/` | Profile, ProfileTab, EditProfile, Family, GoalCreate, GoalDetail + публичные профили (Athlete/Trainer/Referee/Public) — `internal` хелперы SectionCard / StatColumn / InfoChip / ResultRow / ContactRow / TournamentRow живут в `AthleteProfilePage.kt` и переиспользуются внутри `profile/` |
+| `teams/` | TeamDetailScreen |
+| `athlete/` | RacingLicense, RatingHistory, LapTimes, Achievements, ResultsHistory |
+| `sport/` | SportScreen, SportTab, RankingsScreen, FilterPopup, LeagueDetailScreen (sport-вью) |
+| `leagues/` | LeaguesListScreen, LeagueDetailScreen (home-вью) — отдельная импл от `sport/LeagueDetailScreen` |
+| `chat/` | ConversationsList, ChatScreen |
+| `courses/` | CoursesList, CourseDetail |
+| `notifications/` | NotificationsScreen |
+| `tickets/` | MyTickets, QrTicket, QrScanner |
+| `checkin/` | ManualCheckInScreen |
+| `referee/` | RefereeMatchesScreen |
+| `location/` | LocationDetail, LocationReviewForm |
+| `sponsor/` | SponsorTab, SponsorshipsScreen, SponsorTournamentSearch |
+| `admin/` | AdminSettings, AdminUsers, AdminVerifications, AdminSportRequests |
+| `verification/` | VerificationRequestScreen |
+| `common/` | PlaceholderScreen (только то, что реально общее) |
 
 ---
 

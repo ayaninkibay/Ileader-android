@@ -11,6 +11,7 @@ import com.ileader.app.data.remote.dto.TeamDto
 import com.ileader.app.data.remote.dto.TeamMemberDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -49,17 +50,22 @@ class TeamDetailViewModel : ViewModel() {
                 val tournamentIds = tournamentIdsDef.await()
 
                 val tournaments = if (tournamentIds.isNotEmpty()) {
-                    try { repo.getTournamentsByIds(tournamentIds) } catch (_: Exception) { emptyList() }
+                    try { repo.getTournamentsByIds(tournamentIds) } catch (e: Exception) {
+                        AppLogger.w("TeamDetailVM.load tournaments: ${e.message}", e); emptyList()
+                    }
                 } else emptyList()
 
                 // Fetch results for all team members
                 val memberIds = members.mapNotNull { it.userId }
                 val results = if (memberIds.isNotEmpty()) {
-                    try { repo.getTeamMemberResults(memberIds, 10) } catch (_: Exception) { emptyList() }
+                    try { repo.getTeamMemberResults(memberIds, 10) } catch (e: Exception) {
+                        AppLogger.w("TeamDetailVM.load results: ${e.message}", e); emptyList()
+                    }
                 } else emptyList()
 
                 state = UiState.Success(TeamDetailData(team, members, tournaments, results))
             } catch (e: Exception) {
+                AppLogger.e("TeamDetailVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }

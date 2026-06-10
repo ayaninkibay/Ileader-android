@@ -30,10 +30,12 @@ import coil.compose.AsyncImage
 import com.ileader.app.data.models.UserRole
 import com.ileader.app.data.remote.dto.AdminUserDto
 import com.ileader.app.data.repository.AdminRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFilterChip
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -143,7 +145,9 @@ fun AdminUsersScreen(onBack: () -> Unit) {
                                     if (user.status == "blocked") repo.unblockUser(user.id)
                                     else repo.blockUser(user.id)
                                     load()
-                                } catch (_: Exception) {}
+                                } catch (_: Exception) {
+                                    Alerts.error("Не удалось изменить статус пользователя")
+                                }
                             }
                         }
                     )
@@ -164,6 +168,7 @@ fun AdminUsersScreen(onBack: () -> Unit) {
                         roleDialogUser = null
                         load()
                     } catch (_: Exception) {
+                        Alerts.error("Не удалось изменить роль")
                         roleDialogUser = null
                     }
                 }
@@ -230,12 +235,12 @@ private fun AdminUserCard(
                         Spacer(Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFEF4444).copy(alpha = 0.12f)
+                            color = ILeaderColors.Error.copy(alpha = 0.12f)
                         ) {
                             Text(
                                 "Заблокирован",
                                 Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                fontSize = 11.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.SemiBold
+                                fontSize = 11.sp, color = ILeaderColors.Error, fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
@@ -244,13 +249,13 @@ private fun AdminUserCard(
             Surface(
                 modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onToggleBlock() },
                 shape = RoundedCornerShape(8.dp),
-                color = if (isBlocked) Color(0xFF22C55E).copy(0.12f) else Color(0xFFEF4444).copy(0.12f)
+                color = if (isBlocked) ILeaderColors.Success.copy(alpha = 0.12f) else ILeaderColors.Error.copy(alpha = 0.12f)
             ) {
                 Icon(
                     if (isBlocked) Icons.Filled.LockOpen else Icons.Filled.Block,
-                    null,
-                    tint = if (isBlocked) Color(0xFF22C55E) else Color(0xFFEF4444),
-                    modifier = Modifier.size(28.dp).padding(6.dp)
+                    contentDescription = if (isBlocked) "Разблокировать" else "Заблокировать",
+                    tint = if (isBlocked) ILeaderColors.Success else ILeaderColors.Error,
+                    modifier = Modifier.size(36.dp).padding(8.dp)
                 )
             }
         }

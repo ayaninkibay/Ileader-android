@@ -98,7 +98,8 @@ fun ProfileScreen(
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showSportSheet by remember { mutableStateOf(false) }
     var showPrivacySheet by remember { mutableStateOf(false) }
-    var showLegalSheet by remember { mutableStateOf(false) }
+    var legalSlug by remember { mutableStateOf<String?>(null) }
+    var showAboutSheet by remember { mutableStateOf(false) }
     LaunchedEffect(user.id) { vm.load(user.id, user.role) }
 
     val isDark = DarkTheme.isDark
@@ -140,11 +141,21 @@ fun ProfileScreen(
                             Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(0.3f)).clickable { showPrivacySheet = true }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Settings, null, tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape)
+                                    .pressableClick { showPrivacySheet = true }
+                                    .background(Color.Black.copy(0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = "Настройки", tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
                             }
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(0.3f)).clickable { onNotifications() }, contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Notifications, null, tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
+                            Box(
+                                Modifier.size(40.dp).clip(CircleShape)
+                                    .pressableClick(onClick = onNotifications)
+                                    .background(Color.Black.copy(0.3f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Notifications, contentDescription = "Уведомления", tint = Color.White.copy(0.9f), modifier = Modifier.size(20.dp))
                             }
                         }
                         Column(
@@ -230,7 +241,7 @@ fun ProfileScreen(
                     Spacer(Modifier.height(14.dp))
                     FadeIn(visible = true, delayMs = 250) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onEditProfile),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(14.dp)).pressableClick(onClick = onEditProfile),
                             shape = RoundedCornerShape(14.dp),
                             color = CardBg,
                             shadowElevation = 0.dp
@@ -261,7 +272,7 @@ fun ProfileScreen(
                                 when (val gs = goalsState) {
                                     is UiState.Success -> {
                                         if (gs.data.isEmpty()) {
-                                            Surface(Modifier.fillMaxWidth().clickable(onClick = onGoalCreate), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
+                                            Surface(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).pressableClick(onClick = onGoalCreate), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
                                                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                                                     Icon(Icons.Default.Add, null, tint = Accent, modifier = Modifier.size(24.dp))
                                                     Spacer(Modifier.width(12.dp))
@@ -433,7 +444,11 @@ fun ProfileScreen(
                                         UserRole.USER, UserRole.ATHLETE, UserRole.TRAINER,
                                         UserRole.REFEREE, UserRole.MEDIA
                                     )) {
-                                    MenuRow(icon = Icons.Outlined.ConfirmationNumber, label = "Мои билеты", onClick = onTickets)
+                                    val ticketsLabel = when (user.role) {
+                                        UserRole.ATHLETE, UserRole.REFEREE -> "Подтверждение участия"
+                                        else -> "Мои билеты"
+                                    }
+                                    MenuRow(icon = Icons.Outlined.ConfirmationNumber, label = ticketsLabel, onClick = onTickets)
                                     MenuDivider()
                                 }
                                 // My Articles (media only)
@@ -509,9 +524,9 @@ fun ProfileScreen(
                             shadowElevation = 0.dp
                         ) {
                             Column {
-                                MenuRow(icon = Icons.Outlined.Shield, label = "Конфиденциальность", onClick = { showLegalSheet = true })
+                                MenuRow(icon = Icons.Outlined.Shield, label = "Конфиденциальность", onClick = { legalSlug = "privacy" })
                                 MenuDivider()
-                                MenuRow(icon = Icons.Outlined.Info, label = "О приложении", onClick = { showLegalSheet = true })
+                                MenuRow(icon = Icons.Outlined.Info, label = "О приложении", onClick = { showAboutSheet = true })
                                 MenuDivider()
                                 // Sign out (red)
                                 Row(
@@ -543,7 +558,11 @@ fun ProfileScreen(
     }
     if (showSportSheet) SportSelectionSheet(user.id) { showSportSheet = false }
     if (showPrivacySheet) SettingsSheet { showPrivacySheet = false }
-    if (showLegalSheet) LegalSheet { showLegalSheet = false }
+    if (legalSlug != null) LegalSheet(initialSlug = legalSlug) { legalSlug = null }
+    if (showAboutSheet) AboutSheet(
+        onOpenLegal = { slug -> legalSlug = slug },
+        onDismiss = { showAboutSheet = false }
+    )
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -605,7 +624,7 @@ private fun TournamentCard(t: TournamentWithCountsDto, onClick: () -> Unit) {
     val imgUrl = sportImageUrl(sportName)
 
     Surface(
-        Modifier.width(220.dp).clickable(onClick = onClick),
+        Modifier.width(220.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         RoundedCornerShape(16.dp), CardBg,
         shadowElevation = 0.dp
     ) {
@@ -740,7 +759,7 @@ private fun TeamCard(membership: TeamMembershipDto, onClick: () -> Unit = {}) {
     val sportName = team.sports?.name ?: ""
     val roleName = when (membership.role) { "captain" -> "Капитан"; "member" -> "Участник"; "reserve" -> "Запасной"; else -> membership.role ?: "" }
 
-    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(50.dp).clip(RoundedCornerShape(14.dp)).background(TextMuted.copy(0.08f)), contentAlignment = Alignment.Center) {
                 Icon(sportIcon(sportName), null, Modifier.size(24.dp), tint = TextMuted)
@@ -773,7 +792,7 @@ private fun MenuRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .pressableClick(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -800,7 +819,7 @@ private fun MenuDivider() {
 private fun CompactActionButton(icon: ImageVector, label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
-    Surface(modifier.clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(modifier.clip(RoundedCornerShape(14.dp)).pressableClick(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = Accent, modifier = Modifier.size(18.dp))
@@ -835,10 +854,10 @@ private fun EmptyCard(text: String, icon: ImageVector) {
 private fun GoalCard(goal: AthleteGoal, onClick: () -> Unit = {}) {
     val isDark = DarkTheme.isDark
     val progress = if (goal.targetValue > 0) (goal.currentValue.toFloat() / goal.targetValue).coerceIn(0f, 1f) else 0f
-    val statusColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Accent }
-    val progressColor = when (goal.status) { GoalStatus.COMPLETED -> Color(0xFF22C55E); GoalStatus.FAILED -> Color(0xFFEF4444); GoalStatus.ACTIVE -> Color(0xFF3B82F6) }
+    val statusColor = when (goal.status) { GoalStatus.COMPLETED -> ILeaderColors.Success; GoalStatus.FAILED -> ILeaderColors.Error; GoalStatus.ACTIVE -> Accent }
+    val progressColor = when (goal.status) { GoalStatus.COMPLETED -> ILeaderColors.Success; GoalStatus.FAILED -> ILeaderColors.Error; GoalStatus.ACTIVE -> ILeaderColors.Info }
 
-    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick), RoundedCornerShape(16.dp), CardBg, shadowElevation = 0.dp) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(goal.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -923,7 +942,7 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
 private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
     val colors = LocalAppColors.current
-    Surface(Modifier.fillMaxWidth().clickable(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
+    Surface(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).pressableClick(onClick = onClick), RoundedCornerShape(14.dp), CardBg, shadowElevation = 0.dp) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = Accent, modifier = Modifier.size(20.dp))
@@ -937,12 +956,21 @@ private fun SettingsRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LegalSheet(onDismiss: () -> Unit) {
+internal fun LegalSheet(
+    initialSlug: String? = null,
+    onDismiss: () -> Unit
+) {
     var pages by remember { mutableStateOf<List<LegalPageDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var selectedSlug by remember { mutableStateOf(initialSlug) }
 
     LaunchedEffect(Unit) {
         try { pages = ViewerRepository().getLegalPages().filter { it.enabled } } catch (_: Exception) {}
+        // If the requested slug is missing in the platform_settings payload, fall
+        // back to the first available page so the sheet isn't empty.
+        if (selectedSlug == null || pages.none { it.slug == selectedSlug }) {
+            selectedSlug = pages.firstOrNull()?.slug
+        }
         loading = false
     }
 
@@ -953,26 +981,130 @@ private fun LegalSheet(onDismiss: () -> Unit) {
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
-            Modifier.fillMaxWidth().fillMaxHeight(0.85f).padding(horizontal = 20.dp).verticalScroll(rememberScrollState())
+            Modifier.fillMaxWidth().fillMaxHeight(0.85f).padding(horizontal = 20.dp)
         ) {
-            Text("Конфиденциальность и условия", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Spacer(Modifier.height(16.dp))
-            if (loading) {
-                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
-                }
-            } else if (pages.isEmpty()) {
-                Text("Содержимое будет добавлено позже.", fontSize = 14.sp, color = TextMuted)
-            } else {
-                pages.forEach { page ->
-                    Text(page.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Spacer(Modifier.height(8.dp))
-                    RenderLegalContent(page.content)
-                    Spacer(Modifier.height(24.dp))
-                }
+            val titleForHeader = pages.firstOrNull { it.slug == selectedSlug }?.title
+                ?: "Конфиденциальность и условия"
+            Text(titleForHeader, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(12.dp))
+
+            // Chips for switching between pages — only when there is more than one.
+            if (pages.size > 1) {
+                LegalPageChips(
+                    pages = pages,
+                    selectedSlug = selectedSlug,
+                    onSelect = { selectedSlug = it }
+                )
+                Spacer(Modifier.height(16.dp))
             }
+
+            Column(Modifier.verticalScroll(rememberScrollState()).weight(1f, fill = false)) {
+                if (loading) {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                    }
+                } else if (pages.isEmpty()) {
+                    Text("Содержимое будет добавлено позже.", fontSize = 14.sp, color = TextMuted)
+                } else {
+                    val current = pages.firstOrNull { it.slug == selectedSlug } ?: pages.first()
+                    RenderLegalContent(current.content)
+                }
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegalPageChips(
+    pages: List<LegalPageDto>,
+    selectedSlug: String?,
+    onSelect: (String) -> Unit
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(pages) { page ->
+            val isSelected = page.slug == selectedSlug
+            Surface(
+                modifier = Modifier.clickable { onSelect(page.slug) },
+                shape = RoundedCornerShape(20.dp),
+                color = if (isSelected) Accent.copy(alpha = 0.12f) else CardBg,
+                border = ButtonDefaults.outlinedButtonBorder(true).copy(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            if (isSelected) Accent.copy(alpha = 0.6f) else Border.copy(alpha = 0.4f),
+                            if (isSelected) Accent.copy(alpha = 0.3f) else Border.copy(alpha = 0.2f)
+                        )
+                    )
+                )
+            ) {
+                Text(
+                    page.title,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isSelected) Accent else TextSecondary,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AboutSheet(
+    onOpenLegal: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val versionName = remember {
+        try {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            info.versionName ?: "1.0"
+        } catch (_: Exception) { "1.0" }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = CardBg,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text("О приложении", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Spacer(Modifier.height(16.dp))
+
+            AboutRow("Название", "iLeader")
+            AboutRow("Версия", versionName)
+            AboutRow("Сайт", "ileader.kz")
+            AboutRow("Поддержка", "info@ileader.kz")
+
+            Spacer(Modifier.height(20.dp))
+            Text("Правовые документы", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextMuted)
+            Spacer(Modifier.height(8.dp))
+            SettingsRow(Icons.Outlined.Shield, "Политика конфиденциальности") {
+                onDismiss(); onOpenLegal("privacy")
+            }
+            Spacer(Modifier.height(6.dp))
+            SettingsRow(Icons.Outlined.Description, "Пользовательское соглашение") {
+                onDismiss(); onOpenLegal("terms")
+            }
+
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, fontSize = 14.sp, color = TextSecondary, modifier = Modifier.weight(1f))
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
     }
 }
 

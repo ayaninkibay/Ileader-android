@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ileader.app.ui.theme.LocalAppColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 @Composable
@@ -40,13 +44,19 @@ fun EditableCoverImage(
 ) {
     val context = LocalContext.current
     val colors = LocalAppColors.current
+    // см. EditableAvatar — bitmap-обработка не на main треде.
+    val scope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            val bytes = compressCoverImage(context, it)
-            if (bytes != null) onImageSelected(bytes)
+        uri?.let { selectedUri ->
+            scope.launch(Dispatchers.IO) {
+                val bytes = compressCoverImage(context, selectedUri)
+                if (bytes != null) {
+                    withContext(Dispatchers.Main) { onImageSelected(bytes) }
+                }
+            }
         }
     }
 
@@ -113,23 +123,38 @@ private fun compressCoverImage(
     maxSizeKb: Int = 800
 ): ByteArray? {
     return try {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-        val original = BitmapFactory.decodeStream(inputStream)
-        inputStream.close()
+        // Pass 1: бесплатная читка размеров. Без этого декод 12MP-обложки
+        // аллоцирует ~48MB и OOM-ит на бюджетных Android.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, bounds)
+        } ?: return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sample = 1
+        while (bounds.outWidth / sample > maxDimension * 2 ||
+               bounds.outHeight / sample > maxDimension * 2) {
+            sample *= 2
+        }
+
+        val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sample }
+        val decoded = context.contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, decodeOpts)
+        } ?: return null
 
         val scale = minOf(
-            maxDimension.toFloat() / original.width,
-            maxDimension.toFloat() / original.height,
+            maxDimension.toFloat() / decoded.width,
+            maxDimension.toFloat() / decoded.height,
             1f
         )
         val resized = if (scale < 1f) {
             Bitmap.createScaledBitmap(
-                original,
-                (original.width * scale).toInt(),
-                (original.height * scale).toInt(),
+                decoded,
+                (decoded.width * scale).toInt(),
+                (decoded.height * scale).toInt(),
                 true
             )
-        } else original
+        } else decoded
 
         var quality = 85
         var bytes: ByteArray
@@ -140,8 +165,8 @@ private fun compressCoverImage(
             quality -= 10
         } while (bytes.size > maxSizeKb * 1024 && quality > 20)
 
-        if (resized !== original) resized.recycle()
-        original.recycle()
+        if (resized !== decoded) resized.recycle()
+        decoded.recycle()
         bytes
     } catch (_: Exception) {
         null

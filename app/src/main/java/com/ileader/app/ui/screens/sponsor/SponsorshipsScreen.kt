@@ -70,11 +70,11 @@ fun SponsorshipsScreen(
             Box(
                 Modifier
                     .size(40.dp).clip(RoundedCornerShape(12.dp))
-                    .background(colors.accent)
-                    .clickable { onSearchClick() },
+                    .pressableClick(onClick = onSearchClick)
+                    .background(colors.accent),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Add, contentDescription = "Найти турнир", tint = Color.White, modifier = Modifier.size(20.dp))
             }
         }
 
@@ -135,7 +135,7 @@ private fun SponsorshipCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .clickable { onClick() },
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         color = colors.cardBg
     ) {

@@ -315,7 +315,7 @@ private fun NextInterviewCard(interview: InterviewDto, onClick: () -> Unit) {
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, InterviewColor.copy(0.3f)),
@@ -395,7 +395,7 @@ private fun CreateInterviewButton(onClick: () -> Unit) {
     val isDark = DarkTheme.isDark
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = androidx.compose.foundation.BorderStroke(1.dp, InterviewColor.copy(0.3f)),
@@ -491,7 +491,7 @@ private fun InterviewCard(
     val statusLabel = getInterviewStatusLabel(interview.status)
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).pressableClick(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke

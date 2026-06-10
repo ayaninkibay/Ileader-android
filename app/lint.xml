@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Project-wide Lint config.
+
+    UnsafeOptInUsageError: Android Lint historically does not recognise Kotlin's
+    @OptIn / @file:OptIn for CameraX's @ExperimentalGetImage marker, even though
+    the Kotlin compiler accepts them. Without this, every call site of any
+    function that touches `imageProxy.image` would need to chain-propagate the
+    marker through unrelated Composable trees. The CameraX team treats this API
+    as stable in practice — surfaced as "experimental" only to discourage
+    accidental misuse.
+-->
+<lint>
+    <issue id="UnsafeOptInUsageError">
+        <option name="opt-in" value="androidx.camera.core.ExperimentalGetImage" />
+    </issue>
+</lint>

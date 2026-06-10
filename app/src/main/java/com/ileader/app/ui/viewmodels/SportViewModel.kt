@@ -13,6 +13,7 @@ import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TeamWithStatsDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -88,6 +89,7 @@ class SportViewModel : ViewModel() {
                 )
                 if (sports.isNotEmpty()) applyClientFilters()
             } catch (e: Exception) {
+                AppLogger.e("SportVM.loadInitialData failed", e)
                 val msg = e.message ?: "Ошибка загрузки"
                 state = state.copy(
                     tournaments = UiState.Error(msg),
@@ -153,7 +155,9 @@ class SportViewModel : ViewModel() {
                     return@launch
                 }
                 state = state.copy(hasMoreTournaments = false)
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                AppLogger.w("SportVM.loadMoreTournaments: ${e.message}", e)
+            }
         }
     }
 
@@ -172,7 +176,9 @@ class SportViewModel : ViewModel() {
                     hasMoreNews = newItems.size >= PAGE_SIZE
                 )
                 applyClientFilters()
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                AppLogger.w("SportVM.loadMoreNews: ${e.message}", e)
+            }
         }
     }
 

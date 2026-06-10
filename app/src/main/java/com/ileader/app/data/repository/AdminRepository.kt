@@ -2,9 +2,14 @@ package com.ileader.app.data.repository
 
 import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.dto.*
+import com.ileader.app.data.util.MemoryCache
+import com.ileader.app.data.util.escapeLikePattern
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.query.Count
 import io.github.jan.supabase.postgrest.query.Order
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -19,38 +24,50 @@ class AdminRepository {
 
     // ── DASHBOARD STATS ──
 
-    suspend fun getStats(): AdminStatsDto {
-        val totalUsers = client.from("profiles")
-            .select(Columns.raw("id"))
-            .decodeList<IdOnlyDto>().size
-
-        val totalTournaments = client.from("tournaments")
-            .select(Columns.raw("id"))
-            .decodeList<IdOnlyDto>().size
-
-        val activeTournaments = client.from("tournaments")
-            .select(Columns.raw("id")) {
-                filter {
-                    neq("status", "completed")
-                    neq("status", "cancelled")
-                    neq("status", "draft")
+    suspend fun getStats(): AdminStatsDto =
+        MemoryCache.cached("admin:stats", ttlMs = 60_000L) {
+            // 4 head+count requests in parallel — no row payloads, only header counts.
+            // Was: 4 sequential SELECT id queries decoded into lists.
+            coroutineScope {
+                val totalUsersDef = async {
+                    client.from("profiles")
+                        .select(Columns.raw("id")) { count(Count.EXACT) }
+                        .countOrNull() ?: 0L
                 }
-            }
-            .decodeList<IdOnlyDto>().size
+                val totalTournamentsDef = async {
+                    client.from("tournaments")
+                        .select(Columns.raw("id")) { count(Count.EXACT) }
+                        .countOrNull() ?: 0L
+                }
+                val activeTournamentsDef = async {
+                    client.from("tournaments")
+                        .select(Columns.raw("id")) {
+                            count(Count.EXACT)
+                            filter {
+                                neq("status", "completed")
+                                neq("status", "cancelled")
+                                neq("status", "draft")
+                            }
+                        }
+                        .countOrNull() ?: 0L
+                }
+                val pendingVerificationsDef = async {
+                    client.from("profiles")
+                        .select(Columns.raw("id")) {
+                            count(Count.EXACT)
+                            filter { eq("verification", "pending") }
+                        }
+                        .countOrNull() ?: 0L
+                }
 
-        val pendingVerifications = client.from("profiles")
-            .select(Columns.raw("id")) {
-                filter { eq("verification", "pending") }
+                AdminStatsDto(
+                    totalUsers = totalUsersDef.await().toInt(),
+                    totalTournaments = totalTournamentsDef.await().toInt(),
+                    activeTournaments = activeTournamentsDef.await().toInt(),
+                    pendingVerifications = pendingVerificationsDef.await().toInt()
+                )
             }
-            .decodeList<IdOnlyDto>().size
-
-        return AdminStatsDto(
-            totalUsers = totalUsers,
-            totalTournaments = totalTournaments,
-            activeTournaments = activeTournaments,
-            pendingVerifications = pendingVerifications
-        )
-    }
+        }
 
     // ── USERS ──
 
@@ -68,7 +85,7 @@ class AdminRepository {
             .select(Columns.raw("*, roles!primary_role_id(id, name)")) {
                 filter {
                     if (roleId != null) eq("primary_role_id", roleId)
-                    if (query.isNotBlank()) ilike("name", "%$query%")
+                    if (query.isNotBlank()) ilike("name", "%${query.escapeLikePattern()}%")
                 }
                 order("created_at", Order.DESCENDING)
                 limit(100)

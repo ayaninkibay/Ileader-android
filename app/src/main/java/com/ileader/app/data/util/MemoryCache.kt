@@ -21,14 +21,12 @@ import kotlinx.coroutines.sync.withLock
  *
  * Not persisted across process death — for that use Room.
  *
- * Usage:
- *   val articles = MemoryCache.cached("articles:recent:10", 120_000L) {
- *       client.from("articles").select(...).decodeList<ArticleDto>()
- *   }
- *
- *   // When a write happens, invalidate the key so next reader re-fetches:
- *   MemoryCache.invalidate("articles:recent:10")
- *   MemoryCache.invalidateMatching("articles:") // clears all article-related keys
+ * Tombstone semantics: invalidate()/invalidateMatching()/clear() mark any
+ * in-flight loader so its result is NOT written to the entries map after
+ * completion. Existing joiners still receive the value (they need to make
+ * forward progress), but future readers won't see stale data. This makes
+ * write-through correctness safe across coroutine races — without it, a
+ * loader started before a write could clobber the just-invalidated entry.
  */
 object MemoryCache {
 
@@ -36,6 +34,10 @@ object MemoryCache {
 
     private val entries = mutableMapOf<String, Entry<*>>()
     private val inFlight = mutableMapOf<String, CompletableDeferred<*>>()
+    // Deferreds whose result must NOT land in [entries] when they finish —
+    // they were tombstoned by a concurrent invalidate()/clear(). Joiners still
+    // get the value, but the cache stays clean. Loader removes itself on exit.
+    private val tombstoned = HashSet<CompletableDeferred<*>>()
     private val mutex = Mutex()
 
     suspend fun <T : Any> cached(
@@ -71,13 +73,21 @@ object MemoryCache {
         return try {
             val value = loader()
             mutex.withLock {
-                entries[key] = Entry(value, now + ttlMs)
-                inFlight.remove(key)
+                // Skip commit if invalidate()/clear() hit us while loading.
+                if (!tombstoned.remove(ours)) {
+                    entries[key] = Entry(value, now + ttlMs)
+                }
+                // Only remove if our deferred is still the registered one —
+                // invalidate() may already have pulled it out.
+                if (inFlight[key] === ours) inFlight.remove(key)
             }
             ours.complete(value)
             value
         } catch (t: Throwable) {
-            mutex.withLock { inFlight.remove(key) }
+            mutex.withLock {
+                tombstoned.remove(ours)
+                if (inFlight[key] === ours) inFlight.remove(key)
+            }
             ours.completeExceptionally(t)
             throw t
         }
@@ -85,20 +95,33 @@ object MemoryCache {
 
     /** Drop a specific cache entry. Next read re-fetches from source. */
     suspend fun invalidate(key: String) {
-        mutex.withLock { entries.remove(key) }
+        mutex.withLock {
+            entries.remove(key)
+            // Tombstone the in-flight loader (if any) so its result won't be
+            // committed when it returns. Future callers start a fresh load.
+            inFlight.remove(key)?.let { tombstoned.add(it) }
+        }
     }
 
     /** Drop every entry whose key starts with [prefix]. */
     suspend fun invalidateMatching(prefix: String) {
         mutex.withLock {
-            val keysToRemove = entries.keys.filter { it.startsWith(prefix) }
-            keysToRemove.forEach { entries.remove(it) }
+            entries.keys.filter { it.startsWith(prefix) }.toList()
+                .forEach { entries.remove(it) }
+            inFlight.keys.filter { it.startsWith(prefix) }.toList()
+                .forEach { k -> inFlight.remove(k)?.let { tombstoned.add(it) } }
         }
     }
 
     /** Wipe everything (e.g., on sign-out). */
     suspend fun clear() {
-        mutex.withLock { entries.clear() }
+        mutex.withLock {
+            entries.clear()
+            // Tombstone every in-flight loader so post-signOut completions
+            // don't repopulate the cache with the previous user's data.
+            inFlight.values.forEach { tombstoned.add(it) }
+            inFlight.clear()
+        }
     }
 
     /** Snapshot of cache size — for debugging / metrics. */

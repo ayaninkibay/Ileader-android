@@ -28,7 +28,9 @@ import android.widget.Toast
 import com.ileader.app.data.models.User
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.SponsorRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
 
@@ -117,10 +119,12 @@ fun SponsorTournamentSearchScreen(
                     try {
                         repo.createSponsorship(user.id, t.id, tier, amount)
                         sheetTournament = null
+                        Alerts.success("Заявка на спонсорство отправлена")
                         Toast.makeText(ctx, "Заявка отправлена", Toast.LENGTH_SHORT).show()
                         reload()
                         onCreated()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось отправить заявку на спонсорство")
                         Toast.makeText(ctx, e.message ?: "Ошибка", Toast.LENGTH_LONG).show()
                     }
                 }
@@ -141,7 +145,7 @@ private fun TournamentRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .clickable { onClick() },
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         color = colors.cardBg
     ) {
@@ -178,10 +182,10 @@ private fun TournamentRow(
                 StatusBadge(text = "${tournament.participantCount} участников", color = colors.textSecondary, icon = Icons.Default.People)
                 Spacer(Modifier.weight(1f))
                 if (alreadySponsored) {
-                    StatusBadge(text = "Спонсор", color = Color(0xFF22C55E), icon = Icons.Default.Check)
+                    StatusBadge(text = "Спонсор", color = ILeaderColors.Success, icon = Icons.Default.Check)
                 } else {
                     Surface(
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { onSponsor() },
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).pressableClick(onClick = onSponsor),
                         shape = RoundedCornerShape(20.dp),
                         color = colors.accent
                     ) {

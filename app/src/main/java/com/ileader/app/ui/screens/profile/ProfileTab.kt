@@ -8,11 +8,11 @@ import androidx.compose.runtime.setValue
 import com.ileader.app.data.models.AthleteGoal
 import com.ileader.app.data.models.User
 import com.ileader.app.data.models.UserRole
-import com.ileader.app.ui.screens.common.MyTicketsScreen
-import com.ileader.app.ui.screens.common.NotificationsScreen
-import com.ileader.app.ui.screens.detail.TeamDetailScreen
-import com.ileader.app.ui.screens.common.CoursesListScreen
-import com.ileader.app.ui.screens.common.CourseDetailScreen
+import com.ileader.app.ui.screens.tickets.MyTicketsScreen
+import com.ileader.app.ui.screens.notifications.NotificationsScreen
+import com.ileader.app.ui.screens.teams.TeamDetailScreen
+import com.ileader.app.ui.screens.courses.CoursesListScreen
+import com.ileader.app.ui.screens.courses.CourseDetailScreen
 import com.ileader.app.ui.screens.media.MediaArticlesScreen
 import com.ileader.app.ui.screens.media.MediaArticleEditorScreen
 import com.ileader.app.ui.screens.athlete.AchievementsScreen
@@ -22,7 +22,7 @@ import com.ileader.app.ui.screens.athlete.RatingHistoryScreen
 import com.ileader.app.ui.screens.athlete.ResultsHistoryScreen
 import com.ileader.app.ui.screens.chat.ChatScreen
 import com.ileader.app.ui.screens.chat.ConversationsListScreen
-import com.ileader.app.ui.screens.detail.PublicProfileScreen
+import com.ileader.app.ui.screens.profile.PublicProfileScreen
 import com.ileader.app.ui.screens.verification.VerificationRequestScreen
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -182,7 +182,8 @@ fun ProfileTab(user: User, onSignOut: () -> Unit) {
         is ProfileNavState.PublicProfile -> PublicProfileScreen(
             userId = state.userId,
             onBack = { navState = ProfileNavState.Main },
-            onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) }
+            // onStartChat намеренно null — backend (`conversations` / `messages`) ещё не задеплоен.
+            // Возвращаем после миграций: onStartChat = { otherId -> navState = ProfileNavState.StartChat(otherId) }
         )
     }
 }

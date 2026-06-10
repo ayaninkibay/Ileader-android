@@ -88,7 +88,7 @@ fun LocationDetailScreen(
                                 loc.email?.let { InfoRow("Email", it) }
                                 loc.capacity?.let { InfoRow("Вместимость", "$it") }
                                 loc.rating?.let {
-                                    InfoRow("Рейтинг", String.format("%.1f / 5", it))
+                                    InfoRow("Рейтинг", String.format(java.util.Locale.ROOT, "%.1f / 5", it))
                                 }
                             }
                         }
@@ -97,7 +97,7 @@ fun LocationDetailScreen(
                         Surface(
                             modifier = Modifier.fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { onWriteReview() },
+                                .pressableClick(onClick = onWriteReview),
                             shape = RoundedCornerShape(12.dp),
                             color = Accent.copy(0.1f)
                         ) {
@@ -164,7 +164,7 @@ private fun ReviewCard(review: LocationReviewDto) {
                         Icon(Icons.Default.Star, null, tint = Color(0xFFFBBF24), modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            String.format("%.1f", review.overall),
+                            String.format(java.util.Locale.ROOT, "%.1f", review.overall),
                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextSecondary
                         )
                     }

@@ -1,5 +1,10 @@
 package com.ileader.app.ui.screens.home
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -144,32 +150,53 @@ fun HomeScreen(
                     }
 
                     // Notification bell
-                    Box(contentAlignment = Alignment.TopEnd) {
+                    Box(
+                        // Padding reserves space for the badge so it doesn't clip
+                        // outside the parent's bounds when offset.
+                        modifier = Modifier.padding(top = 2.dp, end = 2.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
+                                .pressableClick(onClick = onNotificationsClick)
                                 .background(CardBg)
                                 .border(
                                     1.dp,
                                     Border.copy(alpha = 0.3f),
                                     CircleShape
-                                )
-                                .clickable { onNotificationsClick() },
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.Notifications,
-                                contentDescription = null,
+                                contentDescription = "Уведомления",
                                 tint = TextPrimary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
                         if (viewModel.unreadNotifications > 0) {
+                            val badgeSize = if (viewModel.unreadNotifications > 9) 18.dp else 16.dp
+                            // Gentle pulse to draw attention to unread count.
+                            val pulse = rememberInfiniteTransition(label = "badgePulse")
+                            val pulseScale by pulse.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 1.12f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1100),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "badgePulseScale"
+                            )
                             Box(
                                 modifier = Modifier
-                                    .offset(x = (-4).dp, y = 4.dp)
-                                    .size(if (viewModel.unreadNotifications > 9) 18.dp else 16.dp)
+                                    .offset(x = 4.dp, y = (-4).dp)
+                                    .graphicsLayer {
+                                        scaleX = pulseScale
+                                        scaleY = pulseScale
+                                    }
+                                    .size(badgeSize)
                                     .clip(CircleShape)
                                     .background(Accent)
                                     .border(2.dp, Bg, CircleShape),
@@ -462,7 +489,7 @@ private fun SportWeekCalendar(tournaments: UiState<List<TournamentWithCountsDto>
                         }
                     } else {
                         Text(
-                            "${today.dayOfMonth}.${String.format("%02d", today.monthValue)}.${today.year}",
+                            "${today.dayOfMonth}.${String.format(java.util.Locale.ROOT, "%02d", today.monthValue)}.${today.year}",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -788,7 +815,7 @@ private fun NewsCardOverlay(article: ArticleDto, onClick: () -> Unit) {
             .width(180.dp)
             .height(200.dp)
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
+            .pressableClick(onClick = onClick)
     ) {
         // Background image
         AsyncImage(
@@ -908,16 +935,16 @@ private fun TournamentCard(tournament: TournamentWithCountsDto, onClick: () -> U
 
     Surface(
         modifier = Modifier
-            .width(260.dp),
+            .width(260.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
         border = if (isDark) DarkTheme.cardBorderStroke
         else androidx.compose.foundation.BorderStroke(0.5.dp, colors.border.copy(alpha = 0.3f)),
         shadowElevation = 0.dp
     ) {
-        Column(
-            modifier = Modifier.clickable { onClick() }
-        ) {
+        Column {
             // Cover image
             if (tournament.imageUrl != null) {
                 Box(

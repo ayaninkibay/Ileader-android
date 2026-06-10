@@ -44,9 +44,12 @@ import com.ileader.app.data.remote.dto.TeamInsertDto
 import com.ileader.app.data.repository.OrganizerRepository
 import com.ileader.app.data.repository.TrainerRepository
 import com.ileader.app.data.repository.TrainerTeamData
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -165,10 +168,12 @@ fun TeamManagementScreen(
                                 city = city.ifBlank { null }
                             )
                         )
+                        Alerts.success("Команда создана")
                         snackbarHostState.showSnackbar("Команда создана")
                         showCreateDialog = false
                         loadTeams()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось создать команду")
                         snackbarHostState.showSnackbar(e.message ?: "Ошибка создания")
                     }
                 }
@@ -198,12 +203,13 @@ fun TeamManagementScreen(
                             snackbarHostState.showSnackbar("Команда удалена")
                             loadTeams()
                         } catch (e: Exception) {
+                            Alerts.error("Не удалось удалить команду")
                             snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                         } finally {
                             deleteConfirmId = null
                         }
                     }
-                }) { Text("Удалить", color = Color(0xFFEF4444)) }
+                }) { Text("Удалить", color = ILeaderColors.Error) }
             },
             dismissButton = {
                 TextButton(onClick = { deleteConfirmId = null }) { Text("Отмена", color = TextMuted) }
@@ -238,19 +244,19 @@ private fun TeamCard(
                     Text("${team.sportName} • ${team.members.size} атлетов", fontSize = 12.sp, color = TextMuted)
                 }
                 Surface(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onManage() },
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onManage),
                     color = Accent.copy(0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Filled.PersonAdd, null, tint = Accent, modifier = Modifier.size(20.dp).padding(4.dp))
+                    Icon(Icons.Filled.PersonAdd, contentDescription = "Управление составом", tint = Accent, modifier = Modifier.size(28.dp).padding(6.dp))
                 }
                 Spacer(Modifier.width(6.dp))
                 Surface(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onDelete() },
-                    color = Color(0xFFEF4444).copy(0.1f),
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onDelete),
+                    color = ILeaderColors.Error.copy(0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Filled.Delete, null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp).padding(4.dp))
+                    Icon(Icons.Filled.Delete, contentDescription = "Удалить команду", tint = ILeaderColors.Error, modifier = Modifier.size(28.dp).padding(6.dp))
                 }
             }
         }
@@ -396,12 +402,12 @@ private fun ManageTeamMembersDialog(
                                     Text(member.name, fontSize = 13.sp, color = TextPrimary,
                                         modifier = Modifier.weight(1f))
                                     if (processingId == member.id) {
-                                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFFEF4444))
+                                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = ILeaderColors.Error)
                                     } else {
                                         Icon(
-                                            Icons.Filled.Close, null,
-                                            tint = Color(0xFFEF4444),
-                                            modifier = Modifier.size(18.dp)
+                                            Icons.Filled.Close, contentDescription = "Убрать из команды",
+                                            tint = ILeaderColors.Error,
+                                            modifier = Modifier.size(24.dp)
                                                 .clip(RoundedCornerShape(4.dp))
                                                 .clickable {
                                                     scope.launch {
@@ -411,6 +417,7 @@ private fun ManageTeamMembersDialog(
                                                             members = members.filter { it.id != member.id }
                                                             onChanged()
                                                         } catch (_: Exception) {
+                                                            Alerts.error("Не удалось убрать атлета")
                                                         } finally {
                                                             processingId = null
                                                         }
@@ -449,6 +456,7 @@ private fun ManageTeamMembersDialog(
                                                 onChanged()
                                                 results = results.filter { it.id != pid }
                                             } catch (_: Exception) {
+                                                Alerts.error("Не удалось добавить атлета в команду")
                                             } finally {
                                                 processingId = null
                                             }

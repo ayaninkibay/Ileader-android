@@ -14,6 +14,7 @@ app/build
 *.keystore
 *.jks
 *.pem
+keystore.properties
 
 # Firebase
 google-services.json
@@ -22,3 +23,8 @@ google-services.json
 .env
 .env.*
 secrets.properties
+
+# Local logs / tooling junk
+.kotlin/
+bundle-release.log
+*.hprof

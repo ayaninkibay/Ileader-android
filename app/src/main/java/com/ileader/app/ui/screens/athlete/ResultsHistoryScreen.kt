@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.TournamentResult
 import com.ileader.app.data.repository.AthleteRepository
 import com.ileader.app.ui.components.*
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -77,9 +78,9 @@ fun ResultsHistoryScreen(userId: String, onBack: () -> Unit) {
 @Composable
 private fun ResultRow(r: TournamentResult) {
     val medalColor = when (r.position) {
-        1 -> Color(0xFFFFD700)
-        2 -> Color(0xFFC0C0C0)
-        3 -> Color(0xFFCD7F32)
+        1 -> ILeaderColors.Gold
+        2 -> ILeaderColors.Silver
+        3 -> ILeaderColors.Bronze
         else -> TextMuted
     }
     DarkCardPadded {

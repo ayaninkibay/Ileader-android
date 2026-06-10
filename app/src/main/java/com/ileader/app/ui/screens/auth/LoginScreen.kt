@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -52,20 +53,63 @@ fun LoginScreen(
 ) {
     val colors = LocalAppColors.current
     val isDark = colors.bg == DarkAppColors.bg
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    // Не теряем введённый email/password при rotation/theme switch/process death.
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    // Static values (animations removed)
-    val backAlpha = 1f
-    val headerAlpha = 1f
-    val headerOffset = 0f
-    val formAlpha = 1f
-    val formOffset = 0f
-    val demoAlpha = 1f
-    val demoOffset = 0f
-    val glowShift = 0.5f
+    // Entrance animations
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+
+    val backAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(400, delayMillis = 100),
+        label = "backAlpha"
+    )
+    val headerAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 200),
+        label = "headerAlpha"
+    )
+    val headerOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(600, delayMillis = 200, easing = EaseOutBack),
+        label = "headerOffset"
+    )
+    val formAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 400),
+        label = "formAlpha"
+    )
+    val formOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 40f,
+        animationSpec = tween(600, delayMillis = 400, easing = FastOutSlowInEasing),
+        label = "formOffset"
+    )
+    val demoAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(500, delayMillis = 600),
+        label = "demoAlpha"
+    )
+    val demoOffset by animateFloatAsState(
+        targetValue = if (started) 0f else 30f,
+        animationSpec = tween(600, delayMillis = 600, easing = FastOutSlowInEasing),
+        label = "demoOffset"
+    )
+
+    // Background glow drift
+    val infiniteTransition = rememberInfiniteTransition(label = "loginBg")
+    val glowShift by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowShift"
+    )
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -313,7 +357,9 @@ fun LoginScreen(
             }
 
             // === DEMO ACCOUNTS ===
-            if (onDemoLogin != null) {
+            // Demo accounts include admin credentials — only shown in debug builds.
+            // Release builds (Play Store) must not expose hardcoded logins.
+            if (onDemoLogin != null && com.ileader.app.BuildConfig.DEBUG) {
                 Spacer(modifier = Modifier.height(28.dp))
 
                 Column(

@@ -23,8 +23,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.remote.dto.SportRequestDto
 import com.ileader.app.data.repository.AdminRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -82,12 +85,16 @@ fun AdminSportRequestsScreen(onBack: () -> Unit) {
                         req = req,
                         onApprove = {
                             scope.launch {
-                                try { repo.approveSportRequest(req.id); load() } catch (_: Exception) {}
+                                try { repo.approveSportRequest(req.id); load() } catch (_: Exception) {
+                                    Alerts.error("Не удалось одобрить заявку")
+                                }
                             }
                         },
                         onReject = {
                             scope.launch {
-                                try { repo.rejectSportRequest(req.id); load() } catch (_: Exception) {}
+                                try { repo.rejectSportRequest(req.id); load() } catch (_: Exception) {
+                                    Alerts.error("Не удалось отклонить заявку")
+                                }
                             }
                         }
                     )
@@ -127,33 +134,33 @@ private fun SportRequestCard(
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { onApprove() },
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).pressableClick(onClick = onApprove),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF22C55E).copy(alpha = 0.15f)
+                        color = ILeaderColors.Success.copy(alpha = 0.15f)
                     ) {
                         Row(
                             Modifier.padding(10.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.Check, null, tint = Color(0xFF22C55E), modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Check, null, tint = ILeaderColors.Success, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Создать спорт", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                            Text("Создать спорт", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Success)
                         }
                     }
                     Surface(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { onReject() },
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).pressableClick(onClick = onReject),
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFFEF4444).copy(alpha = 0.15f)
+                        color = ILeaderColors.Error.copy(alpha = 0.15f)
                     ) {
                         Row(
                             Modifier.padding(10.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Filled.Close, null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Close, null, tint = ILeaderColors.Error, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Отклонить", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFEF4444))
+                            Text("Отклонить", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ILeaderColors.Error)
                         }
                     }
                 }
@@ -165,9 +172,9 @@ private fun SportRequestCard(
 @Composable
 private fun StatusPill(status: String) {
     val (label, color) = when (status) {
-        "approved" -> "Одобрено" to Color(0xFF22C55E)
-        "rejected" -> "Отклонено" to Color(0xFFEF4444)
-        else -> "Ожидает" to Color(0xFFF59E0B)
+        "approved" -> "Одобрено" to ILeaderColors.Success
+        "rejected" -> "Отклонено" to ILeaderColors.Error
+        else -> "Ожидает" to ILeaderColors.Warning
     }
     Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.12f)) {
         Text(

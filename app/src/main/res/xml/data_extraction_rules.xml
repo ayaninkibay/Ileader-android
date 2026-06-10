@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    D2D (device-to-device transfer) and cloud-backup both disabled. Auth
+    session must not migrate to another device automatically — user re-logins
+    on a new install.
+-->
 <data-extraction-rules>
     <cloud-backup>
+        <exclude domain="root" path="." />
     </cloud-backup>
     <device-transfer>
+        <exclude domain="root" path="." />
     </device-transfer>
 </data-extraction-rules>

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.TicketItem
 import com.ileader.app.data.repository.TicketRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ class TicketsViewModel : ViewModel() {
                 _state.value = UiState.Success(tickets)
                 _hasTickets.value = tickets.isNotEmpty()
             } catch (e: Exception) {
+                AppLogger.e("TicketsVM.loadTickets failed", e)
                 _state.value = UiState.Error(e.message ?: "Ошибка загрузки")
             }
         }
@@ -35,7 +37,8 @@ class TicketsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _hasTickets.value = repo.hasActiveTickets(userId)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("TicketsVM.checkHasTickets: ${e.message}", e)
                 _hasTickets.value = false
             }
         }

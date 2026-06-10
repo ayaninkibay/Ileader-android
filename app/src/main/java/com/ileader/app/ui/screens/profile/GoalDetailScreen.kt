@@ -25,7 +25,9 @@ import com.ileader.app.data.models.GoalStatus
 import com.ileader.app.data.models.GoalType
 import com.ileader.app.data.remote.dto.GoalUpdateDto
 import com.ileader.app.data.repository.AthleteRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
 import kotlinx.coroutines.launch
@@ -71,6 +73,7 @@ fun GoalDetailScreen(
                 currentProgress = newValue
                 currentStatus = newStatus
             } catch (_: Exception) {
+                Alerts.error("Не удалось обновить цель")
             } finally {
                 saving = false
             }
@@ -79,14 +82,14 @@ fun GoalDetailScreen(
 
     val progress = if (goal.targetValue > 0) (currentProgress.toFloat() / goal.targetValue).coerceIn(0f, 1f) else 0f
     val statusColor = when (currentStatus) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
+        GoalStatus.COMPLETED -> ILeaderColors.Success
+        GoalStatus.FAILED -> ILeaderColors.Error
         GoalStatus.ACTIVE -> Accent
     }
     val progressColor = when (currentStatus) {
-        GoalStatus.COMPLETED -> Color(0xFF22C55E)
-        GoalStatus.FAILED -> Color(0xFFEF4444)
-        GoalStatus.ACTIVE -> Color(0xFF3B82F6)
+        GoalStatus.COMPLETED -> ILeaderColors.Success
+        GoalStatus.FAILED -> ILeaderColors.Error
+        GoalStatus.ACTIVE -> ILeaderColors.Info
     }
     val typeIcon = when (goal.type) {
         GoalType.RATING -> Icons.Default.Leaderboard
@@ -190,56 +193,56 @@ fun GoalDetailScreen(
                     ) {
                         Box(
                             modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                .background(CardBg.copy(alpha = 0.5f))
-                                .clickable(enabled = !saving && currentProgress > 0) {
+                                .pressableClick(enabled = !saving && currentProgress > 0) {
                                     saveProgress((currentProgress - 1).coerceAtLeast(0))
                                 }
+                                .background(CardBg.copy(alpha = 0.5f))
                                 .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Remove, null, tint = TextPrimary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Remove, contentDescription = "Уменьшить прогресс", tint = TextPrimary, modifier = Modifier.size(20.dp))
                         }
                         Box(
                             modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                .background(progressColor.copy(0.15f))
-                                .clickable(enabled = !saving && currentProgress < goal.targetValue) {
+                                .pressableClick(enabled = !saving && currentProgress < goal.targetValue) {
                                     val next = (currentProgress + 1).coerceAtMost(goal.targetValue)
                                     val newStatus = if (next >= goal.targetValue && goal.targetValue > 0)
                                         GoalStatus.COMPLETED else GoalStatus.ACTIVE
                                     saveProgress(next, newStatus)
                                 }
+                                .background(progressColor.copy(0.15f))
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Add, null, tint = progressColor, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Add, contentDescription = "Увеличить прогресс", tint = progressColor, modifier = Modifier.size(20.dp))
                         }
                     }
                     Spacer(Modifier.height(8.dp))
                     Box(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF22C55E).copy(0.1f))
-                            .clickable(enabled = !saving) {
+                            .pressableClick(enabled = !saving) {
                                 saveProgress(goal.targetValue, GoalStatus.COMPLETED)
                             }
+                            .background(ILeaderColors.Success.copy(0.1f))
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         if (saving) {
-                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF22C55E))
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = ILeaderColors.Success)
                         } else {
                             Text("Отметить выполненной", fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold, color = Color(0xFF22C55E))
+                                fontWeight = FontWeight.SemiBold, color = ILeaderColors.Success)
                         }
                     }
                 } else if (currentStatus == GoalStatus.COMPLETED) {
                     Spacer(Modifier.height(16.dp))
                     Box(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(CardBg.copy(0.5f))
-                            .clickable(enabled = !saving) {
+                            .pressableClick(enabled = !saving) {
                                 saveProgress(currentProgress, GoalStatus.ACTIVE)
                             }
+                            .background(CardBg.copy(0.5f))
                             .border(0.5.dp, TextMuted.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -281,6 +284,7 @@ fun GoalDetailScreen(
                                 repo.deleteGoal(goal.id)
                                 onDeleted()
                             } catch (_: Exception) {
+                                Alerts.error("Не удалось удалить цель")
                                 deleting = false
                             }
                         }

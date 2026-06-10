@@ -40,9 +40,12 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.remote.dto.InviteCodeDto
 import com.ileader.app.data.remote.dto.InviteCodeInsertDto
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -149,6 +152,7 @@ fun InviteCodesScreen(
                                             snackbarHostState.showSnackbar("Код деактивирован")
                                             loadCodes()
                                         } catch (e: Exception) {
+                                            Alerts.error("Не удалось деактивировать код")
                                             snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                                         }
                                     }
@@ -177,10 +181,12 @@ fun InviteCodesScreen(
                                 createdBy = userId
                             )
                         )
+                        Alerts.success("Код создан: $randomCode")
                         snackbarHostState.showSnackbar("Код создан: $randomCode")
                         showCreateDialog = false
                         loadCodes()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось создать код приглашения")
                         snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                     }
                 }
@@ -218,11 +224,11 @@ private fun InviteCodeCard(
         else -> code.type ?: "Код"
     }
     val typeColor = when (code.type) {
-        "athlete" -> Color(0xFFEF4444)
-        "referee" -> Color(0xFFF59E0B)
-        "sponsor" -> Color(0xFF8B5CF6)
-        "media" -> Color(0xFF3B82F6)
-        "helper" -> Color(0xFF22C55E)
+        "athlete" -> ILeaderColors.AthleteColor
+        "referee" -> ILeaderColors.RefereeColor
+        "sponsor" -> ILeaderColors.SponsorColor
+        "media" -> ILeaderColors.MediaColor
+        "helper" -> ILeaderColors.OrganizerColor
         else -> TextMuted
     }
 
@@ -286,14 +292,14 @@ private fun InviteCodeCard(
                 Spacer(Modifier.height(8.dp))
                 Surface(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-                        .clickable { onDeactivate() },
-                    color = Color(0xFFEF4444).copy(0.08f),
+                        .pressableClick(onClick = onDeactivate),
+                    color = ILeaderColors.Error.copy(0.08f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
                         "Деактивировать",
                         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        fontSize = 12.sp, color = Color(0xFFEF4444),
+                        fontSize = 12.sp, color = ILeaderColors.Error,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         fontWeight = FontWeight.SemiBold
                     )

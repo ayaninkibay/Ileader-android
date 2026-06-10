@@ -2,9 +2,9 @@ package com.ileader.app.ui.screens.sponsor
 
 import androidx.compose.runtime.*
 import com.ileader.app.data.models.User
-import com.ileader.app.ui.screens.detail.PublicProfileScreen
-import com.ileader.app.ui.screens.detail.TeamDetailScreen
-import com.ileader.app.ui.screens.detail.TournamentDetailScreen
+import com.ileader.app.ui.screens.profile.PublicProfileScreen
+import com.ileader.app.ui.screens.teams.TeamDetailScreen
+import com.ileader.app.ui.screens.tournaments.TournamentDetailScreen
 
 sealed class SponsorNavState {
     data object List : SponsorNavState()

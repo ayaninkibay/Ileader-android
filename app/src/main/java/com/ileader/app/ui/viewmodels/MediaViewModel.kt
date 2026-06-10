@@ -6,6 +6,8 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.AccreditationStats
 import com.ileader.app.data.repository.MediaRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,18 +76,23 @@ class MediaViewModel : ViewModel() {
                 try {
                     UiState.Success(repo.getMediaInvites(userId))
                 } catch (e: Exception) {
+                    AppLogger.e("MediaVM.loadAccreditations invites failed", e)
                     UiState.Error(e.message ?: "Ошибка загрузки аккредитаций")
                 }
             }
 
             val statsDeferred = async {
                 try { repo.getAccreditationStats(userId) }
-                catch (_: Exception) { AccreditationStats(0, 0, 0) }
+                catch (e: Exception) {
+                    AppLogger.w("MediaVM.loadAccreditations stats: ${e.message}", e); AccreditationStats(0, 0, 0)
+                }
             }
 
             val mapDeferred = async {
                 try { repo.getAccreditationMap(userId) }
-                catch (_: Exception) { emptyMap() }
+                catch (e: Exception) {
+                    AppLogger.w("MediaVM.loadAccreditations map: ${e.message}", e); emptyMap()
+                }
             }
 
             _invites.value = invitesDeferred.await()
@@ -101,6 +108,7 @@ class MediaViewModel : ViewModel() {
                 val list = repo.getUpcomingTournaments(20)
                 _upcomingTournaments.value = UiState.Success(list)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.loadUpcomingTournaments failed", e)
                 _upcomingTournaments.value = UiState.Error(e.message ?: "Ошибка загрузки турниров")
             }
         }
@@ -114,18 +122,23 @@ class MediaViewModel : ViewModel() {
                 try {
                     UiState.Success(repo.getMyArticles(userId))
                 } catch (e: Exception) {
+                    AppLogger.e("MediaVM.loadArticles failed", e)
                     UiState.Error(e.message ?: "Ошибка загрузки статей")
                 }
             }
 
             val statsDeferred = async {
                 try { repo.getArticleStats(userId) }
-                catch (_: Exception) { ArticleStatsDto() }
+                catch (e: Exception) {
+                    AppLogger.w("MediaVM.loadArticles stats: ${e.message}", e); ArticleStatsDto()
+                }
             }
 
             val topDeferred = async {
                 try { repo.getTopArticlesByViews(userId) }
-                catch (_: Exception) { emptyList() }
+                catch (e: Exception) {
+                    AppLogger.w("MediaVM.loadArticles top: ${e.message}", e); emptyList()
+                }
             }
 
             _articles.value = articlesDeferred.await()
@@ -141,6 +154,7 @@ class MediaViewModel : ViewModel() {
                 val article = repo.getArticleById(articleId)
                 _currentArticle.value = UiState.Success(article)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.loadArticle failed", e)
                 _currentArticle.value = UiState.Error(e.message ?: "Ошибка загрузки статьи")
             }
         }
@@ -155,9 +169,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.requestAccreditation(userId, tournamentId, message)
+                Alerts.success("Заявка на аккредитацию отправлена")
                 _actionState.value = UiState.Success("Заявка на аккредитацию отправлена")
                 loadAccreditations(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.requestAccreditation failed", e)
+                Alerts.error("Не удалось отправить заявку на аккредитацию")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка отправки заявки")
             }
         }
@@ -168,9 +185,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.cancelAccreditation(userId, tournamentId)
+                Alerts.success("Аккредитация отменена")
                 _actionState.value = UiState.Success("Аккредитация отменена")
                 loadAccreditations(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.cancelAccreditation failed", e)
+                Alerts.error("Не удалось отменить аккредитацию")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка отмены аккредитации")
             }
         }
@@ -181,9 +201,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.acceptInvite(inviteId, contactPhone, message)
+                Alerts.success("Приглашение принято")
                 _actionState.value = UiState.Success("Приглашение принято")
                 loadAccreditations(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.acceptInvite failed", e)
+                Alerts.error("Не удалось обработать приглашение")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка принятия приглашения")
             }
         }
@@ -194,9 +217,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.declineInvite(inviteId, reason)
+                Alerts.success("Приглашение отклонено")
                 _actionState.value = UiState.Success("Приглашение отклонено")
                 loadAccreditations(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.declineInvite failed", e)
+                Alerts.error("Не удалось обработать приглашение")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка отклонения")
             }
         }
@@ -207,9 +233,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.joinByInviteCode(code, userId)
+                Alerts.success("Аккредитация по инвайт-коду создана")
                 _actionState.value = UiState.Success("Аккредитация по инвайт-коду создана")
                 loadAccreditations(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.joinByInviteCode failed", e)
+                Alerts.error("Недействительный инвайт-код")
                 _actionState.value = UiState.Error(e.message ?: "Недействительный инвайт-код")
             }
         }
@@ -224,9 +253,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.createArticle(data)
+                Alerts.success("Статья создана")
                 _actionState.value = UiState.Success("Статья создана")
                 loadArticles(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.createArticle failed", e)
+                Alerts.error("Не удалось создать статью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка создания статьи")
             }
         }
@@ -237,9 +269,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.updateArticle(articleId, data)
+                Alerts.success("Статья обновлена")
                 _actionState.value = UiState.Success("Статья обновлена")
                 loadArticles(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.updateArticle failed", e)
+                Alerts.error("Не удалось обновить статью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка обновления статьи")
             }
         }
@@ -253,6 +288,8 @@ class MediaViewModel : ViewModel() {
                 _actionState.value = UiState.Success("Статья удалена")
                 loadArticles(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.deleteArticle failed", e)
+                Alerts.error("Не удалось удалить статью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка удаления статьи")
             }
         }
@@ -270,13 +307,16 @@ class MediaViewModel : ViewModel() {
                 try {
                     UiState.Success(repo.getMyInterviews(userId))
                 } catch (e: Exception) {
+                    AppLogger.e("MediaVM.loadInterviews failed", e)
                     UiState.Error(e.message ?: "Ошибка загрузки интервью")
                 }
             }
 
             val statsDeferred = async {
                 try { repo.getInterviewStats(userId) }
-                catch (_: Exception) { InterviewStatsDto() }
+                catch (e: Exception) {
+                    AppLogger.w("MediaVM.loadInterviews stats: ${e.message}", e); InterviewStatsDto()
+                }
             }
 
             _interviews.value = listDeferred.await()
@@ -291,6 +331,7 @@ class MediaViewModel : ViewModel() {
                 val interview = repo.getInterviewById(interviewId)
                 _currentInterview.value = UiState.Success(interview)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.loadInterview failed", e)
                 _currentInterview.value = UiState.Error(e.message ?: "Ошибка загрузки интервью")
             }
         }
@@ -300,7 +341,8 @@ class MediaViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 _athleteSearch.value = repo.searchAthletes(query)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                AppLogger.w("MediaVM.searchAthletes: ${e.message}", e)
                 _athleteSearch.value = emptyList()
             }
         }
@@ -315,9 +357,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.createInterview(data)
+                Alerts.success("Интервью создано")
                 _actionState.value = UiState.Success("Интервью создано")
                 loadInterviews(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.createInterview failed", e)
+                Alerts.error("Не удалось создать интервью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка создания интервью")
             }
         }
@@ -328,9 +373,12 @@ class MediaViewModel : ViewModel() {
             _actionState.value = UiState.Loading
             try {
                 repo.updateInterview(interviewId, data)
+                Alerts.success("Интервью обновлено")
                 _actionState.value = UiState.Success("Интервью обновлено")
                 loadInterviews(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.updateInterview failed", e)
+                Alerts.error("Не удалось обновить интервью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка обновления интервью")
             }
         }
@@ -344,6 +392,8 @@ class MediaViewModel : ViewModel() {
                 _actionState.value = UiState.Success("Интервью удалено")
                 loadInterviews(userId)
             } catch (e: Exception) {
+                AppLogger.e("MediaVM.deleteInterview failed", e)
+                Alerts.error("Не удалось удалить интервью")
                 _actionState.value = UiState.Error(e.message ?: "Ошибка удаления интервью")
             }
         }

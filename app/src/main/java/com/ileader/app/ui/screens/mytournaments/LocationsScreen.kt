@@ -38,9 +38,12 @@ import androidx.compose.ui.unit.sp
 import com.ileader.app.data.remote.dto.LocationDto
 import com.ileader.app.data.remote.dto.LocationInsertDto
 import com.ileader.app.data.repository.OrganizerRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -98,7 +101,7 @@ fun LocationsScreen(
                 // ── Create button ──
                 Surface(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .clickable { showCreateDialog = true },
+                        .pressableClick { showCreateDialog = true },
                     shape = RoundedCornerShape(12.dp),
                     color = Accent.copy(alpha = 0.1f)
                 ) {
@@ -160,15 +163,18 @@ fun LocationsScreen(
                     try {
                         if (editingLocation != null) {
                             repo.updateLocation(editingLocation!!.id ?: "", data)
+                            Alerts.success("Локация обновлена")
                             snackbarHostState.showSnackbar("Локация обновлена")
                         } else {
                             repo.createLocation(data.copy(ownerId = userId))
+                            Alerts.success("Локация создана")
                             snackbarHostState.showSnackbar("Локация создана")
                         }
                         showCreateDialog = false
                         editingLocation = null
                         loadLocations()
                     } catch (e: Exception) {
+                        Alerts.error("Не удалось сохранить локацию")
                         snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                     }
                 }
@@ -191,12 +197,13 @@ fun LocationsScreen(
                             snackbarHostState.showSnackbar("Локация удалена")
                             loadLocations()
                         } catch (e: Exception) {
+                            Alerts.error("Не удалось удалить локацию")
                             snackbarHostState.showSnackbar(e.message ?: "Ошибка")
                         } finally {
                             deleteConfirmId = null
                         }
                     }
-                }) { Text("Удалить", color = Color(0xFFEF4444)) }
+                }) { Text("Удалить", color = ILeaderColors.Error) }
             },
             dismissButton = {
                 TextButton(onClick = { deleteConfirmId = null }) { Text("Отмена", color = TextMuted) }
@@ -233,19 +240,19 @@ private fun LocationCard(
                     }
                 }
                 Surface(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onEdit() },
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onEdit),
                     color = Accent.copy(0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Filled.Edit, null, tint = Accent, modifier = Modifier.size(20.dp).padding(4.dp))
+                    Icon(Icons.Filled.Edit, contentDescription = "Редактировать", tint = Accent, modifier = Modifier.size(28.dp).padding(6.dp))
                 }
                 Spacer(Modifier.width(6.dp))
                 Surface(
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onDelete() },
-                    color = Color(0xFFEF4444).copy(0.1f),
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).pressableClick(onClick = onDelete),
+                    color = ILeaderColors.Error.copy(0.1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(Icons.Filled.Delete, null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp).padding(4.dp))
+                    Icon(Icons.Filled.Delete, contentDescription = "Удалить", tint = ILeaderColors.Error, modifier = Modifier.size(28.dp).padding(6.dp))
                 }
             }
             location.address?.let {

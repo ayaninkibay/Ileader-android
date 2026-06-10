@@ -36,6 +36,7 @@ import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.remote.dto.TournamentWithCountsDto
 import com.ileader.app.data.repository.HelperRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.*
 import com.ileader.app.ui.theme.ILeaderColors
 import com.ileader.app.ui.theme.LocalAppColors
@@ -183,7 +184,7 @@ fun MyTournamentsScreen(
                         border = if (!isSelected && isDark) androidx.compose.foundation.BorderStroke(1.dp, Border.copy(0.2f))
                         else if (!isSelected) androidx.compose.foundation.BorderStroke(0.5.dp, Border.copy(0.3f)) else null,
                         shadowElevation = 0.dp,
-                        modifier = Modifier.weight(1f).clickable { selectedTab = tab; selectedFilter = Filter.ALL }
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).pressableClick { selectedTab = tab; selectedFilter = Filter.ALL }
                     ) {
                         Row(
                             Modifier.padding(vertical = 12.dp),
@@ -469,10 +470,10 @@ fun MyTournamentsScreen(
                 ) {
                     Box(
                         Modifier.size(36.dp).clip(CircleShape)
-                            .background(Color(0xFF3B82F6).copy(0.1f)),
+                            .background(ILeaderColors.Info.copy(0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.QrCode, null, tint = Color(0xFF3B82F6), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.QrCode, null, tint = ILeaderColors.Info, modifier = Modifier.size(20.dp))
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
@@ -507,11 +508,11 @@ fun MyTournamentsScreen(
                     )
                     joinError?.let {
                         Spacer(Modifier.height(6.dp))
-                        Text(it, fontSize = 12.sp, color = Color(0xFFEF4444))
+                        Text(it, fontSize = 12.sp, color = ILeaderColors.Error)
                     }
                     joinResult?.let {
                         Spacer(Modifier.height(6.dp))
-                        Text("Вы стали помощником: $it", fontSize = 12.sp, color = Color(0xFF22C55E), fontWeight = FontWeight.SemiBold)
+                        Text("Вы стали помощником: $it", fontSize = 12.sp, color = ILeaderColors.Success, fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
@@ -531,7 +532,9 @@ fun MyTournamentsScreen(
                                 try {
                                     val name = helperRepo.redeemHelperCode(joinCode.trim(), user.id)
                                     joinResult = name
+                                    Alerts.success("Вы присоединились к турниру")
                                 } catch (e: Exception) {
+                                    Alerts.error("Неверный код или код истёк")
                                     joinError = e.message ?: "Ошибка"
                                 } finally {
                                     joinLoading = false
@@ -609,9 +612,9 @@ private fun HeroSection(
 
             // Stat cards row
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeroStatCard("Всего", total, Icons.Default.EmojiEvents, Color(0xFF3B82F6), Modifier.weight(1f))
-                HeroStatCard("Активных", active, Icons.Default.PlayArrow, Color(0xFF10B981), Modifier.weight(1f))
-                HeroStatCard("Завершённых", completed, Icons.Default.Check, Color(0xFF8B5CF6), Modifier.weight(1f))
+                HeroStatCard("Всего", total, Icons.Default.EmojiEvents, ILeaderColors.Info, Modifier.weight(1f))
+                HeroStatCard("Активных", active, Icons.Default.PlayArrow, ILeaderColors.Success, Modifier.weight(1f))
+                HeroStatCard("Завершённых", completed, Icons.Default.Check, ILeaderColors.SponsorColor, Modifier.weight(1f))
             }
         }
     }
@@ -645,7 +648,11 @@ private fun CountdownCard(
     val imgUrl = data.imageUrl ?: data.sportName?.let { SportViewModel.getFallbackImage(SportDto(id = "", name = it)) }
 
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         color = CardBg,
         shadowElevation = 0.dp,
@@ -728,7 +735,7 @@ private fun FilterChips(selected: Filter, onSelect: (Filter) -> Unit, counts: Ma
                 color = if (isSelected) Accent else CardBg,
                 border = if (!isSelected && isDark) DarkTheme.cardBorderStroke
                 else if (!isSelected) androidx.compose.foundation.BorderStroke(0.5.dp, Border.copy(0.3f)) else null,
-                modifier = Modifier.clickable { onSelect(filter) }
+                modifier = Modifier.clip(RoundedCornerShape(50)).pressableClick { onSelect(filter) }
             ) {
                 Row(
                     Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -778,7 +785,8 @@ private fun BigTournamentCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clickable(onClick = onClick),
+            .clip(RoundedCornerShape(20.dp))
+            .pressableClick(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         color = CardBg,
         shadowElevation = 0.dp,
@@ -882,7 +890,7 @@ private fun BigTournamentCard(
                             LinearProgressIndicator(
                                 progress = { progress },
                                 modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)),
-                                color = if (progress > 0.8f) Color(0xFFEF4444) else Accent,
+                                color = if (progress > 0.8f) ILeaderColors.Error else Accent,
                                 trackColor = Border.copy(0.2f),
                                 strokeCap = StrokeCap.Round
                             )
@@ -1012,11 +1020,11 @@ private fun getStatusLabel(status: String): String = when (status) {
 }
 
 private fun getStatusColor(status: String): Color = when (status) {
-    "registration_open" -> Color(0xFF22C55E)
-    "in_progress" -> Color(0xFF3B82F6)
-    "check_in" -> Color(0xFF8B5CF6)
-    "completed" -> Color(0xFF6B7280)
-    "cancelled" -> Color(0xFFEF4444)
-    "draft" -> Color(0xFFF59E0B)
-    else -> Color(0xFF6B7280)
+    "registration_open" -> ILeaderColors.Success
+    "in_progress" -> ILeaderColors.Info
+    "check_in" -> ILeaderColors.SponsorColor
+    "completed" -> ILeaderColors.ViewerColor
+    "cancelled" -> ILeaderColors.Error
+    "draft" -> ILeaderColors.Warning
+    else -> ILeaderColors.ViewerColor
 }

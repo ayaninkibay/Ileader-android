@@ -20,9 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ileader.app.data.models.User
 import com.ileader.app.data.repository.AdminRepository
+import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
 import com.ileader.app.ui.components.DarkTheme
+import com.ileader.app.ui.components.pressableClick
+import com.ileader.app.ui.theme.ILeaderColors
 import kotlinx.coroutines.launch
 
 private val Bg: Color @Composable get() = DarkTheme.Bg
@@ -90,20 +93,22 @@ fun VerificationRequestScreen(
             )
 
             error?.let {
-                Text(it, fontSize = 12.sp, color = Color(0xFFEF4444))
+                Text(it, fontSize = 12.sp, color = ILeaderColors.Error)
             }
 
             Surface(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable(enabled = !submitting) {
+                    .pressableClick(enabled = !submitting) {
                         scope.launch {
                             submitting = true
                             error = null
                             try {
                                 repo.submitVerificationRequest(user.id, description.takeIf { it.isNotBlank() })
+                                Alerts.success("Заявка на верификацию отправлена")
                                 onSubmitted()
                             } catch (e: Exception) {
+                                Alerts.error("Не удалось отправить заявку")
                                 error = e.message ?: "Ошибка отправки"
                             } finally {
                                 submitting = false

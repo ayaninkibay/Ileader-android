@@ -1,3 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Auto Backup is disabled via android:allowBackup="false" in the manifest.
+    This file remains for forward-compatibility — Android may surface a lint
+    warning if it's removed while the attribute is declared.
+
+    Rationale: the DataStore preferences contain the Supabase auth session
+    (refresh token). Backing it up to the user's Google Drive would let the
+    token survive uninstalls and re-installs on other devices, which is not
+    the security model we want.
+-->
 <full-backup-content>
+    <exclude domain="root" path="." />
 </full-backup-content>

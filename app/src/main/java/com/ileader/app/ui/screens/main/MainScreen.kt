@@ -1,5 +1,14 @@
 package com.ileader.app.ui.screens.main
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -12,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,29 +77,35 @@ fun MainScreen(
         Box(
             modifier = Modifier.fillMaxSize().background(colors.bg)
         ) {
-            // Content area
+            // Content area — crossfade between tabs for a softer feel than a hard swap.
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .navigationBarsPadding()
                     .padding(bottom = 74.dp)
             ) {
-                when (selectedRoute) {
-                    "home" -> HomeTab(
-                        user = user,
-                        onNavigateToSport = { selectedRoute = "sport" }
-                    )
-                    "sport" -> SportTab(user = user)
-                    "my_tournaments" -> {
-                        if (user.role == UserRole.MEDIA) {
-                            MediaTab(user = user)
-                        } else if (user.role == UserRole.SPONSOR) {
-                            SponsorTab(user = user)
-                        } else {
-                            MyTournamentsTab(user = user, onSignOut = onSignOut)
+                androidx.compose.animation.Crossfade(
+                    targetState = selectedRoute,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "tabContent"
+                ) { route ->
+                    when (route) {
+                        "home" -> HomeTab(
+                            user = user,
+                            onNavigateToSport = { selectedRoute = "sport" }
+                        )
+                        "sport" -> SportTab(user = user)
+                        "my_tournaments" -> {
+                            if (user.role == UserRole.MEDIA) {
+                                MediaTab(user = user)
+                            } else if (user.role == UserRole.SPONSOR) {
+                                SponsorTab(user = user)
+                            } else {
+                                MyTournamentsTab(user = user, onSignOut = onSignOut)
+                            }
                         }
+                        "profile" -> ProfileTab(user = user, onSignOut = onSignOut)
                     }
-                    "profile" -> ProfileTab(user = user, onSignOut = onSignOut)
                 }
             }
 
@@ -178,8 +194,12 @@ private fun BottomBarItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pillAlpha = if (isSelected) 1f else 0f
-    val iconAlpha = if (isSelected) 1f else 0.6f
+    // Animate the unselected icon's opacity for a soft cross-fade with the pill.
+    val unselectedIconAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 0f else 0.7f,
+        animationSpec = tween(durationMillis = 220),
+        label = "unselectedIconAlpha"
+    )
 
     Box(
         modifier = modifier
@@ -191,18 +211,24 @@ private fun BottomBarItem(
             ) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        // Pill background
-        Box(
-            modifier = Modifier
-                .alpha(pillAlpha)
-                .clip(RoundedCornerShape(18.dp))
-                .background(pillBg)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            contentAlignment = Alignment.Center
+        // Pill grows in with a springy scale + fades on selection change.
+        AnimatedVisibility(
+            visible = isSelected,
+            enter = scaleIn(
+                initialScale = 0.5f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeIn(tween(180)),
+            exit = scaleOut(targetScale = 0.7f, animationSpec = tween(150)) + fadeOut(tween(120))
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(pillBg)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
                 BadgedBox(
                     badge = {
@@ -226,8 +252,8 @@ private fun BottomBarItem(
             }
         }
 
-        // Unselected icon (shown when pill is hidden)
-        if (!isSelected) {
+        // Unselected icon — fades out as the pill comes in (no hard snap).
+        if (unselectedIconAlpha > 0.01f) {
             BadgedBox(
                 badge = {
                     if (item.badge > 0) {
@@ -238,12 +264,13 @@ private fun BottomBarItem(
                             Text(item.badge.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
-                }
+                },
+                modifier = Modifier.graphicsLayer { alpha = unselectedIconAlpha }
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.label,
-                    modifier = Modifier.size(24.dp).alpha(iconAlpha),
+                    modifier = Modifier.size(24.dp),
                     tint = unselectedColor
                 )
             }

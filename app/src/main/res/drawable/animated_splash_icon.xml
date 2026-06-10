@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Animated splash icon — wraps @drawable/splash_icon and animates the root
+    group on entrance. Used by windowSplashScreenAnimatedIcon in the theme.
+    The referenced @drawable/splash_icon resolves to either the light or the
+    drawable-night variant automatically based on system dark-mode.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_icon">
+    <target
+        android:name="root_anim"
+        android:animation="@animator/splash_icon_scale" />
+</animated-vector>

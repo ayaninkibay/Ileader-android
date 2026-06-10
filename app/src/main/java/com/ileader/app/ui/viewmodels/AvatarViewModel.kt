@@ -3,6 +3,8 @@ package com.ileader.app.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.repository.AvatarRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +29,10 @@ class AvatarViewModel : ViewModel() {
             try {
                 val url = repo.uploadAvatar(userId, imageBytes)
                 _uploadedUrl.value = url
+                Alerts.success("Аватар обновлён")
             } catch (e: Exception) {
+                AppLogger.e("AvatarVM.uploadAvatar failed", e)
+                Alerts.error("Не удалось загрузить аватар")
                 _error.value = e.message ?: "Ошибка загрузки"
             } finally {
                 _isUploading.value = false

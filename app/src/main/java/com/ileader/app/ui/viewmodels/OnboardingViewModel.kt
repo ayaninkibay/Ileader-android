@@ -8,6 +8,8 @@ import com.ileader.app.data.remote.SupabaseModule
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.SportDto
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.Alerts
+import com.ileader.app.data.util.AppLogger
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,6 +47,7 @@ class OnboardingViewModel : ViewModel() {
                 val sports = repo.getSports()
                 _sportsState.value = UiState.Success(sports)
             } catch (e: Exception) {
+                AppLogger.e("OnboardingVM.loadSports failed", e)
                 _sportsState.value = UiState.Error(e.message ?: "Ошибка загрузки спортов")
             }
         }
@@ -89,6 +92,8 @@ class OnboardingViewModel : ViewModel() {
 
                 onComplete()
             } catch (e: Exception) {
+                AppLogger.e("OnboardingVM.saveSports failed", e)
+                Alerts.error("Не удалось сохранить выбор спорта")
                 _sportsState.value = UiState.Error(e.message ?: "Ошибка сохранения")
             } finally {
                 _isSaving.value = false

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.ileader.app.data.remote.UiState
 import com.ileader.app.data.remote.dto.*
 import com.ileader.app.data.repository.ViewerRepository
+import com.ileader.app.data.util.AppLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -57,6 +58,7 @@ class PublicProfileViewModel : ViewModel() {
                     )
                 )
             } catch (e: Exception) {
+                AppLogger.e("PublicProfileVM.load failed", e)
                 state = UiState.Error(e.message ?: "Ошибка загрузки профиля")
             }
         }
