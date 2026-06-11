@@ -56,8 +56,21 @@ private sealed class ProfileNavState {
 }
 
 @Composable
-fun ProfileTab(user: User, onSignOut: () -> Unit) {
+fun ProfileTab(
+    user: User,
+    onSignOut: () -> Unit,
+    pendingChatConversationId: String? = null,
+    onPendingChatConsumed: () -> Unit = {}
+) {
     var navState by remember { mutableStateOf<ProfileNavState>(ProfileNavState.Main) }
+
+    // Тап по push «Новое сообщение» — открываем диалог сразу.
+    LaunchedEffect(pendingChatConversationId) {
+        pendingChatConversationId?.let { conversationId ->
+            navState = ProfileNavState.Chat(conversationId, "Диалог")
+            onPendingChatConsumed()
+        }
+    }
 
     when (val state = navState) {
         is ProfileNavState.Main -> {

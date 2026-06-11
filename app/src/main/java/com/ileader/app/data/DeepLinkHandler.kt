@@ -19,14 +19,25 @@ data class DeepLinkTarget(
 enum class DeepLinkType {
     TOURNAMENT,
     ATHLETE_PROFILE,
-    TEAM_PROFILE
+    TEAM_PROFILE,
+    CONVERSATION
 }
 
 object DeepLinkHandler {
 
     fun parse(intent: Intent?): DeepLinkTarget? {
-        val uri = intent?.data ?: return null
-        return parseUri(uri)
+        intent ?: return null
+        intent.data?.let { return parseUri(it) }
+        // Тап по push-уведомлению: NotificationHelper кладёт FCM data-пейлоад
+        // в extras (type='message' + conversation_id из триггера
+        // messages_notify_participants).
+        if (intent.getStringExtra("notification_type") == "message") {
+            val conversationId = intent.getStringExtra("conversation_id")
+            if (!conversationId.isNullOrBlank()) {
+                return DeepLinkTarget(DeepLinkType.CONVERSATION, conversationId)
+            }
+        }
+        return null
     }
 
     fun parseUri(uri: Uri): DeepLinkTarget? {

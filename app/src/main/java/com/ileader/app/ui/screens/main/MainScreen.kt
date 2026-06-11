@@ -62,12 +62,19 @@ fun MainScreen(
     val selectedIndex = bottomNavItems.indexOfFirst { it.route == selectedRoute }
         .coerceAtLeast(0)
 
+    // Push «message» → открыть диалог внутри ProfileTab.
+    var pendingChatConversationId by remember { mutableStateOf<String?>(null) }
+
     // Deep link handling
     LaunchedEffect(deepLinkTarget) {
         if (deepLinkTarget != null) {
             when (deepLinkTarget.type) {
                 DeepLinkType.TOURNAMENT -> selectedRoute = "my_tournaments"
                 DeepLinkType.ATHLETE_PROFILE, DeepLinkType.TEAM_PROFILE -> selectedRoute = "profile"
+                DeepLinkType.CONVERSATION -> {
+                    pendingChatConversationId = deepLinkTarget.id
+                    selectedRoute = "profile"
+                }
             }
             onDeepLinkConsumed()
         }
@@ -104,7 +111,12 @@ fun MainScreen(
                                 MyTournamentsTab(user = user, onSignOut = onSignOut)
                             }
                         }
-                        "profile" -> ProfileTab(user = user, onSignOut = onSignOut)
+                        "profile" -> ProfileTab(
+                            user = user,
+                            onSignOut = onSignOut,
+                            pendingChatConversationId = pendingChatConversationId,
+                            onPendingChatConsumed = { pendingChatConversationId = null }
+                        )
                     }
                 }
             }
