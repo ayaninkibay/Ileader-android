@@ -393,12 +393,22 @@ class MediaRepository {
 
     /**
      * Search athletes by name for interview creation.
+     *
+     * profiles.role не существует (мульти-роли: primary_role_id/role_ids,
+     * подтверждено живой пробой) — старый eq("role","athlete") 400-ил
+     * подбор спортсмена. Фильтруем по primary_role_id, как остальные
+     * репозитории.
      */
     suspend fun searchAthletes(query: String): List<ProfileMinimalDto> {
+        val athleteRoleId = client.from("roles")
+            .select { filter { eq("name", "athlete") } }
+            .decodeSingle<RoleDto>()
+            .id
         return client.from("profiles")
             .select(Columns.raw("id, name, avatar_url, city")) {
                 filter {
-                    eq("role", "athlete")
+                    eq("primary_role_id", athleteRoleId)
+                    eq("status", "active")
                     if (query.isNotBlank()) {
                         ilike("name", "%${query.escapeLikePattern()}%")
                     }
