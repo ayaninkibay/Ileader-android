@@ -225,7 +225,7 @@ class ViewerRepository {
 
     suspend fun getTournamentSponsors(tournamentId: String): List<TournamentSponsorshipDto> =
         MemoryCache.cached("sponsors:$tournamentId", ttlMs = 600_000L) {
-            client.from("tournament_sponsorships")
+            client.from("sponsorships")
                 .select(Columns.raw("sponsor_id, tournament_id, tier, amount, profiles!sponsor_id(id, name, avatar_url)"))
                 { filter { eq("tournament_id", tournamentId) } }
                 .decodeList<TournamentSponsorshipDto>()

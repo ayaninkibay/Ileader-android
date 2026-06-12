@@ -13,7 +13,7 @@ class SponsorRepository {
 
     suspend fun getMySponsorships(sponsorId: String): List<TournamentSponsorshipDto> =
         MemoryCache.cached("sponsor:sponsorships:$sponsorId", ttlMs = 600_000L) {
-            client.from("tournament_sponsorships")
+            client.from("sponsorships")
                 .select(
                     Columns.raw(
                         "sponsor_id, tournament_id, tier, amount, " +
@@ -59,7 +59,7 @@ class SponsorRepository {
 
     suspend fun getSponsoredTournamentIds(sponsorId: String): Set<String> {
         val cached = MemoryCache.cached("sponsor:sponsored_ids:$sponsorId", ttlMs = 600_000L) {
-            client.from("tournament_sponsorships")
+            client.from("sponsorships")
                 .select(Columns.raw("tournament_id")) {
                     filter { eq("sponsor_id", sponsorId) }
                 }
@@ -70,7 +70,7 @@ class SponsorRepository {
     }
 
     suspend fun createSponsorship(sponsorId: String, tournamentId: String, tier: String, amount: Double) {
-        client.from("tournament_sponsorships")
+        client.from("sponsorships")
             .insert(
                 TournamentSponsorshipInsertDto(
                     sponsorId = sponsorId,
@@ -85,7 +85,7 @@ class SponsorRepository {
     }
 
     suspend fun deleteSponsorship(sponsorId: String, tournamentId: String) {
-        client.from("tournament_sponsorships")
+        client.from("sponsorships")
             .delete {
                 filter {
                     eq("sponsor_id", sponsorId)
