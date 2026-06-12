@@ -554,7 +554,13 @@ fun ProfileScreen(
         )
     }
     if (showSportSheet) SportSelectionSheet(user.id) { showSportSheet = false }
-    if (showPrivacySheet) SettingsSheet { showPrivacySheet = false }
+    if (showPrivacySheet) SettingsSheet(
+        onDismiss = { showPrivacySheet = false },
+        onAccountDeleted = {
+            showPrivacySheet = false
+            onSignOut()
+        }
+    )
     if (legalSlug != null) LegalSheet(initialSlug = legalSlug) { legalSlug = null }
     if (showAboutSheet) AboutSheet(
         onOpenLegal = { slug -> legalSlug = slug },
@@ -881,10 +887,13 @@ private fun GoalCard(goal: AthleteGoal, onClick: () -> Unit = {}) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsSheet(onDismiss: () -> Unit) {
+private fun SettingsSheet(onDismiss: () -> Unit, onAccountDeleted: () -> Unit = {}) {
     var pages by remember { mutableStateOf<List<LegalPageDto>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var showLegal by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var deletingAccount by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         try {
@@ -911,6 +920,11 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
                 ThemeSwitcherCard()
                 LanguageSwitcherCard()
                 SettingsRow(Icons.Outlined.Shield, "Конфиденциальность и условия") { showLegal = true }
+                // Самоудаление аккаунта — обязательное требование App Store
+                // (5.1.1(v)) и Google Play при наличии регистрации.
+                SettingsRow(Icons.Outlined.DeleteForever, "Удалить аккаунт") {
+                    if (!deletingAccount) showDeleteConfirm = true
+                }
             } else {
                 // Legal content
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showLegal = false }) {
@@ -936,6 +950,57 @@ private fun SettingsSheet(onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height(32.dp))
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!deletingAccount) showDeleteConfirm = false },
+            containerColor = CardBg,
+            title = { Text("Удалить аккаунт?", fontWeight = FontWeight.SemiBold, color = TextPrimary) },
+            text = {
+                Text(
+                    "Будут безвозвратно удалены профиль, участия в турнирах, результаты, цели и сообщения. Это действие нельзя отменить.",
+                    color = TextMuted,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !deletingAccount,
+                    onClick = {
+                        deletingAccount = true
+                        scope.launch {
+                            try {
+                                com.ileader.app.data.remote.AccountApi.deleteAccount()
+                                com.ileader.app.data.util.Alerts.success("Аккаунт удалён")
+                                showDeleteConfirm = false
+                                onAccountDeleted()
+                            } catch (e: Exception) {
+                                com.ileader.app.data.util.AppLogger.e("deleteAccount failed", e)
+                                com.ileader.app.data.util.Alerts.error(
+                                    e.message ?: "Не удалось удалить аккаунт"
+                                )
+                            } finally {
+                                deletingAccount = false
+                            }
+                        }
+                    }
+                ) {
+                    if (deletingAccount) {
+                        CircularProgressIndicator(
+                            color = Accent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp)
+                        )
+                    } else {
+                        Text("Удалить", color = Accent, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !deletingAccount, onClick = { showDeleteConfirm = false }) {
+                    Text("Отмена", color = TextMuted)
+                }
+            }
+        )
     }
 }
 
