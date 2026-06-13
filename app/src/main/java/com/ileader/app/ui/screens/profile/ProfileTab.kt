@@ -60,7 +60,9 @@ fun ProfileTab(
     user: User,
     onSignOut: () -> Unit,
     pendingChatConversationId: String? = null,
-    onPendingChatConsumed: () -> Unit = {}
+    onPendingChatConsumed: () -> Unit = {},
+    pendingOpenNotifications: Boolean = false,
+    onPendingNotificationsConsumed: () -> Unit = {}
 ) {
     var navState by remember { mutableStateOf<ProfileNavState>(ProfileNavState.Main) }
 
@@ -69,6 +71,14 @@ fun ProfileTab(
         pendingChatConversationId?.let { conversationId ->
             navState = ProfileNavState.Chat(conversationId, "Диалог")
             onPendingChatConsumed()
+        }
+    }
+
+    // Тап по любому другому пушу — открываем экран уведомлений.
+    LaunchedEffect(pendingOpenNotifications) {
+        if (pendingOpenNotifications) {
+            navState = ProfileNavState.Notifications
+            onPendingNotificationsConsumed()
         }
     }
 

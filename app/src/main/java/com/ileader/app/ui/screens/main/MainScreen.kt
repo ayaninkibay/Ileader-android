@@ -64,6 +64,8 @@ fun MainScreen(
 
     // Push «message» → открыть диалог внутри ProfileTab.
     var pendingChatConversationId by remember { mutableStateOf<String?>(null) }
+    // Прочие пуши → открыть экран уведомлений внутри ProfileTab.
+    var pendingOpenNotifications by remember { mutableStateOf(false) }
 
     // Deep link handling
     LaunchedEffect(deepLinkTarget) {
@@ -73,6 +75,10 @@ fun MainScreen(
                 DeepLinkType.ATHLETE_PROFILE, DeepLinkType.TEAM_PROFILE -> selectedRoute = "profile"
                 DeepLinkType.CONVERSATION -> {
                     pendingChatConversationId = deepLinkTarget.id
+                    selectedRoute = "profile"
+                }
+                DeepLinkType.NOTIFICATIONS -> {
+                    pendingOpenNotifications = true
                     selectedRoute = "profile"
                 }
             }
@@ -115,7 +121,9 @@ fun MainScreen(
                             user = user,
                             onSignOut = onSignOut,
                             pendingChatConversationId = pendingChatConversationId,
-                            onPendingChatConsumed = { pendingChatConversationId = null }
+                            onPendingChatConsumed = { pendingChatConversationId = null },
+                            pendingOpenNotifications = pendingOpenNotifications,
+                            onPendingNotificationsConsumed = { pendingOpenNotifications = false }
                         )
                     }
                 }

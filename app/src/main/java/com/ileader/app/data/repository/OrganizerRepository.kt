@@ -140,7 +140,12 @@ class OrganizerRepository {
     suspend fun getParticipants(tournamentId: String): List<ParticipantDto> {
         return client.from("tournament_participants")
             .select(Columns.raw("*, profiles(id, name, email, avatar_url), teams(id, name)"))
-            { filter { eq("tournament_id", tournamentId) } }
+            {
+                filter { eq("tournament_id", tournamentId) }
+                // Кап 2000 (паритет с iOS): без лимита PostgREST по умолчанию
+                // отдаёт всё, и на крупном турнире это риск OOM/таймаута.
+                limit(2000)
+            }
             .decodeList<ParticipantDto>()
     }
 
@@ -212,7 +217,14 @@ class OrganizerRepository {
 
     suspend fun getBracket(tournamentId: String): List<BracketMatchDto> {
         return client.from("bracket_matches")
-            .select { filter { eq("tournament_id", tournamentId) } }
+            .select {
+                filter { eq("tournament_id", tournamentId) }
+                order("round", Order.ASCENDING)
+                order("match_number", Order.ASCENDING)
+                // Кап 2000 (паритет с iOS) — большие double-elim сетки иначе
+                // тянулись без лимита.
+                limit(2000)
+            }
             .decodeList<BracketMatchDto>()
     }
 

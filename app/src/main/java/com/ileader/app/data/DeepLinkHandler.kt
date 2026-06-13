@@ -20,7 +20,8 @@ enum class DeepLinkType {
     TOURNAMENT,
     ATHLETE_PROFILE,
     TEAM_PROFILE,
-    CONVERSATION
+    CONVERSATION,
+    NOTIFICATIONS
 }
 
 object DeepLinkHandler {
@@ -31,11 +32,18 @@ object DeepLinkHandler {
         // Тап по push-уведомлению: NotificationHelper кладёт FCM data-пейлоад
         // в extras (type='message' + conversation_id из триггера
         // messages_notify_participants).
-        if (intent.getStringExtra("notification_type") == "message") {
+        val notificationType = intent.getStringExtra("notification_type")
+        if (notificationType == "message") {
             val conversationId = intent.getStringExtra("conversation_id")
             if (!conversationId.isNullOrBlank()) {
                 return DeepLinkTarget(DeepLinkType.CONVERSATION, conversationId)
             }
+        }
+        // Любой другой тип пуша (verification, sponsorship_*, sport_request,
+        // course_access_request, …) — открываем экран уведомлений: там лежит
+        // сама запись. Раньше тап просто открывал приложение.
+        if (!notificationType.isNullOrBlank()) {
+            return DeepLinkTarget(DeepLinkType.NOTIFICATIONS, "")
         }
         return null
     }
