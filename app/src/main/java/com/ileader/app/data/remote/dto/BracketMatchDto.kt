@@ -5,7 +5,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class MatchGameDto(
-    @SerialName("gameNumber") val gameNumber: Int,
+    // Дефолт 0: games — JSONB-массив без типовой защиты БД; запись без
+    // gameNumber иначе уронила бы декод всей сетки (паритет с iOS
+    // MatchGameDTO lenient-декодером).
+    @SerialName("gameNumber") val gameNumber: Int = 0,
     @SerialName("participant1Score") val participant1Score: Int = 0,
     @SerialName("participant2Score") val participant2Score: Int = 0,
     @SerialName("winnerId") val winnerId: String? = null,
