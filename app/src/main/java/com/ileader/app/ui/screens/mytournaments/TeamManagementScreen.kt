@@ -275,6 +275,9 @@ private fun CreateTeamDialog(
     var sportId by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
+    // Город — из справочника `cities` (как в регистрации/профиле), а не
+    // свободный ввод: teams.city иначе наполняется разнобоем написаний.
+    var cities by remember { mutableStateOf(com.ileader.app.data.RegistrationSupport.fallbackCitiesKZ) }
 
     LaunchedEffect(Unit) {
         try {
@@ -283,6 +286,7 @@ private fun CreateTeamDialog(
             com.ileader.app.data.util.AppLogger.e("TeamManagement: load sports failed", e)
             com.ileader.app.data.util.Alerts.error("Не удалось загрузить виды спорта — проверьте сеть")
         }
+        cities = com.ileader.app.data.RegistrationSupport.fetchCities("KZ")
     }
 
     AlertDialog(
@@ -316,7 +320,25 @@ private fun CreateTeamDialog(
                     }
                 }
 
-                DarkFormField(label = "Город", value = city, onValueChange = { city = it }, placeholder = "Алматы")
+                Text("Город", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    cities.forEach { cityName ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                .clickable { city = if (city == cityName) "" else cityName },
+                            color = if (city == cityName) Accent.copy(0.15f) else Bg,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                cityName,
+                                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                fontSize = 13.sp,
+                                color = if (city == cityName) Accent else TextPrimary,
+                                fontWeight = if (city == cityName) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
                 DarkFormField(
                     label = "Описание",
                     value = description,
