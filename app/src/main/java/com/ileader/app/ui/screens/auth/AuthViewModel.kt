@@ -144,6 +144,7 @@ class AuthViewModel : ViewModel() {
                         put("role", data.role.name.lowercase())
                         put("phone", data.phone)
                         put("city", data.city)
+                        put("country", data.country)
                         if (data.athleteSubtype != null) {
                             put("athlete_subtype", data.athleteSubtype.name.lowercase())
                         }

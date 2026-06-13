@@ -33,6 +33,9 @@ data class SignUpData(
     val phone: String,
     val city: String,
     val role: UserRole,
+    // Код страны (KZ/RU/…). Веб собирает его при регистрации и пишет в
+    // user_metadata → handle_new_user. По умолчанию KZ.
+    val country: String = "KZ",
     val sportIds: List<String>? = null,
     val athleteSubtype: AthleteSubtype? = null
 )

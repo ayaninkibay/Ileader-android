@@ -71,11 +71,19 @@ fun RegisterScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
+    var country by rememberSaveable { mutableStateOf("KZ") }
+    var cities by remember { mutableStateOf(com.ileader.app.data.RegistrationSupport.fallbackCitiesKZ) }
     var passwordVisible by remember { mutableStateOf(false) }
     var selectedRole by remember { mutableStateOf<UserRole?>(null) }
     var accepted by remember { mutableStateOf(false) }
     var legalSlug by remember { mutableStateOf<String?>(null) }
     val focusManager = LocalFocusManager.current
+
+    // Города из справочника `cities` (источник истины — БД). Перезагружаем
+    // при смене страны; смена страны сбрасывает выбранный город.
+    LaunchedEffect(country) {
+        cities = com.ileader.app.data.RegistrationSupport.fetchCities(country)
+    }
 
     Box(
         modifier = Modifier
@@ -164,7 +172,8 @@ fun RegisterScreen(
                         title = "Регистрация зрителя",
                         subtitle = "Смотрите турниры и следите за результатами",
                         name = name, email = email, password = password,
-                        phone = phone, city = city, passwordVisible = passwordVisible,
+                        phone = phone, city = city, country = country, cities = cities,
+                        passwordVisible = passwordVisible,
                         selectedRole = null, showRoleSelection = false, state = state,
                         accepted = accepted,
                         onAcceptChange = { accepted = it },
@@ -172,8 +181,9 @@ fun RegisterScreen(
                         onNameChange = { name = it },
                         onEmailChange = { email = it; onClearError() },
                         onPasswordChange = { password = it; onClearError() },
-                        onPhoneChange = { phone = it },
+                        onPhoneChange = { phone = com.ileader.app.data.RegistrationSupport.formatPhone(it) },
                         onCityChange = { city = it },
+                        onCountryChange = { country = it; city = "" },
                         onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
                         onRoleSelected = {},
                         onSubmit = {
@@ -181,7 +191,7 @@ fun RegisterScreen(
                             onSignUp(SignUpData(
                                 name = name.trim(), email = email.trim(),
                                 password = password, phone = phone.trim(),
-                                city = city.trim(), role = UserRole.USER
+                                city = city.trim(), country = country, role = UserRole.USER
                             ))
                         },
                         focusManager = focusManager
@@ -190,7 +200,8 @@ fun RegisterScreen(
                         title = "Регистрация участника",
                         subtitle = "Выберите свою роль на платформе",
                         name = name, email = email, password = password,
-                        phone = phone, city = city, passwordVisible = passwordVisible,
+                        phone = phone, city = city, country = country, cities = cities,
+                        passwordVisible = passwordVisible,
                         selectedRole = selectedRole, showRoleSelection = true, state = state,
                         accepted = accepted,
                         onAcceptChange = { accepted = it },
@@ -198,8 +209,9 @@ fun RegisterScreen(
                         onNameChange = { name = it },
                         onEmailChange = { email = it; onClearError() },
                         onPasswordChange = { password = it; onClearError() },
-                        onPhoneChange = { phone = it },
+                        onPhoneChange = { phone = com.ileader.app.data.RegistrationSupport.formatPhone(it) },
                         onCityChange = { city = it },
+                        onCountryChange = { country = it; city = "" },
                         onPasswordVisibilityToggle = { passwordVisible = !passwordVisible },
                         onRoleSelected = { selectedRole = it },
                         onSubmit = {
@@ -207,7 +219,7 @@ fun RegisterScreen(
                             onSignUp(SignUpData(
                                 name = name.trim(), email = email.trim(),
                                 password = password, phone = phone.trim(),
-                                city = city.trim(), role = selectedRole ?: UserRole.ATHLETE
+                                city = city.trim(), country = country, role = selectedRole ?: UserRole.ATHLETE
                             ))
                         },
                         focusManager = focusManager
@@ -443,6 +455,8 @@ private fun RegistrationForm(
     password: String,
     phone: String,
     city: String,
+    country: String,
+    cities: List<String>,
     passwordVisible: Boolean,
     selectedRole: UserRole?,
     showRoleSelection: Boolean,
@@ -455,6 +469,7 @@ private fun RegistrationForm(
     onPasswordChange: (String) -> Unit,
     onPhoneChange: (String) -> Unit,
     onCityChange: (String) -> Unit,
+    onCountryChange: (String) -> Unit,
     onPasswordVisibilityToggle: () -> Unit,
     onRoleSelected: (UserRole) -> Unit,
     onSubmit: () -> Unit,
@@ -569,16 +584,36 @@ private fun RegistrationForm(
                 Spacer(modifier = Modifier.height(10.dp))
                 ILeaderInputField(
                     value = phone, onValueChange = onPhoneChange,
-                    placeholder = "Телефон", leadingIcon = Icons.Default.Phone,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+                    placeholder = "+7 (777) 123-45-67", leadingIcon = Icons.Default.Phone,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                )
+                if (phone.isNotBlank() && !com.ileader.app.data.RegistrationSupport.isValidPhone(phone)) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Введите корректный номер (10–15 цифр)",
+                        fontSize = 12.sp,
+                        color = ILeaderColors.Error
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                // Страна — выбор из справочника (не свободный ввод).
+                FormDropdown(
+                    icon = Icons.Default.Public,
+                    label = com.ileader.app.data.RegistrationSupport.countryName(country),
+                    isPlaceholder = false,
+                    options = com.ileader.app.data.RegistrationSupport.countries.map { it.code to it.name },
+                    onSelect = onCountryChange
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                ILeaderInputField(
-                    value = city, onValueChange = onCityChange,
-                    placeholder = "Город", leadingIcon = Icons.Default.LocationCity,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                // Город — ТОЛЬКО выбор из справочника `cities` (web-канон),
+                // чтобы в БД не было разнобоя написаний.
+                FormDropdown(
+                    icon = Icons.Default.LocationCity,
+                    label = city.ifBlank { "Город" },
+                    isPlaceholder = city.isBlank(),
+                    options = cities.map { it to it },
+                    onSelect = onCityChange
                 )
             }
         }
@@ -623,6 +658,8 @@ private fun RegistrationForm(
         Spacer(modifier = Modifier.height(16.dp))
 
         val isFormValid = name.isNotBlank() && email.isNotBlank() && password.isNotBlank() &&
+                com.ileader.app.data.RegistrationSupport.isValidPhone(phone) &&
+                city.isNotBlank() &&
                 (!showRoleSelection || selectedRole != null) && accepted
 
         ILeaderButton(
@@ -632,6 +669,55 @@ private fun RegistrationForm(
             isLoading = state.isLoading,
             icon = Icons.Default.HowToReg
         )
+    }
+}
+
+/** Дропдаун в стиле формы: рамка как у инпутов + DropdownMenu со списком. */
+@Composable
+private fun FormDropdown(
+    icon: ImageVector,
+    label: String,
+    isPlaceholder: Boolean,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit
+) {
+    val colors = LocalAppColors.current
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(colors.cardBg)
+                .border(0.5.dp, colors.border, RoundedCornerShape(12.dp))
+                .clickable { expanded = true }
+                .padding(horizontal = 14.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, null, tint = colors.textMuted, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = label,
+                fontSize = 15.sp,
+                color = if (isPlaceholder) colors.textMuted else colors.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.ArrowDropDown, null, tint = colors.textMuted, modifier = Modifier.size(22.dp))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .heightIn(max = 320.dp)
+                .background(colors.cardBg)
+        ) {
+            options.forEach { (value, text) ->
+                DropdownMenuItem(
+                    text = { Text(text, color = colors.textPrimary, fontSize = 14.sp) },
+                    onClick = { onSelect(value); expanded = false }
+                )
+            }
+        }
     }
 }
 
