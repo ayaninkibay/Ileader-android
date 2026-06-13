@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Info
@@ -33,6 +35,8 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -108,6 +112,7 @@ fun EditProfileScreen(
     var city by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
     var country by remember { mutableStateOf("") }
+    var cities by remember { mutableStateOf(com.ileader.app.data.RegistrationSupport.fallbackCitiesKZ) }
     var bio by remember { mutableStateOf("") }
     var avatarUrl by remember { mutableStateOf<String?>(null) }
     var initialized by remember { mutableStateOf(false) }
@@ -115,6 +120,13 @@ fun EditProfileScreen(
 
     LaunchedEffect(user.id) {
         vm.load(user.id, user.role)
+    }
+
+    // Справочник городов выбранной страны (источник истины — таблица cities).
+    LaunchedEffect(country) {
+        if (country.isNotBlank()) {
+            cities = com.ileader.app.data.RegistrationSupport.fetchCities(country)
+        }
     }
 
     // Initialize form from loaded profile
@@ -433,9 +445,11 @@ fun EditProfileScreen(
                                 icon = Icons.Outlined.Phone,
                                 label = "Телефон",
                                 value = phone,
-                                onValueChange = { phone = it },
-                                placeholder = "+7 XXX XXX XX XX",
-                                keyboardType = KeyboardType.Phone
+                                onValueChange = { phone = com.ileader.app.data.RegistrationSupport.formatPhone(it) },
+                                placeholder = "+7 (777) 123-45-67",
+                                keyboardType = KeyboardType.Phone,
+                                error = if (phone.isNotBlank() && !com.ileader.app.data.RegistrationSupport.isValidPhone(phone))
+                                    "Введите корректный номер (10–15 цифр)" else null
                             )
                         }
 
@@ -448,20 +462,28 @@ fun EditProfileScreen(
                             title = "Местоположение",
                             icon = Icons.Outlined.LocationCity
                         ) {
-                            IconFormField(
-                                icon = Icons.Outlined.LocationCity,
-                                label = "Город",
-                                value = city,
-                                onValueChange = { city = it },
-                                placeholder = "Ваш город"
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            IconFormField(
+                            // Страна/город — выбор из справочника, а не свободный
+                            // ввод: иначе правка профиля снова плодит разнобой
+                            // в profiles.city.
+                            LabeledDropdown(
                                 icon = Icons.Outlined.Public,
                                 label = "Страна",
-                                value = country,
-                                onValueChange = { country = it },
-                                placeholder = "Ваша страна"
+                                value = com.ileader.app.data.RegistrationSupport.countryName(country.ifBlank { "KZ" }),
+                                isPlaceholder = country.isBlank(),
+                                options = com.ileader.app.data.RegistrationSupport.countries.map { it.code to it.name },
+                                onSelect = { country = it; city = "" }
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            LabeledDropdown(
+                                icon = Icons.Outlined.LocationCity,
+                                label = "Город",
+                                value = city.ifBlank { "Не выбрано" },
+                                isPlaceholder = city.isBlank(),
+                                // Легаси-город не из справочника показываем первым,
+                                // чтобы он не терялся.
+                                options = (if (city.isNotBlank() && city !in cities) listOf(city) else emptyList())
+                                    .plus(cities).map { it to it },
+                                onSelect = { city = it }
                             )
                         }
 
@@ -535,6 +557,67 @@ private fun FormSection(
             }
             Spacer(Modifier.height(14.dp))
             content()
+        }
+    }
+}
+
+// ══════════════════════════════════════════
+// Dropdown в стиле IconFormField (иконка слева + label + поле-селект)
+// ══════════════════════════════════════════
+
+@Composable
+private fun LabeledDropdown(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    isPlaceholder: Boolean,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit
+) {
+    val colors = LocalAppColors.current
+    var expanded by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.Top) {
+        Icon(
+            icon, null,
+            tint = TextMuted,
+            modifier = Modifier.padding(top = 28.dp).size(18.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = colors.textSecondary)
+            Spacer(Modifier.height(4.dp))
+            Box {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.cardBg)
+                        .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                        .clickable { expanded = true }
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        value,
+                        fontSize = 14.sp,
+                        color = if (isPlaceholder) TextMuted else colors.textPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(Icons.Default.ArrowDropDown, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.heightIn(max = 320.dp).background(colors.cardBg)
+                ) {
+                    options.forEach { (v, text) ->
+                        DropdownMenuItem(
+                            text = { Text(text, color = colors.textPrimary, fontSize = 14.sp) },
+                            onClick = { onSelect(v); expanded = false }
+                        )
+                    }
+                }
+            }
         }
     }
 }
