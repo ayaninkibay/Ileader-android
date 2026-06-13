@@ -144,7 +144,11 @@ object BracketGenerator {
     }
 
     private fun createPendingGames(matchFormat: String): List<GeneratedGame> {
-        val count = matchFormat.removePrefix("BO").toIntOrNull() ?: 1
+        // Число игр НЕЗАВИСИМО от формы записи: "BO3" (web), "best_of_3"
+        // (форма мобилки), "bo3" — все дают 3. Прежний removePrefix("BO")
+        // срабатывал только на "BO3"; турниры, созданные на мобилке
+        // ("best_of_3"), молча генерили 1 игру вместо 3/5.
+        val count = matchFormat.filter { it.isDigit() }.toIntOrNull()?.coerceIn(1, 9) ?: 1
         return (1..count).map { GeneratedGame(gameNumber = it) }
     }
 
