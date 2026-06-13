@@ -280,6 +280,10 @@ private fun LocationFormDialog(
     var capacity by remember { mutableStateOf(initial?.capacity?.toString() ?: "") }
     var description by remember { mutableStateOf(initial?.description ?: "") }
     var phone by remember { mutableStateOf(initial?.phone ?: "") }
+    // Город из справочника `cities` (не свободный ввод): locations.city
+    // иначе наполняется разнобоем написаний.
+    var cities by remember { mutableStateOf(com.ileader.app.data.RegistrationSupport.fallbackCitiesKZ) }
+    LaunchedEffect(Unit) { cities = com.ileader.app.data.RegistrationSupport.fetchCities("KZ") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -296,7 +300,27 @@ private fun LocationFormDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 DarkFormField(label = "Название *", value = name, onValueChange = { name = it }, placeholder = "Стадион Астана")
-                DarkFormField(label = "Город", value = city, onValueChange = { city = it }, placeholder = "Алматы")
+
+                Text("Город", fontSize = 13.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    cities.forEach { cityName ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                                .clickable { city = if (city == cityName) "" else cityName },
+                            color = if (city == cityName) Accent.copy(0.15f) else Bg,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                cityName,
+                                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                fontSize = 13.sp,
+                                color = if (city == cityName) Accent else TextPrimary,
+                                fontWeight = if (city == cityName) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+
                 DarkFormField(label = "Адрес", value = address, onValueChange = { address = it }, placeholder = "ул. Абая 1")
                 DarkFormField(
                     label = "Вместимость",
@@ -305,7 +329,15 @@ private fun LocationFormDialog(
                     placeholder = "1000",
                     keyboardType = KeyboardType.Number
                 )
-                DarkFormField(label = "Телефон", value = phone, onValueChange = { phone = it }, placeholder = "+7...")
+                DarkFormField(
+                    label = "Телефон",
+                    value = phone,
+                    onValueChange = { phone = com.ileader.app.data.RegistrationSupport.formatPhone(it) },
+                    placeholder = "+7 (777) 123-45-67",
+                    keyboardType = KeyboardType.Phone,
+                    error = if (phone.isNotBlank() && !com.ileader.app.data.RegistrationSupport.isValidPhone(phone))
+                        "Введите корректный номер (10–15 цифр)" else null
+                )
                 DarkFormField(
                     label = "Описание",
                     value = description,
