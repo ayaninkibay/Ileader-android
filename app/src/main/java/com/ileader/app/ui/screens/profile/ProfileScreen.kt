@@ -525,15 +525,17 @@ fun ProfileScreen(
                                 MenuDivider()
                                 MenuRow(icon = Icons.Outlined.Info, label = "О приложении", onClick = { showAboutSheet = true })
                                 MenuDivider()
-                                // Sign out (red)
+                                // Sign out (red). pressableClick + весь Row на
+                                // всю ширину — как у соседних MenuRow, чтобы
+                                // тап ловился по всей строке, а не у части.
                                 Row(
-                                    Modifier.fillMaxWidth().clickable { showSignOutDialog = true }
+                                    Modifier.fillMaxWidth().pressableClick { showSignOutDialog = true }
                                         .padding(horizontal = 16.dp, vertical = 14.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ExitToApp, null, tint = ILeaderColors.Error, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(14.dp))
-                                    Text("Выйти", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error)
+                                    Text("Выйти", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = ILeaderColors.Error, modifier = Modifier.weight(1f))
                                 }
                             }
                         }
