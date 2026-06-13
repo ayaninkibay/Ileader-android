@@ -50,6 +50,7 @@ import com.ileader.app.data.repository.OrganizerRepository
 import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
+import com.ileader.app.ui.components.DatePickerField
 import com.ileader.app.ui.components.DarkSwitchField
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.theme.LocalAppColors
@@ -151,30 +152,33 @@ fun TournamentCreateScreen(
                     Spacer(Modifier.height(12.dp))
                 }
 
-                // ── Dates ──
+                // ── Dates ── только выбор через календарь (нормализованный
+                // yyyy-MM-dd), чтобы в tournaments.start_date не попадал
+                // свободный текст, ломающий сортировку/«ближайшие».
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DarkFormField(
+                    DatePickerField(
                         label = "Дата начала *",
                         value = startDate,
                         onValueChange = { startDate = it },
-                        placeholder = "2026-06-15",
                         modifier = Modifier.weight(1f)
                     )
-                    DarkFormField(
+                    DatePickerField(
                         label = "Дата окончания",
                         value = endDate,
                         onValueChange = { endDate = it },
-                        placeholder = "2026-06-16",
+                        error = if (endDate.isNotBlank() && startDate.isNotBlank() && endDate < startDate)
+                            "Раньше начала" else null,
                         modifier = Modifier.weight(1f)
                     )
                 }
                 Spacer(Modifier.height(12.dp))
 
-                DarkFormField(
+                DatePickerField(
                     label = "Дедлайн регистрации",
                     value = registrationDeadline,
                     onValueChange = { registrationDeadline = it },
-                    placeholder = "2026-06-10"
+                    error = if (registrationDeadline.isNotBlank() && startDate.isNotBlank() && registrationDeadline > startDate)
+                        "Позже даты начала" else null
                 )
                 Spacer(Modifier.height(12.dp))
 
@@ -259,7 +263,12 @@ fun TournamentCreateScreen(
                 Spacer(Modifier.height(24.dp))
 
                 // ── Create button ──
-                val canCreate = name.isNotBlank() && selectedSportId.isNotBlank() && startDate.isNotBlank() && !isCreating
+                // Даты нормализованы пикером (yyyy-MM-dd) → строковое
+                // сравнение корректно для порядка.
+                val datesOk = (endDate.isBlank() || endDate >= startDate) &&
+                        (registrationDeadline.isBlank() || registrationDeadline <= startDate)
+                val canCreate = name.isNotBlank() && selectedSportId.isNotBlank() &&
+                        startDate.isNotBlank() && datesOk && !isCreating
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

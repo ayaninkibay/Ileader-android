@@ -56,6 +56,7 @@ import com.ileader.app.data.repository.OrganizerRepository
 import com.ileader.app.data.util.Alerts
 import com.ileader.app.ui.components.BackHeader
 import com.ileader.app.ui.components.DarkFormField
+import com.ileader.app.ui.components.DatePickerField
 import com.ileader.app.ui.components.DarkSwitchField
 import com.ileader.app.ui.components.DarkTheme
 import com.ileader.app.ui.components.EditableCoverImage
@@ -286,29 +287,32 @@ fun TournamentEditScreen(
                         // ══════════════════════════════
                         SectionHeader("Даты")
 
+                        // Даты — только календарь (нормализованный yyyy-MM-dd),
+                        // чтобы правка не вписывала свободный текст в start_date.
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            DarkFormField(
+                            DatePickerField(
                                 label = "Дата начала",
                                 value = startDate,
                                 onValueChange = { startDate = it },
-                                placeholder = "2026-01-01",
                                 modifier = Modifier.weight(1f)
                             )
-                            DarkFormField(
+                            DatePickerField(
                                 label = "Дата окончания",
                                 value = endDate,
                                 onValueChange = { endDate = it },
-                                placeholder = "2026-01-02",
+                                error = if (endDate.isNotBlank() && startDate.isNotBlank() && endDate < startDate)
+                                    "Раньше начала" else null,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                         Spacer(Modifier.height(12.dp))
 
-                        DarkFormField(
+                        DatePickerField(
                             label = "Дедлайн регистрации",
                             value = registrationDeadline,
                             onValueChange = { registrationDeadline = it },
-                            placeholder = "2025-12-31"
+                            error = if (registrationDeadline.isNotBlank() && startDate.isNotBlank() && registrationDeadline > startDate)
+                                "Позже даты начала" else null
                         )
 
                         Spacer(Modifier.height(20.dp))
@@ -531,7 +535,9 @@ fun TournamentEditScreen(
                         Spacer(Modifier.height(24.dp))
 
                         // ── Save button ──
-                        val enabled = !isSaving && name.isNotBlank() && startDate.isNotBlank()
+                        val datesOk = (endDate.isBlank() || endDate >= startDate) &&
+                                (registrationDeadline.isBlank() || registrationDeadline <= startDate)
+                        val enabled = !isSaving && name.isNotBlank() && startDate.isNotBlank() && datesOk
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
